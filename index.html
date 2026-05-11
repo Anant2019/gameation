@@ -3,7 +3,62 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ZenType — Calm Typing</title>
+<meta name="google-site-verification" content="MhA6kqB4AFuTrBM8Kv4IG2AjCGoAWnKm-mL3PdbEL0g" />
+
+<!-- Primary SEO -->
+<title>ZenType — Calm Typing Game | Zen Typing Practice Online</title>
+<meta name="description" content="ZenType is a free calm typing game for mindful typing practice. Improve your WPM with a zen, relaxing typing experience. Try our calm type trainer with ambient sounds and beautiful 3D visuals.">
+<meta name="keywords" content="calm typing, calm type, zen typing, calm typing game, typing practice, relaxing typing game, mindful typing, zen type, typing trainer, improve typing, calm typing speed, wpm typing, typing meditation, chill typing game, peaceful typing">
+<meta name="robots" content="index, follow">
+<meta name="author" content="ZenType">
+<meta name="theme-color" content="#0f0c1a">
+<link rel="canonical" href="https://zentype.app/">
+
+<!-- Open Graph / Facebook -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://zentype.app/">
+<meta property="og:title" content="ZenType — Calm Typing Game | Zen Typing Practice">
+<meta property="og:description" content="Practice calm typing in a zen, mindful environment. Beautiful 3D particle background, ambient sounds, and multiple modes to improve your WPM peacefully.">
+<meta property="og:image" content="https://zentype.app/og-image.png">
+<meta property="og:site_name" content="ZenType — Calm Typing">
+<meta property="og:locale" content="en_US">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:url" content="https://zentype.app/">
+<meta name="twitter:title" content="ZenType — Calm Typing Game | Zen Typing Practice">
+<meta name="twitter:description" content="Practice calm typing in a zen, mindful environment. Beautiful 3D particle background, ambient sounds, and multiple modes to improve your WPM peacefully.">
+<meta name="twitter:image" content="https://zentype.app/og-image.png">
+
+<!-- JSON-LD Structured Data -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "ZenType — Calm Typing Game",
+  "url": "https://zentype.app/",
+  "description": "A free calm typing game for mindful typing practice. Improve your WPM with zen typing exercises, ambient sounds, and a beautiful 3D visual environment.",
+  "applicationCategory": "GameApplication",
+  "operatingSystem": "Any",
+  "browserRequirements": "Requires JavaScript",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  },
+  "featureList": [
+    "Calm typing practice",
+    "Zen typing mode",
+    "Flow typing mode",
+    "Rush typing mode",
+    "WPM tracker",
+    "Ambient sound engine",
+    "3D particle background",
+    "Multiple color themes"
+  ],
+  "keywords": "calm typing, calm type, zen typing, relaxing typing game, mindful typing, typing practice"
+}
+</script>
 <script>/**
  * @license
  * Copyright 2010-2021 Three.js Authors
@@ -88,6 +143,14 @@ body{background:var(--bg);color:#fff;font-family:-apple-system,'Segoe UI',Roboto
 .mb:hover{color:rgba(255,255,255,.7)}
 .mb.on{background:rgba(255,255,255,.12);color:#fff}
 
+/* ── volume control ─────────────────────── */
+#vol-ctrl{position:absolute;bottom:28px;right:40px;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:40px;padding:5px 14px 5px 8px}
+#vol-btn{width:28px;height:28px;border-radius:50%;background:transparent;border:none;color:rgba(255,255,255,.45);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;transition:color .25s;padding:0;line-height:1}
+#vol-btn:hover{color:#fff}
+#vol-slider{-webkit-appearance:none;appearance:none;width:72px;height:2px;background:rgba(255,255,255,.15);border-radius:2px;outline:none;cursor:pointer;accent-color:#fff}
+#vol-slider::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:#fff;cursor:pointer;box-shadow:0 0 8px rgba(255,255,255,.35)}
+#vol-slider::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:#fff;cursor:pointer;border:none;box-shadow:0 0 8px rgba(255,255,255,.35)}
+
 /* ── burst dots ─────────────────────────── */
 .bst{position:fixed;border-radius:50%;pointer-events:none;z-index:30}
 
@@ -141,6 +204,12 @@ body{background:var(--bg);color:#fff;font-family:-apple-system,'Segoe UI',Roboto
     <button class="mb on" data-mode="zen">Zen</button>
     <button class="mb"    data-mode="flow">Flow</button>
     <button class="mb"    data-mode="rush">Rush</button>
+  </div>
+
+  <!-- Volume -->
+  <div id="vol-ctrl">
+    <button id="vol-btn" title="Volume">🔊</button>
+    <input type="range" id="vol-slider" min="0" max="100" value="55" title="Volume">
   </div>
 </div>
 
@@ -623,6 +692,38 @@ function initUI(){
   }
 
   window.addEventListener('keydown',onKey);
+
+  // ── Volume control ──────────────────────────────
+  var volMuted = false, volLevel = 0.55;
+  var volBtn    = document.getElementById('vol-btn');
+  var volSlider = document.getElementById('vol-slider');
+
+  function setVolIcon(v){
+    volBtn.textContent = v === 0 ? '🔇' : v < 0.35 ? '🔈' : v < 0.7 ? '🔉' : '🔊';
+  }
+
+  volBtn.addEventListener('click', function(){
+    if(!AU.ctx) bootAudio();
+    volMuted = !volMuted;
+    if(volMuted){
+      volLevel = AU.master ? AU.master.gain.value : 0.55;
+      if(AU.master) AU.master.gain.setTargetAtTime(0, AU.ctx.currentTime, 0.1);
+      volSlider.value = 0;
+      setVolIcon(0);
+    } else {
+      if(AU.master) AU.master.gain.setTargetAtTime(volLevel, AU.ctx.currentTime, 0.1);
+      volSlider.value = Math.round(volLevel * 100);
+      setVolIcon(volLevel);
+    }
+  });
+
+  volSlider.addEventListener('input', function(){
+    var v = this.value / 100;
+    volLevel = v || volLevel;
+    volMuted = v === 0;
+    if(AU.master) AU.master.gain.setTargetAtTime(v, AU.ctx.currentTime, 0.05);
+    setVolIcon(v);
+  });
 }
 
 // ══════════════════════════════════════════════════
