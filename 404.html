@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>404 — Page Not Found | CalmType</title>
+<meta name="description" content="This page doesn't exist. Head back to CalmType and keep typing calmly.">
+<meta name="robots" content="noindex, follow">
+<link rel="canonical" href="https://calmtype.life/">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<style>
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+  :root{--acc:#4fc3f7;--bg:#050a1a}
+  body{
+    background:var(--bg);
+    color:#fff;
+    font-family:-apple-system,'Segoe UI',Roboto,sans-serif;
+    height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+    user-select:none;
+  }
+
+  /* Vignette */
+  body::before{
+    content:'';
+    position:fixed;inset:0;
+    background:radial-gradient(ellipse at 50% 50%,transparent 30%,rgba(0,0,0,.7) 100%);
+    pointer-events:none;
+    z-index:0;
+  }
+
+  /* Floating particles */
+  .particles{
+    position:fixed;inset:0;
+    z-index:0;
+    pointer-events:none;
+  }
+  .p{
+    position:absolute;
+    border-radius:50%;
+    background:var(--acc);
+    opacity:0;
+    animation:float linear infinite;
+  }
+  @keyframes float{
+    0%  {transform:translateY(100vh) scale(0);opacity:0}
+    10% {opacity:.35}
+    90% {opacity:.2}
+    100%{transform:translateY(-20px) scale(1);opacity:0}
+  }
+
+  /* Main content */
+  .wrap{
+    position:relative;
+    z-index:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:20px;
+    text-align:center;
+    padding:0 24px;
+  }
+
+  /* 404 number */
+  .code{
+    font-size:clamp(80px,18vw,160px);
+    font-weight:700;
+    letter-spacing:-4px;
+    line-height:1;
+    color:transparent;
+    -webkit-text-stroke:1.5px rgba(79,195,247,.35);
+    position:relative;
+    animation:pulse 3s ease-in-out infinite;
+  }
+  .code::after{
+    content:'404';
+    position:absolute;
+    inset:0;
+    color:rgba(255,255,255,.06);
+    -webkit-text-stroke:0;
+    filter:blur(18px);
+  }
+  @keyframes pulse{
+    0%,100%{-webkit-text-stroke-color:rgba(79,195,247,.25)}
+    50%    {-webkit-text-stroke-color:rgba(79,195,247,.6)}
+  }
+
+  /* Ring animation */
+  .ring{
+    width:56px;height:56px;
+    border-radius:50%;
+    border:1.5px solid rgba(255,255,255,.15);
+    animation:rpulse 2s ease-out infinite;
+  }
+  @keyframes rpulse{
+    0%  {transform:scale(.8);opacity:.8}
+    100%{transform:scale(2.2);opacity:0}
+  }
+
+  /* Title */
+  h1{
+    font-size:clamp(18px,4vw,26px);
+    font-weight:300;
+    letter-spacing:2px;
+    color:rgba(255,255,255,.75);
+  }
+
+  /* Subtitle */
+  p.sub{
+    font-size:14px;
+    letter-spacing:1px;
+    color:rgba(255,255,255,.28);
+    max-width:340px;
+    line-height:1.7;
+  }
+
+  /* Divider dot */
+  .dot{
+    width:4px;height:4px;
+    border-radius:50%;
+    background:var(--acc);
+    box-shadow:0 0 10px var(--acc);
+    animation:blink 1.6s ease-in-out infinite;
+  }
+  @keyframes blink{0%,100%{opacity:.3}50%{opacity:1}}
+
+  /* Home button */
+  .btn{
+    margin-top:8px;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:12px 28px;
+    border-radius:40px;
+    background:rgba(79,195,247,.1);
+    border:1px solid rgba(79,195,247,.3);
+    color:rgba(79,195,247,.9);
+    font-size:12px;
+    letter-spacing:2.5px;
+    text-transform:uppercase;
+    text-decoration:none;
+    font-family:inherit;
+    cursor:pointer;
+    transition:all .25s ease;
+  }
+  .btn:hover{
+    background:rgba(79,195,247,.18);
+    border-color:rgba(79,195,247,.6);
+    color:#fff;
+    transform:translateY(-2px);
+    box-shadow:0 8px 24px rgba(79,195,247,.15);
+  }
+  .btn svg{
+    width:14px;height:14px;
+    stroke:currentColor;
+    fill:none;
+    stroke-width:2;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+  }
+
+  /* Bottom hint */
+  p.hint{
+    position:fixed;
+    bottom:28px;
+    font-size:10px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    color:rgba(255,255,255,.12);
+  }
+</style>
+</head>
+<body>
+
+<!-- Floating particles -->
+<div class="particles" id="pts"></div>
+
+<div class="wrap">
+  <div class="ring"></div>
+  <div class="code">404</div>
+  <h1>lost in the quiet</h1>
+  <p class="sub">This page doesn't exist — but that's okay. Take a breath and head back to where the calm is.</p>
+  <div class="dot"></div>
+  <a href="/" class="btn">
+    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    back to calmtype
+  </a>
+</div>
+
+<p class="hint">calmtype.life</p>
+
+<script>
+  // Generate floating particles
+  var pts = document.getElementById('pts');
+  for(var i = 0; i < 28; i++){
+    var p = document.createElement('div');
+    p.className = 'p';
+    var size = Math.random() * 3 + 1.5;
+    p.style.cssText = [
+      'width:'  + size + 'px',
+      'height:' + size + 'px',
+      'left:'   + Math.random() * 100 + '%',
+      'animation-duration:' + (Math.random() * 12 + 8) + 's',
+      'animation-delay:'    + (Math.random() * -15) + 's',
+    ].join(';');
+    pts.appendChild(p);
+  }
+
+  // Any key or click → go home
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Enter' || e.key === ' ' || e.key === 'Backspace') return;
+    window.location.href = '/';
+  });
+</script>
+</body>
+</html>
