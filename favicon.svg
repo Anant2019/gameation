@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <!-- Rich deep background — purple to midnight -->
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#130a2e"/>
+      <stop offset="100%" stop-color="#050a1a"/>
+    </linearGradient>
+
+    <!-- Dopamine gradient — warm purple → electric cyan -->
+    <linearGradient id="arc" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#a855f7"/>
+      <stop offset="50%"  stop-color="#4fc3f7"/>
+      <stop offset="100%" stop-color="#06d6a0"/>
+    </linearGradient>
+
+    <!-- Spark glow -->
+    <radialGradient id="spark" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"   stop-color="#fde68a" stop-opacity="1"/>
+      <stop offset="60%"  stop-color="#f59e0b" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#f59e0b" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Inner ambient glow -->
+    <radialGradient id="ambient" cx="40%" cy="40%" r="60%">
+      <stop offset="0%"   stop-color="#a855f7" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#a855f7" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Glow filter for the arc -->
+    <filter id="arcGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="2.2" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+
+    <!-- Spark glow filter -->
+    <filter id="sparkGlow" x="-80%" y="-80%" width="360%" height="360%">
+      <feGaussianBlur stdDeviation="3" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background rounded square -->
+  <rect width="64" height="64" rx="14" fill="url(#bg)"/>
+
+  <!-- Ambient purple glow inside -->
+  <ellipse cx="28" cy="26" rx="22" ry="20" fill="url(#ambient)"/>
+
+  <!-- Outer soft ring (very subtle) -->
+  <circle cx="32" cy="32" r="26" fill="none"
+          stroke="rgba(168,85,247,0.12)" stroke-width="1"/>
+
+  <!-- Main arc — the satisfying "C" / wave shape
+       Thick glowing stroke from purple to cyan
+       Goes about 290° — almost complete circle = satisfying "almost done" dopamine -->
+  <path d="M 48 20
+           A 20 20 0 1 0 48 44"
+        fill="none"
+        stroke="url(#arc)"
+        stroke-width="6.5"
+        stroke-linecap="round"
+        filter="url(#arcGlow)"/>
+
+  <!-- Tick / completion spark at the arc tail — the REWARD moment -->
+  <!-- Bright glowing dot -->
+  <circle cx="48" cy="44" r="5" fill="url(#spark)" filter="url(#sparkGlow)"/>
+  <circle cx="48" cy="44" r="2.8" fill="#fef3c7"/>
+
+  <!-- Small sparkle rays around the dot -->
+  <g stroke="#fde68a" stroke-width="1.4" stroke-linecap="round" opacity="0.85">
+    <line x1="48" y1="37.5" x2="48" y2="35.5"/>
+    <line x1="53" y1="39"   x2="54.5" y2="37.8"/>
+    <line x1="54.5" y1="44" x2="56.5" y2="44"/>
+    <line x1="53" y1="49"   x2="54.5" y2="50.2"/>
+  </g>
+</svg>
