@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="google-site-verification" content="MhA6kqB4AFuTrBM8Kv4IG2AjCGoAWnKm-mL3PdbEL0g" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="shortcut icon" href="/favicon.svg">
@@ -288,12 +288,210 @@ body{background:var(--bg);color:#fff;font-family:-apple-system,'Segoe UI',Roboto
 
 /* ── best streak note ───────────────────── */
 #bn{position:absolute;top:32px;left:50%;transform:translateX(-50%);font-size:10px;letter-spacing:2px;color:rgba(255,255,255,.15)}
+
+/* ── lofi player control ────────────────── */
+#lofi-ctrl{
+  position:absolute;
+  bottom:28px;
+  left:40px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:40px;
+  padding:5px 14px;
+  z-index: 15;
+}
+#lofi-play, #lofi-next{
+  background:transparent;
+  border:none;
+  color:rgba(255,255,255,.45);
+  cursor:pointer;
+  font-size:14px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transition:color .25s;
+  padding:0;
+  outline:none;
+}
+#lofi-play:hover, #lofi-next:hover{
+  color:#fff;
+}
+#lofi-name{
+  font-size:10px;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  color:rgba(255,255,255,.5);
+  min-width:85px;
+  text-align:center;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+/* ── gamification ───────────────────────── */
+#btn-badges{background:transparent;border:none;cursor:pointer;font-size:18px;margin-right:10px;transition:transform .2s;filter:grayscale(1) opacity(.5)}
+#btn-badges:hover{transform:scale(1.2);filter:grayscale(0) opacity(1)}
+
+#toast{position:absolute;top:-80px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,.08);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.15);border-radius:30px;padding:12px 24px;display:flex;align-items:center;gap:12px;z-index:100;pointer-events:none;opacity:0}
+.t-icon{font-size:24px;text-shadow:0 0 10px rgba(255,255,255,.5)}
+.t-txt{display:flex;flex-direction:column}
+.t-title{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--acc)}
+.t-desc{font-size:10px;color:rgba(255,255,255,.6)}
+
+#badge-modal{position:absolute;inset:0;background:rgba(5,10,26,.85);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);z-index:50;display:none;flex-direction:column;align-items:center;justify-content:center;opacity:0}
+#bm-close{position:absolute;top:30px;right:40px;font-size:20px;color:rgba(255,255,255,.5);cursor:pointer;transition:color .2s}
+#bm-close:hover{color:#fff}
+#badge-modal h2{font-size:24px;font-weight:300;letter-spacing:4px;text-transform:uppercase;margin-bottom:40px;color:#fff;text-shadow:0 0 10px rgba(255,255,255,.2)}
+#bm-grid{display:flex;gap:20px;flex-wrap:wrap;max-width:640px;justify-content:center}
+.bdg{display:flex;flex-direction:column;align-items:center;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05);border-radius:16px;padding:20px;width:140px;text-align:center;transition:all .3s}
+.bdg.locked{filter:grayscale(1) opacity(.3)}
+.bdg.unlocked{border-color:var(--acc);box-shadow:0 0 20px rgba(79,195,247,.15);background:rgba(255,255,255,.08)}
+.bdg-icon{font-size:32px;margin-bottom:12px}
+.bdg.unlocked .bdg-icon{text-shadow:0 0 16px var(--acc);transform:scale(1.1)}
+.bdg-name{font-size:11px;font-weight:700;color:#fff;margin-bottom:4px}
+.bdg-desc{font-size:9px;color:rgba(255,255,255,.4);line-height:1.4}
+
+/* ── mobile responsive overhauls ────────── */
+@media (max-width: 768px) {
+  #hud {
+    position: absolute;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    gap: 16px;
+    display: flex;
+    justify-content: center;
+    width: 90%;
+  }
+  .hv { font-size: 20px; }
+  .hl { font-size: 7px; letter-spacing: 1.5px; }
+
+  #themes {
+    position: absolute;
+    top: 72px;
+    left: 50%;
+    transform: translateX(-50%);
+    right: auto;
+    gap: 8px;
+  }
+  .td { width: 14px; height: 14px; }
+
+  #bn {
+    position: absolute;
+    top: 104px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 8px;
+    letter-spacing: 1.5px;
+  }
+
+  #wa {
+    padding: 0 16px;
+    width: 100vw;
+    min-height: 120px;
+  }
+
+  #wd {
+    font-size: 26px !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    max-width: 90vw !important;
+    gap: 0px !important;
+    line-height: 1.4 !important;
+  }
+
+  #pb {
+    width: 80% !important;
+    max-width: 280px;
+  }
+
+  #nxt {
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-align: center;
+    max-width: 90vw;
+  }
+
+  #modes {
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 320px;
+    display: flex;
+    justify-content: space-around;
+  }
+  .mb {
+    padding: 6px 12px;
+    font-size: 9px;
+    letter-spacing: 1px;
+    flex: 1;
+    text-align: center;
+  }
+
+  #lofi-ctrl {
+    bottom: 74px;
+    left: 5%;
+    right: auto;
+    width: 43%;
+    padding: 4px 8px;
+    gap: 6px;
+    justify-content: center;
+  }
+  #lofi-name {
+    min-width: 50px;
+    font-size: 8px;
+    letter-spacing: 1px;
+  }
+
+  #vol-ctrl {
+    bottom: 74px;
+    right: 5%;
+    left: auto;
+    width: 43%;
+    padding: 4px 8px;
+    gap: 6px;
+    justify-content: center;
+  }
+  #vol-slider {
+    width: 50px;
+  }
+
+  /* Adjust start screen overlay */
+  #start {
+    padding: 40px 16px;
+    gap: 10px;
+  }
+  #hero-title {
+    font-size: 28px;
+  }
+  #hero-sub {
+    font-size: 10px;
+    max-width: 90vw;
+  }
+  #hero-pills {
+    gap: 4px;
+  }
+  #hero-pills span {
+    font-size: 8px;
+    padding: 3px 8px;
+  }
+  #seo-block {
+    display: none; /* Hide heavy text on mobile to avoid scrolling */
+  }
+}
 </style>
 </head>
 <body>
 
 <div id="bg"></div>
 <div id="vgn"></div>
+
+<!-- Hidden mobile keyboard trigger area -->
+<textarea id="mobile-focus-area" autocomplete="off" autocapitalize="none" spellcheck="false" autocorrect="off" style="position: absolute; opacity: 0; pointer-events: none; z-index: -100; width: 1px; height: 1px; top: 50%; left: 50%;"></textarea>
 
 <div id="ui">
   <!-- HUD -->
@@ -305,8 +503,23 @@ body{background:var(--bg);color:#fff;font-family:-apple-system,'Segoe UI',Roboto
 
   <div id="bn">best streak: <span id="vbst">0</span></div>
 
+  <!-- Gamification Overlay -->
+  <div id="toast">
+    <div class="t-icon" id="t-icon">🏆</div>
+    <div class="t-txt">
+      <div class="t-title" id="t-title">Unlocked!</div>
+      <div class="t-desc" id="t-desc">Description</div>
+    </div>
+  </div>
+  <div id="badge-modal">
+    <div id="bm-close">✕</div>
+    <h2>Achievements</h2>
+    <div id="bm-grid"></div>
+  </div>
+
   <!-- Themes -->
   <div id="themes">
+    <button id="btn-badges" title="View Achievements">🏆</button>
     <div class="td on" data-t="0" style="background:#4fc3f7" title="Cosmos"></div>
     <div class="td"    data-t="1" style="background:#69f0ae" title="Forest"></div>
     <div class="td"    data-t="2" style="background:#00e5ff" title="Ocean"></div>
@@ -355,6 +568,13 @@ body{background:var(--bg);color:#fff;font-family:-apple-system,'Segoe UI',Roboto
     <button class="mb on" data-mode="zen">Zen</button>
     <button class="mb"    data-mode="flow">Flow</button>
     <button class="mb"    data-mode="rush">Rush</button>
+  </div>
+
+  <!-- Lofi Music -->
+  <div id="lofi-ctrl">
+    <button id="lofi-play" title="Play/Pause Lofi Music">▶</button>
+    <span id="lofi-name">Zen Chill</span>
+    <button id="lofi-next" title="Next Track">⏭</button>
   </div>
 
   <!-- Volume -->
@@ -805,6 +1025,16 @@ var TH = [
 ];
 
 // ══════════════════════════════════════════════════
+//  GAMIFICATION DATA
+// ══════════════════════════════════════════════════
+var BADGES = [
+  { id: 'streak15', icon: '🔥', name: 'Hot Streak', desc: 'Reach a streak of 15 words' },
+  { id: 'speed80', icon: '🚀', name: 'Speed Demon', desc: 'Reach 80 WPM' },
+  { id: 'score5k', icon: '🧘', name: 'Zen Master', desc: 'Score 5,000 points' },
+  { id: 'flawless3', icon: '🎯', name: 'Flawless', desc: 'Type 3 words with no backspaces' }
+];
+
+// ══════════════════════════════════════════════════
 //  GAME STATE
 // ══════════════════════════════════════════════════
 var G = {
@@ -812,6 +1042,7 @@ var G = {
   score:0, streak:0, best:0, chars:0,
   startTime:0, wpm:0, theme:0, mode:'zen',
   recent:[], recentS:[], recentP:[], lastWordTime:0,
+  unlockedBadges: [], flawlessWords: 0, wordErrors: 0
 };
 
 // ══════════════════════════════════════════════════
@@ -887,6 +1118,21 @@ function playNote(idx){
     g.gain.exponentialRampToValueAtTime(.001,t+.38);
     o.connect(g); g.connect(AU.rev); o.start(t); o.stop(t+.4);
   }catch(e){}
+}
+
+function playBadgeSound(){
+  if(!AU.ctx) return;
+  [440, 554.37, 659.25, 880].forEach(function(f,i){
+    try{
+      var t=AU.ctx.currentTime+i*.08;
+      var o=AU.ctx.createOscillator(),g=AU.ctx.createGain();
+      o.type='sine'; o.frequency.value=f;
+      g.gain.setValueAtTime(0,t);
+      g.gain.linearRampToValueAtTime(.15,t+.02);
+      g.gain.exponentialRampToValueAtTime(.001,t+.6);
+      o.connect(g); g.connect(AU.rev); o.start(t); o.stop(t+.7);
+    }catch(e){}
+  });
 }
 
 function playDone(){
@@ -1040,7 +1286,7 @@ function pickContent(){
 }
 
 function showWord(w){
-  G.word=w; G.typed=0;
+  G.word=w; G.typed=0; G.wordErrors=0;
   G.lastWordTime=performance.now();
 
   // Adjust font size by content length
@@ -1060,7 +1306,7 @@ function showWord(w){
     s.className='L'+(i===0?' cur':'')+(isSpace?' sp':'');
     s.id='L'+i;
     // Space chars: render as a thin gap with a visible dot so you know to press space
-    s.textContent=isSpace?' ':w[i];
+    s.textContent=isSpace?' ':w[i];
     wd.appendChild(s);
   }
   gsap.from(wd.children,{opacity:0,y:8,duration:.28,stagger:.018,ease:'power2.out'});
@@ -1081,7 +1327,9 @@ function calcWPM(){
   var raw=Math.round((G.chars/5)/mins);
   // smooth: blend toward raw value rather than snapping
   G.wpm=G.wpm===0 ? raw : Math.round(G.wpm*0.6 + raw*0.4);
+  G.wpm=G.wpm===0 ? raw : Math.round(G.wpm*0.6 + raw*0.4);
   document.getElementById('vwpm').textContent=G.wpm;
+  checkBadges();
 }
 
 function advance(){
@@ -1096,6 +1344,9 @@ function advance(){
 }
 
 function wordDone(){
+  if(G.wordErrors === 0) G.flawlessWords++;
+  else G.flawlessWords = 0;
+
   G.score+=G.word.length*(1+Math.floor(G.streak/5));
   G.streak++;
   if(G.streak>G.best){G.best=G.streak;document.getElementById('vbst').textContent=G.best;}
@@ -1108,6 +1359,7 @@ function wordDone(){
     gsap.fromTo(sf,{opacity:0,y:0},{opacity:1,y:-30,duration:.35,ease:'power2.out',
       onComplete:function(){gsap.to(sf,{opacity:0,duration:.5,delay:.5});}});
   }
+  checkBadges();
   playDone();
   var wd=document.getElementById('wd');
   var r=wd.getBoundingClientRect();
@@ -1126,12 +1378,116 @@ function doBackspace(){
   calcWPM();
 }
 
+// ── LOFI PLAYER ENGINE ────────────────────────────
+var LOFI_TRACKS = [
+  { name: 'Zen Chill', url: 'https://cdn.pixabay.com/audio/2022/05/27/audio_1808fbf07a.mp3' },
+  { name: 'Dream Lofi', url: 'https://archive.org/download/intrumentalsadlofiprodbydrowwangbeats/INTRUMENTAL%20SAD%20LOFI%20PROD%20BY%20DROW%20WANG%20BEATS.mp3' },
+  { name: 'Sleepy Cat', url: 'https://archive.org/download/intrumentalsadlofiprodbydrowwangbeats/INTRUMENTAL%20SAD%20LOFI%20PROD%20BY%20DROW%20WANG%20BEATS%202.mp3' }
+];
+var lofiIndex = 0;
+var lofiAudio = new Audio();
+lofiAudio.loop = true;
+lofiAudio.crossOrigin = "anonymous";
+lofiAudio.volume = 0.22; // default sweet lofi volume level
+
+function initLofiPlayer(){
+  var playBtn = document.getElementById('lofi-play');
+  var nextBtn = document.getElementById('lofi-next');
+  var nameLbl = document.getElementById('lofi-name');
+
+  function setTrack(idx){
+    lofiIndex = idx % LOFI_TRACKS.length;
+    var t = LOFI_TRACKS[lofiIndex];
+    lofiAudio.src = t.url;
+    nameLbl.textContent = t.name;
+    if(playBtn.textContent === '⏸') {
+      lofiAudio.play().catch(function(){});
+    }
+  }
+
+  playBtn.addEventListener('click', function(){
+    if(!G.started) {
+      startGame();
+      return;
+    }
+    if(lofiAudio.paused) {
+      if(!lofiAudio.src) {
+        setTrack(0);
+      }
+      lofiAudio.play().then(function(){
+        playBtn.textContent = '⏸';
+      }).catch(function(){});
+    } else {
+      lofiAudio.pause();
+      playBtn.textContent = '▶';
+    }
+  });
+
+  nextBtn.addEventListener('click', function(){
+    var wasStarted = G.started;
+    if(!G.started) {
+      startGame();
+    }
+    if(wasStarted) {
+      setTrack(lofiIndex + 1);
+    } else {
+      setTrack(1);
+    }
+  });
+}
+
+function initMobileTyping(){
+  var area = document.getElementById('mobile-focus-area');
+  if(!area) return;
+
+  var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+  // focus textarea on page click to open mobile keyboard
+  document.addEventListener('click', function(e){
+    if(e.target.tagName === 'BUTTON' || e.target.closest('#vol-ctrl') || e.target.closest('#lofi-ctrl') || e.target.classList.contains('td')) {
+      return;
+    }
+    area.focus();
+  });
+
+  if(isMobile) {
+    area.addEventListener('input', function(e){
+      if(e.inputType === 'deleteContentBackward') {
+        onKey({ key: 'Backspace', preventDefault: function(){} });
+        return;
+      }
+      var val = area.value;
+      if(val.length > 0) {
+        var char = val.charAt(val.length - 1);
+        onKey({ key: char, preventDefault: function(){} });
+        area.value = '';
+      }
+    });
+  }
+}
+
 function startGame(){
   if(G.started) return;
   G.started=true; G.startTime=performance.now();
   var sp=document.getElementById('start');
   gsap.to(sp,{opacity:0,duration:.4,onComplete:function(){sp.style.display='none';}});
   bootAudio();
+  
+  // auto-trigger lofi play on game start
+  var playBtn = document.getElementById('lofi-play');
+  if(lofiAudio.paused) {
+    if(!lofiAudio.src) {
+      lofiAudio.src = LOFI_TRACKS[0].url;
+      document.getElementById('lofi-name').textContent = LOFI_TRACKS[0].name;
+    }
+    lofiAudio.play().then(function(){
+      playBtn.textContent = '⏸';
+    }).catch(function(){});
+  }
+
+  // Focus mobile area
+  var area = document.getElementById('mobile-focus-area');
+  if(area) area.focus();
 }
 
 function onKey(e){
@@ -1152,6 +1508,8 @@ function onKey(e){
   if(match){
     advance();
   }else{
+    G.wordErrors++;
+    G.flawlessWords=0;
     playErr();
     G.streak=0; document.getElementById('vstr').textContent='0';
     var el=document.getElementById('L'+G.typed);
@@ -1160,9 +1518,68 @@ function onKey(e){
 }
 
 // ══════════════════════════════════════════════════
+//  GAMIFICATION LOGIC
+// ══════════════════════════════════════════════════
+function checkBadges(){
+  BADGES.forEach(function(b){
+    if(G.unlockedBadges.indexOf(b.id) > -1) return;
+    var unlock = false;
+    if(b.id === 'streak15' && G.streak >= 15) unlock = true;
+    if(b.id === 'speed80' && G.wpm >= 80) unlock = true;
+    if(b.id === 'score5k' && G.score >= 5000) unlock = true;
+    if(b.id === 'flawless3' && G.flawlessWords >= 3) unlock = true;
+
+    if(unlock){
+      G.unlockedBadges.push(b.id);
+      try{ localStorage.setItem('calmtype_badges', JSON.stringify(G.unlockedBadges)); }catch(e){}
+      showToast(b);
+    }
+  });
+}
+
+function showToast(b){
+  playBadgeSound();
+  var t = document.getElementById('toast');
+  document.getElementById('t-icon').textContent = b.icon;
+  document.getElementById('t-title').textContent = b.name + ' Unlocked!';
+  document.getElementById('t-desc').textContent = b.desc;
+  
+  gsap.fromTo(t, {y: 0, opacity: 0}, {y: 110, opacity: 1, duration: 0.6, ease: 'back.out(1.5)'});
+  gsap.to(t, {y: 0, opacity: 0, duration: 0.5, delay: 3.5, ease: 'power2.in'});
+}
+
+function openBadgeModal(){
+  var mod = document.getElementById('badge-modal');
+  var grid = document.getElementById('bm-grid');
+  grid.innerHTML = '';
+  BADGES.forEach(function(b){
+    var isU = G.unlockedBadges.indexOf(b.id) > -1;
+    var div = document.createElement('div');
+    div.className = 'bdg ' + (isU ? 'unlocked' : 'locked');
+    div.innerHTML = '<div class="bdg-icon">'+b.icon+'</div><div class="bdg-name">'+b.name+'</div><div class="bdg-desc">'+b.desc+'</div>';
+    grid.appendChild(div);
+  });
+  mod.style.display = 'flex';
+  gsap.fromTo(mod, {opacity: 0, scale: 0.95}, {opacity: 1, scale: 1, duration: 0.3, ease: 'power2.out'});
+}
+
+function closeBadgeModal(){
+  var mod = document.getElementById('badge-modal');
+  gsap.to(mod, {opacity: 0, scale: 0.95, duration: 0.2, onComplete: function(){ mod.style.display = 'none'; }});
+}
+
+// ══════════════════════════════════════════════════
 //  UI WIRING
 // ══════════════════════════════════════════════════
 function initUI(){
+  try{
+    var savedBadges = localStorage.getItem('calmtype_badges');
+    if(savedBadges) G.unlockedBadges = JSON.parse(savedBadges);
+  }catch(e){}
+
+  document.getElementById('btn-badges').addEventListener('click', openBadgeModal);
+  document.getElementById('bm-close').addEventListener('click', closeBadgeModal);
+
   // theme dots
   var tds=document.querySelectorAll('.td');
   for(var i=0;i<tds.length;i++){
@@ -1213,14 +1630,14 @@ function initUI(){
   // Click or tap anywhere on the start screen to begin
   document.addEventListener('click', function(e){
     if(!G.started){
-      // ignore clicks on mode buttons and volume control so they still work
-      if(e.target.closest('#modes')||e.target.closest('#vol-ctrl')) return;
+      // ignore clicks on mode buttons and volume/lofi controls so they still work
+      if(e.target.closest('#modes')||e.target.closest('#vol-ctrl')||e.target.closest('#lofi-ctrl')) return;
       startGame();
     }
   });
   document.addEventListener('touchstart', function(e){
     if(!G.started){
-      if(e.target.closest('#modes')||e.target.closest('#vol-ctrl')) return;
+      if(e.target.closest('#modes')||e.target.closest('#vol-ctrl')||e.target.closest('#lofi-ctrl')) return;
       startGame();
     }
   },{passive:true});
@@ -1240,10 +1657,12 @@ function initUI(){
     if(volMuted){
       volLevel = AU.master ? AU.master.gain.value : 0.55;
       if(AU.master) AU.master.gain.setTargetAtTime(0, AU.ctx.currentTime, 0.1);
+      if(lofiAudio) lofiAudio.volume = 0;
       volSlider.value = 0;
       setVolIcon(0);
     } else {
       if(AU.master) AU.master.gain.setTargetAtTime(volLevel, AU.ctx.currentTime, 0.1);
+      if(lofiAudio) lofiAudio.volume = volLevel * 0.4;
       volSlider.value = Math.round(volLevel * 100);
       setVolIcon(volLevel);
     }
@@ -1254,6 +1673,7 @@ function initUI(){
     volLevel = v || volLevel;
     volMuted = v === 0;
     if(AU.master) AU.master.gain.setTargetAtTime(v, AU.ctx.currentTime, 0.05);
+    if(lofiAudio) lofiAudio.volume = v * 0.4;
     setVolIcon(v);
   });
 }
@@ -1268,6 +1688,8 @@ window.addEventListener('DOMContentLoaded',function(){
   }
   initBG();
   initUI();
+  initLofiPlayer();
+  initMobileTyping();
   // Pre-load the first word so it's visible before the user types anything.
   // This fixes the "first keypress always wrong" bug: the word is already shown
   // so the first typed character checks against a word the player can see.
