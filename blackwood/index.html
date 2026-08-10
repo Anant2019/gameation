@@ -1,0 +1,3440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Blackwood Manor — Heist Mystery</title>
+<meta name="description" content="A randomised 1920s murder mystery game. Search rooms, interrogate suspects, and name the killer. Every game is different.">
+<meta name="theme-color" content="#080604">
+<meta property="og:title" content="Blackwood Manor — Heist Mystery">
+<meta property="og:description" content="A lord is dead. Five suspects. One truth. Can you solve it in 8 minutes?">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Blackwood Manor — Heist Mystery">
+<meta name="twitter:description" content="A randomised 1920s murder mystery. Search, interrogate, accuse.">
+<style>
+/* Primary: Google Fonts CDN. Fallback stack works offline */
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--gold:#c9a84c;--blood:#8b1a1a;--dark:#070503;--panel:#12100a;--text:#ede0c4;--muted:#7a6a50;--bg:#080604}
+body{background:var(--bg);color:var(--text);font-family:'Crimson Text','Palatino Linotype','Book Antiqua',Palatino,Georgia,serif;font-size:18px;min-height:100vh;overflow-x:hidden}
+canvas#bg{position:fixed;inset:0;pointer-events:none;z-index:0}
+
+/* ─ URGENCY MODE ─ */
+body.urgency-mode::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  box-shadow: inset 0 0 100px rgba(139, 26, 26, 0.8);
+  animation: pulseVignette 1s ease-in-out infinite alternate;
+}
+@keyframes pulseVignette {
+  from { box-shadow: inset 0 0 100px rgba(139, 26, 26, 0.4); }
+  to { box-shadow: inset 0 0 150px rgba(139, 26, 26, 0.8); }
+}
+
+/* ─ SCREENS ─ */
+.screen{display:none;position:relative;z-index:1;min-height:100vh}
+.screen.on{display:flex;flex-direction:column}
+
+/* ─ TITLE ─ */
+#s-title{align-items:center;justify-content:center;text-align:center;padding:40px 20px;
+  background:radial-gradient(ellipse 80% 60% at 50% 45%,#1c1005,#000)}
+.flkr{font-size:52px;letter-spacing:24px;margin-bottom:18px;animation:flkr 2.5s ease-in-out infinite}
+@keyframes flkr{0%,100%{opacity:1;filter:drop-shadow(0 0 20px #c9a84c)}50%{opacity:.6;filter:drop-shadow(0 0 4px #c9a84c)}}
+.t-main{font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;font-size:clamp(32px,7vw,82px);font-weight:900;
+  color:var(--gold);letter-spacing:4px;line-height:1.1;text-shadow:0 0 60px #c9a84c33}
+.t-sub{font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;font-size:clamp(11px,2vw,17px);color:var(--muted);letter-spacing:9px;margin:10px 0 4px}
+.hr{width:260px;height:2px;background:linear-gradient(90deg,transparent,#8b1a1a,transparent);margin:20px auto}
+.tagline{color:var(--muted);font-style:italic;font-size:19px;max-width:480px;line-height:1.7;margin-bottom:40px}
+
+/* ─ CINEMATIC ─ */
+#s-cin{align-items:center;justify-content:center;text-align:center;background:#000;padding:40px 20px;
+  cursor:pointer;position:relative}
+.cin-slide{display:none;animation:fadeUp .7s ease}
+.cin-slide.on{display:flex;flex-direction:column;align-items:center;gap:16px}
+#cin-tap{position:absolute;bottom:22px;right:28px;font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;font-size:9px;
+  letter-spacing:3px;color:#3a2a10;animation:blinkSoft 1.8s ease-in-out infinite;pointer-events:none}
+@keyframes blinkSoft{0%,100%{opacity:.25}55%{opacity:.85}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:none}}
+.cin-em{font-size:clamp(68px,14vw,120px);filter:drop-shadow(0 0 28px #c9a84c33)}
+.cin-h{font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;font-size:clamp(18px,4vw,40px);color:var(--gold)}
+.cin-p{color:var(--muted);font-size:clamp(16px,2vw,21px);font-style:italic;max-width:560px;line-height:1.75}
+.cin-bar{width:180px;height:3px;background:#1a1208;border-radius:2px;overflow:hidden;margin-top:8px}
+.cin-fill{height:100%;background:var(--gold);border-radius:2px;transition:width 3s linear}
+.dead-badge{background:#130808;border:2px solid var(--blood);padding:20px 36px;border-radius:4px;text-align:center}
+.db-name{font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;color:var(--gold);font-size:22px;letter-spacing:2px}
+.db-det{color:var(--muted);font-size:15px;margin-top:8px;line-height:1.75}
+/* extra cin pieces */
+.cin-rule{width:200px;height:1px;background:linear-gradient(90deg,transparent,#4a2a10,transparent);margin:10px auto}
+.cin-stat-row{display:flex;gap:32px;flex-wrap:wrap;justify-content:center;margin:10px 0}
+.cin-stat-box{text-align:center;min-width:70px}
+.cin-stat-num{font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;font-size:clamp(28px,5vw,52px);color:var(--gold);text-shadow:0 0 20px #c9a84c44;line-height:1}
+.cin-stat-lbl{font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;font-size:8px;letter-spacing:3px;color:var(--muted);margin-top:4px}
+.cin-list{list-style:none;text-align:left;max-width:520px;display:flex;flex-direction:column;gap:11px;margin:10px 0}
+.cin-list li{color:var(--muted);font-size:clamp(14px,1.8vw,18px);display:flex;align-items:flex-start;gap:12px;line-height:1.55}
+.cin-tag{font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;font-size:8px;letter-spacing:1px;color:var(--blood);background:#1c0808;border:1px solid #4a1212;padding:3px 8px;border-radius:2px;white-space:nowrap;flex-shrink:0;margin-top:2px}
+
+/* ─ BUTTONS ─ */
+.btn{font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;letter-spacing:3px;cursor:pointer;border-radius:3px;text-transform:uppercase;transition:all .3s}
+.btn-gold{font-size:17px;padding:15px 50px;border:2px solid var(--gold);
+  background:linear-gradient(135deg,#6b4c0a,#c9a84c,#6b4c0a);color:#080604;
+  box-shadow:0 0 28px #c9a84c33}
+.btn-gold:hover{box-shadow:0 0 60px #c9a84c66;transform:scale(1.04)}
+.btn-ghost{font-size:13px;padding:9px 24px;border:1px solid #3a2a10;background:transparent;color:var(--muted)}
+.btn-ghost:hover{border-color:var(--gold);color:var(--gold)}
+.btn-red{font-size:15px;padding:13px 42px;border:2px solid var(--blood);
+  background:linear-gradient(135deg,#4a0a0a,#8b1a1a,#4a0a0a);color:#ede0c4;box-shadow:0 0 20px #8b1a1a33}
+.btn-red:hover{box-shadow:0 0 50px #8b1a1a77;transform:scale(1.04)}
+.btn:disabled{opacity:.28;cursor:not-allowed;transform:none!important;box-shadow:none!important}
+.x-btn{position:absolute;top:14px;right:16px;background:none;border:none;color:var(--muted);
+  font-size:26px;cursor:pointer;padding:4px 8px;transition:color .2s;z-index:10;line-height:1}
+.x-btn:hover{color:#fff}
+
+/* ─ HUD ─ */
+#hud{position:fixed;top:0;left:0;right:0;z-index:200;
+  background:linear-gradient(#080604f5,#080604cc,transparent);
+  padding:7px 14px;display:none;align-items:center;gap:8px;flex-wrap:nowrap;
+  overflow:hidden}
+#hud.on{display:flex}
+.hud-logo{font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;color:var(--gold);font-size:11px;letter-spacing:2px;flex:0 0 auto;white-space:nowrap}
+.hud-pill{background:#12100a;border:1px solid #2a1e08;padding:3px 9px;font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;font-size:10px;color:var(--muted);white-space:nowrap;flex-shrink:0}
+.hud-pill b{color:var(--gold)}
+.hud-step-badge{background:var(--blood);color:#ede0c4;font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;font-size:10px;letter-spacing:1px;padding:4px 10px;border-radius:2px;white-space:nowrap;flex-shrink:0}
+.hud-spacer{flex:1}
+/* Mobile: hide logo text on small screens, keep data */
+@media(max-width:480px){
+  .hud-logo{display:none}
+  .hud-pill{padding:3px 6px;font-size:9px}
+  .hud-step-badge{font-size:9px;padding:3px 7px;letter-spacing:0}
+}
+
+/* ─ MAP ─ */
+#s-map{padding:60px 20px 40px}
+.pg-title{font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;color:var(--gold);font-size:22px;letter-spacing:3px;text-align:center;margin-bottom:6px}
+.pg-sub{text-align:center;color:var(--muted);font-style:italic;margin-bottom:24px;font-size:16px}
+/* Detective note banner */
+.det-note{max-width:900px;margin:0 auto 24px;background:#0f0c07;border-left:3px solid var(--gold);
+  padding:14px 20px;font-size:16px;color:var(--muted);font-style:italic;line-height:1.6;border-radius:0 6px 6px 0}
+.det-note strong{color:var(--gold);font-style:normal;font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;font-size:11px;letter-spacing:2px;display:block;margin-bottom:5px}
+.rooms-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px;max-width:900px;margin:0 auto 28px}
+.room-card{background:var(--panel);border:2px solid #2a1e08;border-radius:10px;padding:22px 14px;
+  text-align:center;cursor:pointer;transition:all .28s;position:relative;overflow:hidden}
+.room-card::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0,#c9a84c0b,transparent);opacity:0;transition:opacity .3s;pointer-events:none}
+.room-card:hover::after{opacity:1}
+.room-card:hover{border-color:var(--gold);transform:translateY(-5px);box-shadow:0 12px 40px #c9a84c1a}
+.room-card.done{border-color:#3a2a10;opacity:.82}
+.room-done-tag{position:absolute;top:8px;right:8px;font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;font-size:8px;letter-spacing:1px;color:#4caf50;background:#051005cc;padding:2px 7px;border-radius:2px}
+.r-em{font-size:48px;display:block;margin-bottom:10px;filter:drop-shadow(0 0 10px #c9a84c22)}
+.r-name{font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;color:var(--gold);font-size:13px;letter-spacing:1px}
+.r-atmo{color:var(--muted);font-size:12px;margin-top:5px;font-style:italic;line-height:1.4}
+.pip-row{display:flex;gap:5px;justify-content:center;margin-top:10px}
+.pip{width:9px;height:9px;border-radius:50%;background:#2a1e08;transition:all .4s}
+.pip.lit{background:var(--gold);box-shadow:0 0 7px #c9a84c88}
+.map-btns{max-width:900px;margin:0 auto;display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+
+/* ─ ROOM ENTRY (atmospheric) ─ */
+#s-room-entry{align-items:center;justify-content:center;text-align:center;padding:40px 20px;
+  background:radial-gradient(ellipse at 50% 40%,#14100a,#000);min-height:100vh}
+.re-em{font-size:clamp(70px,14vw,120px);margin-bottom:20px;filter:drop-shadow(0 0 30px #c9a84c33);animation:fadeUp .6s ease}
+.re-name{font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;color:var(--gold);font-size:28px;letter-spacing:3px;margin-bottom:16px}
+.re-atmo{max-width:600px;color:var(--text);font-style:italic;font-size:20px;line-height:1.8;
+  margin-bottom:12px;text-align:center}
+.re-note{max-width:560px;background:#0f0c07;border-left:3px solid var(--gold);padding:14px 20px;
+  font-size:16px;color:var(--muted);line-height:1.6;margin:16px auto 28px;text-align:left;border-radius:0 6px 6px 0}
+.re-note strong{color:var(--gold);font-style:normal;font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;font-size:11px;letter-spacing:2px;display:block;margin-bottom:4px}
+
+/* ─ ROOM SEARCH ─ */
+#s-room{padding:58px 20px 36px;min-height:100vh}
+.room-hdr{text-align:center;margin-bottom:20px}
+.room-hdr h2{font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;color:var(--gold);font-size:22px;letter-spacing:2px}
+.room-hdr p{color:var(--muted);font-style:italic;font-size:15px;margin-top:4px}
+.search-hint{max-width:820px;margin:0 auto 18px;background:#0f0c07;border:1px solid #c9a84c33;
+  padding:10px 18px;font-size:15px;color:var(--muted);text-align:center;border-radius:5px}
+.search-hint span{color:var(--gold)}
+.room-wrap{max-width:820px;margin:0 auto;background:var(--panel);border:2px solid #2a1e08;
+  border-radius:12px;padding:26px;position:relative;overflow:hidden}
+.room-wrap::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0,#c9a84c07,transparent 60%);pointer-events:none}
+.obj-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.obj{aspect-ratio:1;background:#0b0906;border:2px solid #2a1e08;border-radius:10px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  cursor:pointer;transition:all .3s;font-size:36px;position:relative;overflow:hidden;user-select:none}
+.obj:not(.used):hover{border-color:var(--gold);background:#1c1508;transform:scale(1.08);box-shadow:0 0 24px #c9a84c44}
+.obj.glow{animation:glo 1.8s ease-in-out infinite}
+@keyframes glo{0%,100%{border-color:#c9a84c44;box-shadow:0 0 8px #c9a84c22}50%{border-color:var(--gold);box-shadow:0 0 28px #c9a84c88}}
+.obj.used{opacity:.28;cursor:default;filter:grayscale(1)}
+.obj-lbl{font-size:10px;font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;color:var(--muted);letter-spacing:1px;margin-top:5px}
+.obj-ripple{position:absolute;inset:0;border-radius:10px;background:radial-gradient(circle,#c9a84c55,transparent);
+  animation:ripple .6s ease-out forwards;pointer-events:none}
+@keyframes ripple{from{opacity:1;transform:scale(.2)}to{opacity:0;transform:scale(2.4)}}
+
+/* ─ OVERLAY SYSTEM (all closable) ─ */
+.ov{position:fixed;inset:0;z-index:900;display:none;align-items:center;justify-content:center;
+  padding:20px;background:#000000cc;backdrop-filter:blur(5px)}
+.ov.on{display:flex;animation:ovIn .25s ease}
+@keyframes ovIn{from{opacity:0}to{opacity:1}}
+
+/* CLUE CARD */
+.clue-card{background:var(--panel);border:3px solid var(--gold);max-width:460px;width:100%;
+  border-radius:10px;padding:46px 32px 38px;text-align:center;position:relative;
+  box-shadow:0 0 80px #c9a84c33,inset 0 0 30px #c9a84c06;
+  animation:popIn .4s cubic-bezier(.34,1.56,.64,1)}
+@keyframes popIn{from{transform:scale(.5) rotate(-8deg);opacity:0}to{transform:none;opacity:1}}
+.cc-icon{font-size:78px;display:block;margin-bottom:14px;animation:iconBnc .5s .15s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes iconBnc{from{transform:scale(0) translateY(-18px)}to{transform:none}}
+.cc-tag{font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;font-size:10px;letter-spacing:5px;color:var(--blood);margin-bottom:10px}
+.cc-title{font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;color:var(--gold);font-size:22px;margin-bottom:10px;line-height:1.3}
+.cc-body{color:var(--text);font-size:17px;line-height:1.65;margin-bottom:14px}
+.cc-detective{background:#0b0906;border-left:3px solid #c9a84c66;padding:10px 16px;
+  font-style:italic;font-size:15px;color:var(--muted);line-height:1.5;margin-bottom:24px;text-align:left;border-radius:0 5px 5px 0}
+.cc-detective::before{content:'"';color:var(--gold)}
+.cc-detective::after{content:'"';color:var(--gold)}
+.empty-card{border-color:#3a2a10;box-shadow:none}
+.empty-card .cc-tag{color:var(--muted)}
+.empty-card .cc-title{color:var(--muted);font-size:18px}
+
+/* SUSPECT CARD */
+.sus-card-pop{background:var(--panel);max-width:600px;width:100%;border-radius:12px;
+  position:relative;overflow:hidden;box-shadow:0 0 80px #00000088;
+  animation:popIn .35s cubic-bezier(.34,1.56,.64,1);max-height:90vh;overflow-y:auto}
+.scp-top{display:flex;align-items:stretch;gap:0}
+.scp-portrait{width:160px;min-width:160px;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:28px 14px;position:relative;overflow:hidden}
+.scp-portrait-bg{position:absolute;inset:0;opacity:.15;
+  background:radial-gradient(ellipse at 50% 40%,var(--cc),transparent 70%)}
+.scp-em{font-size:72px;position:relative;z-index:1;transition:transform .4s,filter .4s;
+  filter:drop-shadow(0 4px 12px var(--cc-dim));line-height:1}
+.scp-portrait:hover .scp-em{transform:scale(1.08)}
+.scp-meta{flex:1;padding:24px 24px 18px;border-left:1px solid #2a1e08}
+.scp-name{font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;color:var(--gold);font-size:20px;letter-spacing:1px;margin-bottom:3px}
+.scp-role{color:var(--muted);font-size:14px;font-style:italic;margin-bottom:10px}
+.scp-badge{display:inline-block;font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;font-size:9px;letter-spacing:2px;
+  padding:4px 12px;border-radius:3px;margin-bottom:14px}
+/* Stress */
+.stress-section{margin-bottom:14px}
+.stress-lbl{font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;font-size:9px;letter-spacing:3px;color:var(--muted);
+  margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
+.stress-val{font-size:14px;font-weight:600}
+.stress-track{height:14px;background:#0b0906;border:1px solid #2a1e08;border-radius:7px;overflow:hidden}
+.stress-bar{height:100%;border-radius:7px;background:linear-gradient(90deg,#4caf50,#ff9800,#e53935);
+  transition:width 1.1s cubic-bezier(.25,.46,.45,.94);position:relative}
+.stress-bar::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.2),transparent)}
+.sweat{text-align:right;font-size:18px;min-height:24px;transition:all .4s;margin-top:4px}
+.scp-body{padding:0 24px 24px}
+/* First words */
+.scp-words{background:#0b0906;border-left:3px solid var(--cc,var(--gold));padding:14px 18px;
+  font-style:italic;font-size:17px;line-height:1.7;color:var(--text);margin-bottom:18px;border-radius:0 7px 7px 0;
+  transition:all .3s}
+/* Questions */
+.q-hint{font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;font-size:10px;letter-spacing:3px;color:var(--muted);margin-bottom:12px}
+.q-list{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.q-item{background:#0b0906;border:2px solid #2a1e08;padding:13px 16px;border-radius:7px;
+  cursor:pointer;text-align:left;display:flex;align-items:center;gap:10px;
+  font-family:'Crimson Text',serif;font-size:16px;color:var(--text);transition:all .22s}
+.q-item:hover:not([disabled]):not(.done){transform:translateX(5px);border-color:var(--cc,var(--gold));color:var(--gold)}
+.q-item.done{opacity:.48;cursor:default;pointer-events:none}
+.q-num{font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;font-size:10px;color:var(--muted);min-width:18px;flex-shrink:0}
+.lie-tag{margin-left:auto;font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;font-size:10px;letter-spacing:2px;padding:3px 10px;border-radius:3px;white-space:nowrap;flex-shrink:0}
+.lie-tag.lie{background:#2a0808;color:#ff6b6b;border:1px solid #8b1a1a}
+.lie-tag.truth{background:#082a08;color:#6bff6b;border:1px solid #1a8b1a}
+.lie-tag.nervous{background:#2a1e08;color:#ffcc44;border:1px solid #8b6a14}
+/* Answer area */
+.scp-answer{display:none;background:#0b0906;border-left:3px solid var(--cc,var(--gold));padding:14px 18px;
+  font-style:italic;font-size:16px;line-height:1.7;color:var(--text);margin-bottom:14px;
+  border-radius:0 7px 7px 0;animation:fadeUp .3s ease}
+.scp-answer.show{display:block}
+.scp-footer{display:flex;justify-content:space-between;align-items:center;padding:0 24px 20px;flex-wrap:wrap;gap:10px}
+.sig-line{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:14px;font-style:italic}
+
+/* SUSPECTS GALLERY */
+#s-suspects{padding:58px 20px 40px}
+.sus-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:18px;max-width:1060px;margin:0 auto 26px}
+.sus-gallery-card{border-radius:12px;cursor:pointer;transition:transform .3s,box-shadow .3s;
+  position:relative;overflow:hidden;border:2px solid transparent}
+.sus-gallery-card:hover{transform:translateY(-8px)}
+.sgc-banner{height:8px}
+.sgc-portrait{padding:24px 14px 16px;text-align:center;position:relative;background:linear-gradient(180deg,#1c1508,#100d07)}
+.sgc-portrait-bg{position:absolute;inset:0;opacity:.1;background:radial-gradient(ellipse at 50% 30%,var(--cc),transparent 70%)}
+.sgc-em{font-size:66px;line-height:1;display:block;margin-bottom:8px;transition:transform .3s;
+  filter:drop-shadow(0 4px 10px var(--cc-dim))}
+.sus-gallery-card:hover .sgc-em{transform:scale(1.12)}
+.sgc-badge{font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;font-size:9px;letter-spacing:2px;padding:4px 10px;
+  border-radius:3px;background:var(--cc-dim);color:var(--cc);border:1px solid var(--cc)}
+.sgc-info{background:#0c0a07;padding:14px 16px 18px}
+.sgc-name{font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;color:var(--gold);font-size:14px;letter-spacing:1px;margin-bottom:2px}
+.sgc-role{color:var(--muted);font-size:12px;font-style:italic;margin-bottom:9px}
+.sgc-quote{color:var(--text);font-size:13px;font-style:italic;line-height:1.5;
+  border-left:2px solid var(--cc);padding-left:8px;margin-bottom:11px;opacity:.85}
+.sgc-stress-lbl{font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;font-size:9px;letter-spacing:2px;color:var(--muted);
+  margin-bottom:5px;display:flex;justify-content:space-between}
+.sgc-stress-track{height:5px;background:#1a1208;border-radius:3px;overflow:hidden}
+.sgc-stress-fill{height:100%;border-radius:3px;transition:width .7s ease}
+.sgc-done-stamp{display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-18deg);
+  font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;font-size:14px;letter-spacing:3px;color:#4caf50;
+  border:3px solid #4caf50;padding:5px 14px;background:#051005cc;white-space:nowrap;z-index:8;pointer-events:none}
+.sus-gallery-card.done .sgc-done-stamp{display:block}
+
+/* ACCUSATION */
+#s-accuse{padding:58px 20px 40px;align-items:center}
+.acc-wrap{max-width:700px;width:100%}
+.acc-scene{background:#0b0906;border:1px solid #2a1e08;border-left:3px solid var(--blood);
+  padding:18px 22px;margin-bottom:28px;font-style:italic;font-size:17px;line-height:1.75;
+  color:var(--text);border-radius:0 7px 7px 0}
+.acc-scene em{color:var(--gold);font-style:normal}
+.acc-sec-title{font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;font-size:11px;letter-spacing:4px;color:var(--muted);margin-bottom:12px}
+.chips{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:24px}
+.chip{background:#0b0906;border:2px solid #2a1e08;padding:11px 17px;cursor:pointer;
+  font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;font-size:12px;color:var(--muted);letter-spacing:1px;
+  transition:all .22s;border-radius:7px;display:flex;align-items:center;gap:8px}
+.chip:hover{border-color:var(--gold);color:var(--gold)}
+.chip.sel{border-color:var(--gold);background:#1c1508;color:var(--gold);box-shadow:0 0 14px #c9a84c22}
+.chip .cem{font-size:20px;filter:grayscale(0.2) sepia(0.3) drop-shadow(0 1px 3px rgba(201,168,76,0.3));}
+
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.choice-card {
+  background: #0b0906;
+  border: 2px solid #2a1e08;
+  padding: 16px;
+  cursor: pointer;
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 1px;
+  transition: all .22s;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+.choice-card:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+  transform: translateY(-5px);
+  box-shadow: 0 5px 15px rgba(201,168,76,0.1);
+}
+.choice-card.sel {
+  border-color: var(--gold);
+  background: #1c1508;
+  color: var(--gold);
+  box-shadow: 0 0 20px #c9a84c33;
+}
+.choice-card img {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #2a1e08;
+}
+.choice-card.sel img {
+  border-color: var(--gold);
+}
+.choice-card .cem {
+  font-size: 32px;
+}
+.conf-box{background:#0b0906;border:1px solid #2a1e08;padding:16px 20px;border-radius:8px;margin-bottom:24px}
+.conf-lbl{font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;font-size:11px;letter-spacing:3px;color:var(--muted);
+  margin-bottom:8px;display:flex;justify-content:space-between}
+.conf-track{height:11px;background:#060504;border-radius:6px;overflow:hidden}
+.conf-fill{height:100%;background:linear-gradient(90deg,var(--blood),#ff9800,var(--gold));
+  border-radius:6px;transition:width .5s}
+
+/* REVEAL */
+#s-reveal{align-items:center;justify-content:center;text-align:center;padding:40px 20px;
+  background:radial-gradient(ellipse at 50% 30%,#1a0505,#000)}
+#s-reveal.win{background:radial-gradient(ellipse at 50% 30%,#051a05,#000)}
+.rv-icon{font-size:100px;margin-bottom:16px;animation:rvPop 1s cubic-bezier(.34,1.56,.64,1)}
+@keyframes rvPop{from{transform:scale(0) rotate(-24deg);opacity:0}to{transform:none;opacity:1}}
+.rv-verdict{font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;font-size:clamp(28px,6vw,62px);margin-bottom:8px}
+.rv-verdict.w{color:#e53935;text-shadow:0 0 30px #e5393555}
+.rv-verdict.r{color:var(--gold);text-shadow:0 0 30px #c9a84c55}
+.rv-sub{color:var(--muted);font-style:italic;font-size:20px;margin-bottom:28px}
+.truth-box{background:#0d0a06;border:2px solid #2a1e08;max-width:620px;width:100%;
+  padding:26px 30px;text-align:left;margin-bottom:22px;border-radius:8px}
+.truth-row{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid #1a1208}
+.truth-row:last-child{border-bottom:none}
+.t-em{font-size:34px;min-width:42px;text-align:center;filter:grayscale(0.2) sepia(0.3) drop-shadow(0 2px 4px rgba(201,168,76,0.3));}
+.t-lbl{font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;font-size:10px;letter-spacing:3px;color:var(--muted);margin-bottom:3px}
+.t-val{font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;color:var(--gold);font-size:17px}
+.t-chk{margin-left:auto;font-size:22px}
+.story-box{background:#0d0a06;border-left:3px solid var(--blood);max-width:620px;width:100%;
+  padding:20px 24px;text-align:left;margin-bottom:24px;font-size:17px;line-height:1.85;
+  color:var(--text);border-radius:0 8px 8px 0}
+.story-box em{color:var(--gold);font-style:normal}
+.score-ring{width:110px;height:110px;border-radius:50%;
+  background:conic-gradient(var(--gold) var(--pct,0%),#1a1208 0);
+  display:flex;align-items:center;justify-content:center;margin:0 auto 8px;position:relative}
+.score-ring::before{content:'';position:absolute;inset:10px;background:#0d0a06;border-radius:50%}
+.score-num{font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;font-size:30px;color:var(--gold);position:relative;z-index:1}
+.score-tag{font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;font-size:12px;letter-spacing:3px;color:var(--muted);margin-bottom:26px}
+
+/* JOURNAL */
+.joy{position:fixed;inset:0;z-index:950;background:#000000cc;display:none;align-items:center;
+  justify-content:center;padding:20px;backdrop-filter:blur(5px)}
+.joy.on{display:flex}
+.joy-panel{background:var(--panel);border:2px solid var(--gold);max-width:580px;width:100%;
+  max-height:82vh;overflow-y:auto;padding:28px 28px 32px;border-radius:10px;
+  box-shadow:0 0 60px #c9a84c22;position:relative}
+.joy-title{font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;color:var(--gold);font-size:18px;letter-spacing:3px;margin-bottom:18px;padding-right:40px}
+.joy-empty{color:var(--muted);font-style:italic;text-align:center;padding:40px}
+.joy-item{display:flex;gap:13px;padding:13px 0;border-bottom:1px solid #1a1208}
+.joy-item:last-child{border-bottom:none}
+.ji-em{font-size:28px;min-width:36px;flex-shrink:0;margin-top:2px}
+.ji-title{font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;color:var(--gold);font-size:13px;margin-bottom:4px}
+.ji-body{color:var(--text);font-size:14px;line-height:1.5}
+.ji-note{color:var(--muted);font-size:13px;font-style:italic;margin-top:4px}
+
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:#3a2810;border-radius:3px}
+.fc{display:flex;justify-content:center;gap:12px;flex-wrap:wrap}
+.mt20{margin-top:20px}
+@media(max-width:600px){.scp-top{flex-direction:column}.scp-portrait{width:100%;min-width:0;flex-direction:row;gap:16px;padding:16px}}
+
+/* ─ FLOOR MAP CANVAS ─ */
+.floor-map-wrap{max-width:900px;margin:0 auto;padding:0 16px}
+#floor-canvas{
+  display:block;width:100%;height:auto;cursor:crosshair;
+  border:1px solid #2a1e08;border-radius:10px;
+  box-shadow:0 0 60px #00000099,0 0 30px #c9a84c0a;
+  background:#050302;
+}
+.map-legend{max-width:900px;margin:10px auto 0;display:flex;gap:18px;flex-wrap:wrap;
+  justify-content:center;font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;font-size:9px;letter-spacing:2px;color:var(--muted);
+  padding:0 16px}
+.leg-item{display:flex;align-items:center;gap:6px}
+.leg-dot{width:9px;height:9px;border-radius:50%}
+
+/* ─ ROOM VIEW (immersive canvas) ─ */
+#s-room-view{padding:0}
+#room-canvas{
+  display:block;width:100%;height:auto;cursor:crosshair;
+  max-width:940px;margin:64px auto 0;
+  border:1px solid #2a1e08;border-radius:10px;
+  box-shadow:0 0 80px #00000099;
+}
+.room-view-atmo{
+  max-width:900px;margin:10px auto 0;
+  background:#0d0a06;border-left:3px solid var(--gold);
+  padding:11px 18px;font-size:15px;color:var(--muted);
+  font-style:italic;line-height:1.55;border-radius:0 6px 6px 0;
+  padding-left:20px;
+}
+.room-search-hint{
+  max-width:900px;margin:8px auto 10px;
+  background:#0a0806;border:1px solid #c9a84c22;
+  padding:7px 16px;font-size:13px;color:var(--muted);
+  text-align:center;border-radius:5px;
+}
+.room-search-hint span{color:var(--gold)}
+.room-view-btns{max-width:900px;margin:12px auto 32px;display:flex;gap:12px;
+  justify-content:center;flex-wrap:wrap;padding:0 16px}
+#obj-tooltip{
+  position:fixed;pointer-events:none;z-index:400;
+  background:#1c1508;border:1px solid var(--gold);
+  padding:5px 12px;border-radius:4px;
+  font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;font-size:10px;letter-spacing:2px;color:var(--gold);
+  display:none;transform:translate(-50%,-130%);white-space:nowrap;
+  box-shadow:0 0 14px #c9a84c22;
+}
+
+/* ─ AUDIO PANEL ─ */
+#audio-ctrl{position:fixed;bottom:18px;right:18px;z-index:500;background:#0e0c08;
+  border:1px solid #3a2a10;border-radius:9px;overflow:hidden;box-shadow:0 4px 28px #000000bb;
+  min-width:188px;transition:opacity .4s;opacity:0;pointer-events:none}
+#audio-ctrl.live{opacity:1;pointer-events:all}
+#audio-ctrl.collapsed .aud-body{display:none}
+.aud-toggle{display:flex;align-items:center;gap:7px;padding:8px 13px;cursor:pointer;
+  background:none;border:none;color:var(--gold);font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;
+  font-size:10px;letter-spacing:2px;width:100%;justify-content:space-between}
+.aud-toggle:hover{background:#1c1508}
+.aud-chevron{transition:transform .25s;font-size:10px;color:var(--muted)}
+#audio-ctrl:not(.collapsed) .aud-chevron{transform:rotate(180deg)}
+.aud-body{padding:8px 13px 13px;border-top:1px solid #2a1e08;display:flex;flex-direction:column;gap:10px}
+.aud-row{display:flex;align-items:center;gap:8px}
+.aud-icon{font-size:15px;min-width:20px;text-align:center}
+.aud-lbl{color:var(--muted);font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;font-size:9px;letter-spacing:1px;min-width:44px}
+.aud-slider{flex:1;-webkit-appearance:none;height:3px;border-radius:2px;
+  background:#2a1e08;outline:none;cursor:pointer;accent-color:var(--gold)}
+.aud-slider::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;
+  border-radius:50%;background:var(--gold);cursor:pointer;box-shadow:0 0 5px #c9a84c66}
+.aud-slider::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:var(--gold);cursor:pointer;border:none}
+.aud-pct{color:#5a4a30;font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;font-size:9px;min-width:26px;text-align:right}
+.aud-tip{color:#3a2a10;font-size:11px;font-style:italic;text-align:center;padding-top:2px;line-height:1.4}
+
+/* ─ HUD MUTE + LANG ─ */
+.hud-mute{background:none;border:1px solid #2a1e08;color:var(--muted);font-size:14px;
+  padding:3px 9px;cursor:pointer;border-radius:3px;transition:all .2s;font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;line-height:1}
+.hud-mute:hover{border-color:var(--gold);color:var(--gold)}
+.hud-lang{display:flex;border:1px solid #2a1e08;border-radius:3px;overflow:hidden}
+.hud-lang-btn{background:none;border:none;color:var(--muted);font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;
+  font-size:9px;letter-spacing:1px;padding:4px 8px;cursor:pointer;transition:all .2s}
+.hud-lang-btn.active{background:#2a1e08;color:var(--gold)}
+.hud-lang-btn:hover:not(.active){color:var(--gold)}
+
+/* ─ REALISM EFFECTS ─ */
+.film-grain {
+  position: fixed; inset: 0; pointer-events: none; z-index: 9999;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E");
+  opacity: 0.6;
+  mix-blend-mode: multiply;
+}
+.vignette {
+  position: fixed; inset: 0; pointer-events: none; z-index: 9998;
+  background: radial-gradient(circle, transparent 40%, rgba(0,0,0,0.85) 100%);
+}
+.dust-particle {
+  position: absolute; width: 3px; height: 3px; background: rgba(255,255,255,0.4);
+  border-radius: 50%; pointer-events: none; filter: blur(1px); z-index: 5;
+  animation: floatDust 15s infinite linear;
+}
+@keyframes floatDust {
+  0% { transform: translateY(100vh) translateX(0); opacity: 0; }
+  20% { opacity: 0.6; }
+  80% { opacity: 0.6; }
+  100% { transform: translateY(-20vh) translateX(50px); opacity: 0; }
+}
+/* Paper textures for cards */
+.sus-card-pop, .clue-card, .joy-wrap, .tutorial-card {
+  background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paper'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.04' result='noise'/%3E%3CfeColorMatrix type='matrix' values='1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 0.05 0' in='noise' result='coloredNoise'/%3E%3CfeBlend in='SourceGraphic' in2='coloredNoise' mode='multiply'/%3E%3C/filter%3E%3Crect width='100' height='100' fill='%2312100a' filter='url(%23paper)'/%3E%3C/svg%3E");
+  background-color: var(--panel) !important;
+}
+.tutorial-card {
+  background: #1a1610; border: 2px solid var(--gold); border-radius: 8px; padding: 40px;
+  max-width: 600px; width: 100%; position: relative; box-shadow: 0 0 40px rgba(0,0,0,0.8);
+}
+.tut-title { font-family: 'Cinzel', serif; color: var(--gold); font-size: 28px; text-align: center; margin-bottom: 20px; }
+.tut-p { color: var(--text); font-size: 18px; line-height: 1.6; margin-bottom: 15px; }
+.tut-h { font-family: 'Cinzel', serif; color: var(--gold); font-size: 18px; margin-top: 20px; margin-bottom: 8px; border-bottom: 1px solid #c9a84c33; padding-bottom: 5px; }
+
+
+/* Addictive Mechanics CSS */
+.float-text {
+  position: absolute; font-family: 'Cinzel', serif; font-size: 32px; font-weight: 900;
+  color: #4caf50; text-shadow: 0 0 10px #000, 0 0 20px #4caf50;
+  pointer-events: none; z-index: 9999;
+  animation: floatUp 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+@keyframes floatUp {
+  0% { transform: translateY(0) scale(0.5); opacity: 1; }
+  50% { transform: translateY(-50px) scale(1.2); opacity: 1; }
+  100% { transform: translateY(-100px) scale(1); opacity: 0; }
+}
+@keyframes shake {
+  0% { transform: translate(1px, 1px) rotate(0deg); }
+  10% { transform: translate(-1px, -2px) rotate(-1deg); }
+  20% { transform: translate(-3px, 0px) rotate(1deg); }
+  30% { transform: translate(3px, 2px) rotate(0deg); }
+  40% { transform: translate(1px, -1px) rotate(1deg); }
+  50% { transform: translate(-1px, 2px) rotate(-1deg); }
+  60% { transform: translate(-3px, 1px) rotate(0deg); }
+  70% { transform: translate(3px, 1px) rotate(-1deg); }
+  80% { transform: translate(-1px, -1px) rotate(1deg); }
+  90% { transform: translate(1px, 2px) rotate(0deg); }
+  100% { transform: translate(1px, -2px) rotate(-1deg); }
+}
+.shake-anim { animation: shake 0.5s; }
+.timer-warn { color: #ff3333 !important; animation: pulseRed 0.8s infinite; }
+@keyframes pulseRed { 0%, 100% { text-shadow: 0 0 10px #ff0000; } 50% { text-shadow: 0 0 30px #ff0000; } }
+
+
+/* Royal Cinematic Styles */
+#cin-bg {
+  position: absolute; inset: 0; z-index: 0;
+  background-size: cover; background-position: center;
+  opacity: 0.5;
+  transition: background-image 1.5s ease-in-out, opacity 1.5s ease-in-out;
+  animation: panCinBg 20s linear infinite alternate;
+}
+@keyframes panCinBg {
+  0% { transform: scale(1.02) translate(0, 0); }
+  100% { transform: scale(1.15) translate(-2%, -1%); }
+}
+.cin-slide {
+  z-index: 2; /* above cin-bg */
+}
+.cin-glass-panel {
+  background: rgba(10, 6, 2, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 2px solid rgba(201, 168, 76, 0.5);
+  border-radius: 12px;
+  padding: 45px 55px;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.9), inset 0 0 30px rgba(201,168,76,0.15);
+  max-width: 800px;
+  margin: 0 auto;
+  text-align: center;
+}
+.cin-em {
+  margin-bottom: 20px;
+}
+
+
+.suspect-stress-glow {
+  filter: drop-shadow(0 0 20px rgba(255,0,0,0.8));
+  transition: filter 0.3s;
+}
+.suspect-stress-shake {
+  animation: shake 0.5s infinite;
+}
+
+
+.tut-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: #443; border: 1px solid #c9a84c55; display: inline-block; cursor: pointer;
+  transition: background 0.3s;
+}
+.tut-dot.active { background: #c9a84c; box-shadow: 0 0 8px #c9a84c; }
+
+</style>
+</head>
+<body>
+<nav style="position:fixed;top:0;left:0;right:0;z-index:10000;display:flex;justify-content:space-between;
+  align-items:center;padding:12px 20px;pointer-events:none;
+  background:linear-gradient(#070503cc,transparent)">
+  <a href="../index.html" style="pointer-events:all;font-family:'Cinzel',serif;font-size:12px;letter-spacing:4px;
+    text-decoration:none;background:linear-gradient(135deg,#7a5820,#c9a84c);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">CALMTYPE</a>
+  <a href="../index.html" style="pointer-events:all;font-family:'Cinzel',serif;font-size:10px;letter-spacing:2px;
+    color:#7a6a50;text-decoration:none;display:flex;align-items:center;gap:6px;transition:color .2s"
+    onmouseover="this.style.color='#ede0c4'" onmouseout="this.style.color='#7a6a50'">
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+      <path d="M8 2L4 6l4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>ALL GAMES
+  </a>
+</nav>
+<div class="film-grain"></div>
+<div class="vignette"></div>
+<canvas id="bg"></canvas>
+
+<!-- TITLE -->
+<div id="s-title" class="screen on">
+  <div class="flkr">🕯️ 🕯️</div>
+  <h1 class="t-main">BLACKWOOD<br>MANOR</h1>
+  <div class="t-sub">A Heist Mystery</div>
+  <div class="hr"></div>
+  <p class="tagline">A lord is dead. Five suspects. One truth.<br>Every game is a brand-new mystery.</p>
+  <button class="btn btn-gold" onclick="beginGame()" data-t="investigate">INVESTIGATE</button>
+      <button class="btn btn-ghost" onclick="openTutorial()" style="margin-left:10px;">HOW TO PLAY</button>
+  <br><br>
+  <p style="color:var(--muted);font-size:13px;font-style:italic">🎬 Randomized every time &nbsp;·&nbsp; YouTube ready</p>
+</div>
+
+<!-- CINEMATIC INTRO -->
+<div id="s-cin" class="screen" onclick="cinAdvance()">
+<div id="cin-bg"></div>
+<div id="cin-tap">TAP TO CONTINUE ›</div>
+
+  <!-- SLIDE 0 · The night -->
+  <div id="cin-0" class="cin-slide">
+<div class="cin-glass-panel">
+    <div class="cin-em">🌩️</div>
+    <h2 class="cin-h">Blackwood Manor</h2>
+    <div class="cin-rule"></div>
+    <p class="cin-p">October 14th, 1923.<br>A violent storm has consumed the grounds.<br>The last train left at nine o'clock.<br><em style="color:var(--gold);font-style:normal">No one is leaving tonight.</em></p>
+</div>
+    <div class="cin-bar"><div class="cin-fill" id="cf0" style="width:0"></div></div>
+  </div>
+
+  <!-- SLIDE 1 · The body -->
+  <div id="cin-1" class="cin-slide">
+<div class="cin-glass-panel">
+    <div class="dead-badge">
+      <div class="db-name">💀 &nbsp;LORD EDWARD BLACKWOOD</div>
+      <div class="db-det">Found dead · His locked study · Midnight<br>Brandy glass shattered on the floor<br>Door locked from inside · No forced entry<br><span style="color:var(--blood);letter-spacing:1px">This was not an accident.</span></div>
+    </div>
+    <div class="cin-rule" style="margin-top:18px"></div>
+    <p class="cin-p">Five guests were in the manor that night.<br>One of them did not retire to bed.</p>
+</div>
+    <div class="cin-bar"><div class="cin-fill" id="cf1" style="width:0"></div></div>
+  </div>
+
+  <!-- SLIDE 2 · Scotland Yard -->
+  <div id="cin-2" class="cin-slide">
+<div class="cin-glass-panel">
+    <div class="cin-em" style="font-size:clamp(54px,11vw,96px)">📞</div>
+    <h2 class="cin-h">Scotland Yard Is Called</h2>
+    <div class="cin-rule"></div>
+    <p class="cin-p" style="font-style:italic;color:var(--text)">"We have a theft at Blackwood Manor.<br>Five suspects — all still on the grounds.<br>The constable is lost. We need your best."</p>
+</div>
+    <div class="cin-bar"><div class="cin-fill" id="cf2" style="width:0"></div></div>
+  </div>
+
+  <!-- SLIDE 3 · You are the inspector -->
+  <div id="cin-3" class="cin-slide">
+<div class="cin-glass-panel">
+    <div class="cin-em">🔍</div>
+    <h2 class="cin-h">You Are D.I. Morgan</h2>
+    <div class="cin-stat-row">
+      <div class="cin-stat-box"><div class="cin-stat-num">17</div><div class="cin-stat-lbl">CASES TAKEN</div></div>
+      <div class="cin-stat-box"><div class="cin-stat-num">17</div><div class="cin-stat-lbl">CASES SOLVED</div></div>
+      <div class="cin-stat-box"><div class="cin-stat-num">0</div><div class="cin-stat-lbl">LEFT UNSOLVED</div></div>
+    </div>
+    <div class="cin-rule"></div>
+    <p class="cin-p" style="font-style:italic;color:var(--gold)">"I don't leave until I have my answer.<br>The thief is still in this manor."</p>
+</div>
+    <div class="cin-bar"><div class="cin-fill" id="cf3" style="width:0"></div></div>
+  </div>
+
+  <!-- SLIDE 4 · How to play -->
+  <div id="cin-4" class="cin-slide">
+<div class="cin-glass-panel">
+    <h2 class="cin-h">Your Method, Inspector</h2>
+    <div class="cin-rule"></div>
+    <ul class="cin-list">
+      <li><span class="cin-tag">STEP 1</span>Search rooms for evidence. <b>Some rooms are locked</b> and require a key!</li>
+      <li><span class="cin-tag">STEP 2</span>Interrogate suspects. <b>Present evidence</b> to them to spike their stress!</li>
+      <li><span class="cin-tag">STEP 3</span>Collect 4 or more clues and question at least 2 suspects.</li>
+      <li><span class="cin-tag">PANIC</span>At 1 minute left, the screen edges pulse red and music speeds up!</li>
+      <li><span class="cin-tag">ACCUSE</span>Name the thief, the tool, and the room — close this case.</li>
+    </ul>
+</div>
+    <div class="cin-bar" style="margin-top:16px"><div class="cin-fill" id="cf4" style="width:0"></div></div>
+  </div>
+
+  <!-- SLIDE 5 · The suspects — manual advance -->
+  <div id="cin-5" class="cin-slide">
+<div class="cin-glass-panel">
+    <h2 class="cin-h">Everyone In The Manor That Night</h2>
+    <div class="cin-rule"></div>
+    <div style="display:flex;flex-wrap:wrap;gap:14px;justify-content:center;max-width:660px;margin:12px 0" id="cin-suspects"></div>
+    <p class="cin-p" style="font-size:clamp(14px,1.8vw,18px);margin-top:4px">Five guests. One thief.<br>Every single one has a reason.</p>
+</div>
+    <button class="btn btn-gold" onclick="enterManor()" style="margin-top:14px" data-t="enterManor">ENTER THE MANOR →</button>
+  </div>
+
+</div>
+
+<!-- MAP (Immersive Floor Plan) -->
+<div id="s-map" class="screen">
+  <h2 class="pg-title" style="margin-top:62px">🏚️ Blackwood Manor</h2>
+  <p class="pg-sub" id="map-sub">Click a room to enter and search for evidence</p>
+  <div class="det-note" id="det-map-note" style="max-width:900px">
+    <strong data-t="inspectorsNotebook">INSPECTOR'S NOTEBOOK</strong>
+    <span id="det-map-text">The manor is quiet. Too quiet. I need to search these rooms carefully — every object could be the key.</span>
+  </div>
+  <div class="floor-map-wrap">
+    <canvas id="floor-canvas" width="860" height="520"></canvas>
+  </div>
+  <div class="map-legend">
+    <div class="leg-item"><div class="leg-dot" style="background:#c9a84c;box-shadow:0 0 6px #c9a84c88"></div> Evidence Hotspot</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#8b1a1a;box-shadow:0 0 6px #8b1a1a88"></div> Crime Scene</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#4caf50;box-shadow:0 0 6px #4caf5088"></div> Searched</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#2a1e08"></div> Unvisited</div>
+  </div>
+  <div class="map-btns" style="margin-top:18px">
+    <button class="btn btn-ghost" onclick="openJournal()"><span data-t="evidenceJournal">📓 Evidence Journal</span> <span id="jcount">(0)</span></button>
+    <button class="btn btn-ghost" onclick="goSuspects()" data-t="interrogateSuspects">👥 Interrogate Suspects</button>
+    <button class="btn btn-red" id="accuse-btn" onclick="goAccuse()" disabled data-t="makeAccusation">⚖️ Make Accusation</button>
+  </div>
+</div>
+
+<!-- ROOM VIEW (Immersive Canvas) -->
+<div id="s-room-view" class="screen">
+  <div id="room-bg-container" style="width:900px; height:500px; margin:0 auto 10px auto; position:relative; background-size:cover; background-position:center; border-radius:16px; border:2px solid rgba(201,168,76,0.4); box-shadow:0 25px 60px rgba(0,0,0,0.9), 0 0 0 1px rgba(201,168,76,0.1); overflow:hidden;">
+    <div id="room-bg-overlay" style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0.1),rgba(0,0,0,0.4));z-index:1;pointer-events:none;"></div>
+    <canvas id="room-canvas" width="900" height="500" style="position:absolute; top:0; left:0; z-index:2;"></canvas>
+  </div>
+  <div class="room-view-atmo" id="rv-atmo"></div>
+  <div class="room-search-hint" id="room-search-hint">🔍 <span id="room-hint-text">Click the <strong>glowing gold hotspots</strong> to examine objects and find evidence!</span></div>
+  <div id="crime-scene-banner" style="background:linear-gradient(90deg,#1a0e02,#2a1a06,#1a0e02);border:1px solid rgba(201,168,76,0.4);border-radius:8px;padding:8px 20px;text-align:center;font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;font-size:13px;color:#c9a84c;margin:6px auto;max-width:900px;">
+    🔎 You are investigating <strong>The Missing Star of Blackwood Diamond</strong> — Search for clues about the <em>thief</em>, the <em>tool used</em>, and the <em>location</em>
+  </div>
+  <div class="room-view-btns">
+    <button class="btn btn-ghost" onclick="goBackToMap()" data-t="exitRoom">← Exit Room</button>
+    <button class="btn btn-ghost" onclick="openJournal()" data-t="evidenceJournal">📓 Evidence Journal</button>
+  </div>
+</div>
+
+<!-- Tooltip -->
+<div id="obj-tooltip"></div>
+
+<!-- SUSPECTS -->
+<div id="s-suspects" class="screen">
+  <h2 class="pg-title" style="margin-top:60px">👥 The Suspects</h2>
+  <p class="pg-sub">Everyone in the manor that night — click to interrogate</p>
+  <div class="det-note" style="max-width:1060px">
+    <strong>INSPECTOR'S NOTEBOOK</strong>
+    Watch the <span style="color:var(--gold)">stress meter</span> as you question them. Guilty people crack under pressure. Look for <span style="color:#ff6b6b">⚠ LYING</span> responses.
+  </div>
+  <div class="sus-grid" id="sus-grid"></div>
+  <div class="fc">
+    <button class="btn btn-ghost" onclick="goMap()" data-t="backToManor">← Back to Manor</button>
+    <button class="btn btn-red" id="accuse-sus-btn" onclick="goAccuse()" disabled data-t="makeAccusation">⚖️ Make Accusation</button>
+  </div>
+</div>
+
+<!-- ACCUSATION -->
+<div id="s-accuse" class="screen">
+  <div class="acc-wrap" style="margin-top:68px">
+    <h2 class="pg-title">⚖️ The Accusation</h2>
+    <p class="pg-sub" style="margin-bottom:22px">You've gathered your evidence. Now point the finger.</p>
+    <div class="acc-scene" id="acc-scene">
+      <em>You stand in the manor's great hall.</em> The suspects have been gathered. The constable waits. Every eye is on you. Name the thief — and you'd better be certain.
+    </div>
+    <div class="acc-sec-title" data-t="theThiefIs">THE THIEF IS</div>
+    <div class="cards-grid" id="chips-k"></div>
+    <div class="acc-sec-title" data-t="theToolWas">THE TOOL WAS</div>
+    <div class="cards-grid" id="chips-w"></div>
+    <div class="acc-sec-title" data-t="theCrimeSceneWas">THE CRIME SCENE WAS</div>
+    <div class="cards-grid" id="chips-r"></div>
+    <div class="conf-box">
+      <div class="conf-lbl"><span data-t="confidence">CONFIDENCE IN YOUR DEDUCTIONS</span><span id="conf-txt">0%</span></div>
+      <div class="conf-track"><div class="conf-fill" id="conf-fill" style="width:0"></div></div>
+    </div>
+    <div style="text-align:center">
+      <button class="btn btn-red" id="submit-acc" onclick="confirmAccusation()" disabled data-t="makeTheAccusation">MAKE THE ACCUSATION</button>
+      <p style="color:var(--muted);font-size:13px;margin-top:10px;font-style:italic">This is final. Choose carefully.</p>
+    </div>
+    <div class="fc mt20">
+      <button class="btn btn-ghost" onclick="goMap()" data-t="backToManor">← Back to Manor</button>
+      <button class="btn btn-ghost" onclick="openJournal()" data-t="reviewEvidence">📓 Review Evidence</button>
+    </div>
+  </div>
+</div>
+
+<!-- REVEAL -->
+<div id="s-reveal" class="screen">
+  <div class="rv-icon" id="rv-icon"></div>
+  <h1 class="rv-verdict" id="rv-verdict"></h1>
+  <p class="rv-sub" id="rv-sub"></p>
+  <div class="truth-box" id="truth-box"></div>
+  <div class="story-box" id="story-box"></div>
+  <div class="score-ring" id="score-ring"><span class="score-num" id="score-num"></span></div>
+  <p class="score-tag" id="score-tag"></p>
+  <button class="btn btn-gold" onclick="playAgain()" data-t="playAgain">PLAY AGAIN</button>
+  <br><br>
+  <p style="color:var(--muted);font-size:13px;font-style:italic">A new mystery each time!</p>
+</div>
+
+<!-- CLUE OVERLAY -->
+<div class="ov" id="ov-clue" onclick="ovClick(this,'ov-clue')">
+  <div class="clue-card" id="clue-card">
+    <button class="x-btn" onclick="closeOv('ov-clue')">✕</button>
+    <span class="cc-icon" id="cc-icon"></span>
+    <div class="cc-tag" id="cc-tag"></div>
+    <div class="cc-title" id="cc-title"></div>
+    <div class="cc-body" id="cc-body"></div>
+    <div class="cc-detective" id="cc-det"></div>
+    <button class="btn btn-ghost" onclick="closeOv('ov-clue')" style="letter-spacing:2px">NOTED — CLOSE ✕</button>
+  </div>
+</div>
+
+<!-- SUSPECT OVERLAY -->
+<div class="ov" id="ov-sus" onclick="ovClick(this,'ov-sus')">
+  <div class="sus-card-pop" id="sus-pop">
+    <button class="x-btn" onclick="closeOv('ov-sus')">✕</button>
+    <div class="scp-top">
+      <div class="scp-portrait" id="scp-portrait" style="position:relative;overflow:hidden;border-radius:12px;width:200px;height:200px;flex-shrink:0;border:3px solid var(--cc);">
+        <img id="scp-em" src="" style="width:100%;height:100%;object-fit:cover;display:block;">
+        <div id="scp-badge" style="position:absolute;bottom:0;left:0;right:0;text-align:center;padding:5px;background:rgba(0,0,0,0.75);font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;font-size:11px;letter-spacing:1px;"></div>
+      </div>
+      <div class="scp-meta">
+        <div class="scp-name" id="scp-name"></div>
+        <div class="scp-role" id="scp-role"></div>
+        <div class="scp-badge" id="scp-badge"></div>
+        <div class="stress-section">
+          <div class="stress-lbl"><span data-t="stressLevel">STRESS LEVEL</span><span class="stress-val" id="scp-stress-pct"></span></div>
+          <div class="stress-track"><div class="stress-bar" id="scp-stress-bar" style="width:0%"></div></div>
+          <div class="sweat" id="scp-sweat"></div>
+        </div>
+      </div>
+    </div>
+    <div class="scp-body">
+      <div class="scp-words" id="scp-words"></div>
+      <div class="q-hint" id="scp-q-hint" data-t="yourQuestions">YOUR QUESTIONS — CLICK TO ASK</div>
+      <div class="q-list" id="scp-questions"></div>
+      <div class="q-list" id="scp-evidence" style="display:none;"></div>
+      <div class="scp-answer" id="scp-answer"></div>
+      <div class="scp-footer">
+        <div class="sig-line"><span id="scp-sig-em" style="font-size:20px"></span><span id="scp-sig-txt" style="font-size:14px"></span></div>
+        <button class="btn btn-accent" id="present-ev-btn" onclick="toggleEvidence()" style="margin-right: 10px;">Present Evidence 🔍</button>
+        <button class="btn btn-ghost" onclick="closeOv('ov-sus')" data-t="closeInterview">Close Interview ✕</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ACCUSATION CONFIRM OVERLAY -->
+<div class="ov" id="ov-confirm" onclick="ovClick(this,'ov-confirm')" style="z-index:1000">
+  <div style="background:#0e0b07;border:2px solid #8b1a1a;border-radius:8px;padding:36px 40px;max-width:460px;text-align:center;position:relative;">
+    <div style="font-size:48px;margin-bottom:16px">⚖️</div>
+    <div style="font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;color:#c9a84c;font-size:20px;letter-spacing:2px;margin-bottom:10px">FINAL ACCUSATION</div>
+    <div style="color:#ede0c4;font-size:16px;line-height:1.7;margin-bottom:8px" id="confirm-summary"></div>
+    <div style="color:#7a6a50;font-style:italic;font-size:14px;margin-bottom:28px">This cannot be undone. Are you certain?</div>
+    <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
+      <button class="btn btn-ghost" onclick="closeOv('ov-confirm')" style="font-size:13px;padding:10px 28px">← RECONSIDER</button>
+      <button class="btn btn-red" onclick="closeOv('ov-confirm');submitAccusation()" style="font-size:15px;padding:12px 32px">I'M CERTAIN →</button>
+    </div>
+  </div>
+</div>
+
+<!-- JOURNAL OVERLAY -->
+<div class="joy" id="joy" onclick="ovClick(this,'joy')">
+  <div class="joy-panel">
+    <button class="x-btn" onclick="closeOv('joy')" style="position:absolute;top:14px;right:14px">✕</button>
+    <div class="joy-title">📓 Evidence Journal</div>
+    <div id="joy-list"></div>
+  </div>
+</div>
+
+<!-- AUDIO PANEL -->
+<div id="audio-ctrl" class="collapsed">
+  <button class="aud-toggle" onclick="toggleAudPanel()">
+    <span>🎚️ AUDIO</span>
+    <span class="aud-chevron">▲</span>
+  </button>
+  <div class="aud-body">
+    <div class="aud-row">
+      <span class="aud-icon">🌧️</span>
+      <span class="aud-lbl">AMBIENCE</span>
+      <input type="range" class="aud-slider" id="sl-amb" min="0" max="100" value="72"
+        oninput="setAmbVol(this.value/100);document.getElementById('pct-amb').textContent=this.value+'%'">
+      <span class="aud-pct" id="pct-amb">72%</span>
+    </div>
+    <div class="aud-row">
+      <span class="aud-icon">🎙️</span>
+      <span class="aud-lbl">VOICE</span>
+      <input type="range" class="aud-slider" id="sl-vox" min="0" max="100" value="85"
+        oninput="setVoxVol(this.value/100);document.getElementById('pct-vox').textContent=this.value+'%'">
+      <span class="aud-pct" id="pct-vox">85%</span>
+    </div>
+    <div class="aud-tip">🌧️ storm · 🕰️ clock · 🔊 voice</div>
+  </div>
+</div>
+
+<!-- HUD -->
+<div id="hud">
+  <span class="hud-logo">🕯️ BLACKWOOD MANOR</span>
+  <div class="hud-pill">🔍 <b id="hud-clues">0</b></div>
+  <div class="hud-pill">👥 <b id="hud-sus">0/5</b></div>
+  <span class="hud-step-badge" id="hud-step">STEP 1: SEARCH</span>
+  <div class="hud-spacer"></div>
+  <div class="hud-pill" style="color:var(--gold);font-weight:bold;" id="hud-score">★ 0</div>
+  <div class="hud-pill" style="color:#ff6b6b;font-weight:bold;">⏱ <span id="hud-timer">08:00</span></div>
+  <button class="hud-mute" id="hud-mute" onclick="toggleMute()" title="Toggle audio">🔊</button>
+  <div class="hud-lang">
+    <button class="hud-lang-btn active" id="lang-en" onclick="setLang('en')">EN</button>
+    <button class="hud-lang-btn" id="lang-hi" onclick="setLang('hi')">HI</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+//  SUSPECTS
+// ═══════════════════════════════════════
+const SUSPECTS=[
+  {id:'victoria',name:'Lady Victoria',full:'Lady Victoria Blackwood',title:"The Lord's Ex-Wife",
+   img:'./suspect_victoria_1778755761205.png',em:'👩‍🦳',color:'#c39bd3',dim:'#9b59b622',badge:'❄️  GLAMOROUS',
+   sig:'💎',sigTxt:'Known for her extravagant taste in jewels',
+   quote:'"The Star of Blackwood belongs on my neck, Inspector."',
+   exprs:['👩‍🦳','😤','😰','😱'],baseStress:12,
+   motive:'She believes the diamond is rightfully hers from the divorce.',
+   atmoGreet:{g:'She adjusts her oversized feathered hat. "I want this settled quickly. That diamond is a family heirloom."',
+              i:'She dabs her eyes. "I cannot believe the diamond is gone. Please find who took it."'},
+   questions:[
+    {txt:'Where were you at midnight?',
+     ga:'"In my bedroom. Admiring my other jewels. No one can confirm that... of course."',
+     ia:'"In my room — Agnes brought my tea at ten-thirty. She can confirm."',
+     gs:30,is:5,gr:'lie',ir:'truth',
+     gdet:'She holds your gaze a beat too long. The "of course" was a mistake.',
+     idet:'Her answer is immediate, specific. She wasn\'t rehearsing this.'},
+    {txt:'Did you argue with Lord Blackwood about the diamond?',
+     ga:'"He was giving it to a museum! Everything! I had to take it back before he signed it away."',
+     ia:'"We disagreed about the museum donation, yes. I was upset. But I am not a thief."',
+     gs:38,is:8,gr:'nervous',ir:'truth',
+     gdet:'The mask slips. "Had to take it back" — an interesting choice of words.',
+     idet:'Genuine frustration, not desperation. There\'s a difference.'},
+    {txt:'Do you know how to bypass the security?',
+     ga:'"I... may have looked into that. Once. As a precaution."',
+     ia:'"Absolutely not. That is the head of security\'s domain entirely."',
+     gs:44,is:4,gr:'lie',ir:'truth',
+     gdet:'"As a precaution." The inspector\'s pen pauses over the notepad.',
+     idet:'Calm, certain. No hesitation. She means it.'},
+   ]},
+  {id:'harlow',name:'Dr. Harlow',full:'Dr. James Harlow',title:'Antiques Appraiser',
+   img:'./suspect_harlow_1778755782654.png',em:'🧑‍⚕️',color:'#1abc9c',dim:'#1abc9c22',badge:'🩺  NERVOUS',
+   sig:'💼',sigTxt:'Appraisal kit — never leaves his side',
+   quote:'"The diamond is gone. Case closed. Why are you still here?"',
+   exprs:['🧑‍⚕️','😟','😨','🤯'],baseStress:20,
+   motive:'He needed to steal and sell the diamond to cover massive debts from a fake appraisal scandal.',
+   atmoGreet:{g:'He pushes his thick glasses up his nose. "The diamond is gone. I\'ve filed my report. This investigation is unnecessary." He\'s sweating.',
+              i:'"I assessed the vault. The diamond is missing. I really don\'t understand the continued questioning."'},
+   questions:[
+    {txt:'Did you visit the study that night?',
+     ga:'"I... briefly checked on the vault\'s condition. That is all. I am the appraiser."',
+     ia:'"No. I retired early. The kitchen log shows me in the corridor once — getting water."',
+     gs:40,is:6,gr:'nervous',ir:'truth',
+     gdet:'The pause before "briefly" is almost imperceptible. Almost.',
+     idet:'He volunteers the alibi detail unprompted. Innocent people do that.'},
+    {txt:'Were you facing financial ruin?',
+     ga:'"I was EXTORTED! Ten years. Ruined. I needed that diamond to pay them off!"',
+     ia:'"I had some minor setbacks in the market. Nothing more complex than that."',
+     gs:58,is:5,gr:'nervous',ir:'truth',
+     gdet:'He breaks. The composure shatters completely. Ten years of panic in three sentences.',
+     idet:'Measured, flat. The tone of a man who genuinely has nothing to hide here.'},
+    {txt:"What's in your appraisal bag?",
+     ga:'"Standard supplies. Loupes. Do NOT touch that bag."',
+     ia:'"Standard kit. Magnifying glasses, scales. You\'re welcome to look."',
+     gs:62,is:3,gr:'lie',ir:'truth',
+     gdet:'DO NOT TOUCH — the phrase of a man with something to hide.',
+     idet:'He opens it himself before you ask. Nothing there.'},
+   ]},
+  {id:'crane',name:'Mr. Crane',full:'Sebastian Crane',title:'Shrewd Businessman',
+   img:'./suspect_crane_1778755798631.png',em:'🧔',color:'#5dade2',dim:'#5dade222',badge:'🗝️  SLY',
+   sig:'🎩',sigTxt:'Pinstripe suit — always impeccably dressed',
+   quote:'"I always get what I want, Inspector."',
+   exprs:['🧔','😬','😓','😫'],baseStress:8,
+   motive:'He wanted the diamond as the crown jewel for his private collection.',
+   atmoGreet:{g:'He twirls his mustache and smirks. "I attended the dinner as instructed. That is the extent of my actions this evening."',
+              i:'"Twenty years of building my empire. I have absolutely nothing to hide. Ask me anything."'},
+   questions:[
+    {txt:"Who last saw the diamond before midnight?",
+     ga:'"I did. As always. I admired it at ten-thirty — and I may have left the vault open."',
+     ia:'"I did, as did everyone else. It was perfectly safe when I left the study."',
+     gs:48,is:8,gr:'nervous',ir:'truth',
+     gdet:'"May have left the vault open." He said that. He actually said it. Write it down.',
+     idet:'A man of habit, recounting his routine. The specificity rings true.'},
+    {txt:'Is it true your collection is failing?',
+     ga:'"There were rumors. My rivals mocked me. I was desperate. I saw no other way."',
+     ia:'"Minor setbacks. My portfolio is highly diversified and very secure."',
+     gs:52,is:14,gr:'lie',ir:'nervous',
+     gdet:'The crack in the confident smirk. His pride was hurt, and it ends like this.',
+     idet:'Slightly defensive — his businesses are struggling, but he didn\'t steal for it.'},
+    {txt:'Did anyone else enter the study that night?',
+     ga:'"No one else. I made sure of that. The theft needed to look like an inside job."',
+     ia:'"Dr. Harlow visited at eleven. I heard voices while walking in the garden."',
+     gs:42,is:5,gr:'lie',ir:'truth',
+     gdet:'"Needed to look like an inside job." The most damning five words yet.',
+     idet:'Calm, cooperative, and specific. Crane notices everything.'},
+   ]},
+  {id:'clara',name:'Miss Clara',full:'Miss Clara Monroe',title:"The Governess",
+   img:'./suspect_clara_1778755812107.png',em:'👩‍🦰',color:'#ec407a',dim:'#ec407a22',badge:'🧹  QUIET',
+   sig:'🧹',sigTxt:'Feather duster — access to all rooms',
+   quote:'"I just clean the rooms! I swear on everything — I didn\'t take it!"',
+   exprs:['👩‍🦰','😢','😭','😩'],baseStress:22,
+   motive:'She needed the diamond to pay off her brother\'s dangerous gambling debts.',
+   atmoGreet:{g:'She clutches her feather duster. "I loved working here. I had no choice. Please — you have to understand."',
+              i:'She pulls her apron tight. "I found the empty pedestal. I can\'t stop seeing it." The trembling looks real.'},
+   questions:[
+    {txt:'Tell me exactly what you saw when you found the empty case.',
+     ga:'"The glass was shattered on the floor... I may have dropped it. When I was panicking."',
+     ia:'"The diamond was gone. The glass lay broken beside it. I screamed until the guards came."',
+     gs:36,is:16,gr:'nervous',ir:'truth',
+     gdet:'She volunteered she "may have dropped" it. Why mention that unless she did?',
+     idet:'The sequence is consistent with someone who genuinely found a crime scene and panicked.'},
+    {txt:'Tell me about your brother\'s debts.',
+     ga:'"Three thousand pounds. They threatened him. I had absolutely no way out!"',
+     ia:'"Real debts, yes. I begged Lord Blackwood for an advance. He refused. But I would never steal."',
+     gs:50,is:24,gr:'nervous',ir:'nervous',
+     gdet:'Both versions are distressed — but the guilty one has given up arguing she\'s innocent.',
+     idet:'Even the innocent version is barely holding together. Her situation is dire.'},
+    {txt:'Did you know about the security schedule?',
+     ga:'"I clean the guard room! I knew when they slept! I had to act — you have to understand!"',
+     ia:'"Yes. I clean everywhere. But stealing doesn\'t help — I wouldn\'t know how to fence a diamond. I\'m not stupid."',
+     gs:55,is:10,gr:'lie',ir:'truth',
+     gdet:'"Had to act." Second person in this room to use that phrase.',
+     idet:'The logic is sound and immediate. An innocent person\'s calculation.'},
+   ]},
+  {id:'webb',name:'Prof. Webb',full:'Professor Arthur Webb',title:'Eccentric Archaeologist',
+   img:'./suspect_webb_1778755832400.png',em:'👴',color:'#f39c12',dim:'#f39c1222',badge:'🔍  FRANTIC',
+   sig:'🔍',sigTxt:'Magnifying glass — studying ancient texts',
+   quote:'"That diamond belongs in a museum! Not in a private vault!"',
+   exprs:['👴','😠','😤','🤬'],baseStress:14,
+   motive:'He believes the diamond is a cursed historical artifact that he must protect.',
+   atmoGreet:{g:'"I came here to rescue history. Words were apparently never going to be enough." He doesn\'t look ashamed.',
+              i:'"I despise private collectors — I\'ll be honest about that. But a stolen diamond can\'t be studied. I needed it displayed."'},
+   questions:[
+    {txt:'Why come to the manor unannounced?',
+     ga:'"To face him one final time. He laughed at my research. So I took the diamond myself."',
+     ia:'"He ignored my requests to study it. I needed him to understand its historical value."',
+     gs:42,is:8,gr:'nervous',ir:'truth',
+     gdet:'"Took the diamond myself." Let that land. Let it sit.',
+     idet:'His anger is obvious but his logic is sound — he needed to study it officially.'},
+    {txt:'What happened after your argument at dinner?',
+     ga:'"He called my life\'s work worthless. So after dinner I bypassed the vault — and I took it."',
+     ia:'"I retired to the library. I was furious but I had an academic reputation to protect. I couldn\'t risk stealing it."',
+     gs:46,is:7,gr:'nervous',ir:'truth',
+     gdet:'He confesses to the bypass with academic pride. Arrogance always trips them up.',
+     idet:'The timeline matches. The anger is real, but the self-preservation instinct is stronger.'},
+    {txt:'Do you have the Star of Blackwood?',
+     ga:'"It is safe now. Where it belongs. Away from his greedy hands. Do what you must."',
+     ia:'"I wish I did. But no. Whoever took it probably doesn\'t even understand its true worth."',
+     gs:65,is:5,gr:'truth',ir:'truth',
+     gdet:'He tells the complete truth. He did it, and he believes he was right to do so.',
+     idet:'Disappointment, not guilt. He\'s angry someone else got to it first.'},
+   ]}
+];
+
+const TOOLS=[
+  {id:'arsenic',  name:'Sleep Dart',  em:'🎯',type:'wep',desc:'A fast-acting sleep dart. Used to quietly knock out the guards.',    det:'Only a skilled thief would carry such specialized equipment.'},
+  {id:'knife',    name:'Glass Cutter',em:'💎',type:'wep',desc:'A diamond-tipped glass cutter. Leaves a perfectly clean hole.',       det:'The glass case was cut, not smashed. Professional work.'},
+  {id:'rope',     name:'Master Key',  em:'🗝️',type:'wep',desc:'A skeleton key capable of opening any door in the manor.',            det:'No locks were picked or broken. They just walked right in.'},
+  {id:'candlestick',name:'Smoke Bomb',em:'💨',type:'wep',desc:'A small explosive that creates thick, blinding smoke.',               det:'The security guards reported a sudden cloud of smoke right before the diamond vanished.'}
+];
+const ROOMS=[
+  {id:'study',  name:'The Study',       em:'🖊️',
+   atmo:'The smell hits you first — tobacco, old leather, and something underneath. Something sweet and wrong. The desk is scattered with unfinished correspondence. Lord Blackwood did not expect tonight to be his last.',
+   thought:'Whoever did this knew this room. They\'ve been here before.'},
+  {id:'library',name:'The Library',     em:'📚',
+   atmo:'Tall shelves, a reading lectern, a cold fireplace. A half-empty decanter of port sits forgotten. Someone disturbed the books on the second shelf — they\'re out of order. Deliberately, or in haste?',
+   thought:'People think libraries are quiet. But the evidence left in books talks louder than anything.'},
+  {id:'cellar', name:'The Wine Cellar', em:'🍾',
+   atmo:'Stone steps, darkness, the smell of damp earth and old oak. The butler\'s stock-book is meticulous. Something on the chemical shelf catches the lantern light. A gap where something was removed recently.',
+   thought:'Nobody comes here at midnight without a reason. What did they come for?'},
+  {id:'garden', name:'The Conservatory',em:'🌿',
+   atmo:'Glass walls, tropical plants, the sound of rain hammering overhead. A tea set, half-cleared from evening service. The gardening gloves have been moved — set down in a hurry.',
+   thought:'The conservatory connects to the garden. There\'s a way out through here that doesn\'t pass the main hall.'},
+];
+const ROOM_OBJS={
+  study:  [{e:'🪑',l:'Armchair'},{e:'🥃',l:'Brandy Glass'},{e:'🗃️',l:'Desk Drawer'},{e:'📄',l:'Documents'},{e:'🪟',l:'Window'},{e:'📚',l:'Bookshelf'},{e:'🕰️',l:'Clock'},{e:'🔑',l:'Key Hook'}],
+  library:[{e:'📚',l:'Bookshelf'},{e:'🕯️',l:'Candelabra'},{e:'🗂️',l:'Files'},{e:'🖼️',l:'Portrait'},{e:'🛋️',l:'Armchair'},{e:'📓',l:'Journal'},{e:'🪟',l:'Window'},{e:'🎭',l:'Mask'}],
+  cellar: [{e:'🍾',l:'Wine Rack'},{e:'🧴',l:'Chemicals'},{e:'📒',l:'Stock Book'},{e:'🔦',l:'Lantern'},{e:'🪤',l:'Rat Trap'},{e:'🗝️',l:'Lock Box'},{e:'🧪',l:'Vials'},{e:'🪜',l:'Ladder'}],
+  garden: [{e:'🌿',l:'Fern'},{e:'🌸',l:'Roses'},{e:'🧤',l:'Gloves'},{e:'✂️',l:'Shears'},{e:'☕',l:'Tea Set'},{e:'🪞',l:'Mirror'},{e:'📦',l:'Storage'},{e:'🕯️',l:'Candle'}],
+};
+
+// Detective comments for clue types
+const DET_COMMENTS={
+  general:["Every detail matters. File it away.",
+           "The manor keeps its secrets close. Not close enough.",
+           "Blackwood was surrounded by people with reasons to want him gone.",
+           "A strange piece of the puzzle. How does it fit?",
+           "This raises more questions than it answers.",
+           "I need to look at this closer.",
+           "Suspicious. But suspicion isn't evidence.",
+           "Left behind in haste. Or arrogance.",
+           "This was planned. Not improvised."],
+  empty:["Nothing here. Keep looking.","A dead end. Move on.","Not everything tells a story."]
+};
+
+// ═══════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════
+let G={};
+
+
+function spawnFloat(x, y, text, color) {
+  const f = document.createElement('div');
+  f.className = 'float-text';
+  f.innerText = text;
+  if(color) { f.style.color = color; f.style.textShadow = `0 0 10px #000, 0 0 20px ${color}`; }
+  f.style.left = x + 'px';
+  f.style.top = y + 'px';
+  document.body.appendChild(f);
+  setTimeout(()=>f.remove(), 1200);
+}
+function addScore(amt, x, y, color='#4caf50') {
+  G.score += amt;
+  document.getElementById('hud-score').innerText = `SCORE: ${G.score}`;
+  if(x && y) spawnFloat(x, y, `+${amt}`, color);
+}
+
+function triggerTimeoutGameOver() {
+  clearInterval(G.timerInt); G.timerInt = null;
+  stopSpeech();
+  document.body.classList.remove('urgency-mode');
+  document.getElementById('hud').classList.remove('on');
+  // Fully populate reveal screen
+  document.getElementById('rv-icon').textContent = '⏰';
+  document.getElementById('rv-verdict').textContent = 'TIME IS UP!';
+  document.getElementById('rv-verdict').className = 'rv-verdict w';
+  document.getElementById('rv-sub').textContent = 'The thief slipped away in the chaos. The case goes cold.';
+  document.getElementById('truth-box').innerHTML = `
+    <div class="truth-row"><img src="${G.thief.img}" style="width:42px;height:42px;border-radius:50%;object-fit:cover;border:1px solid #8b1a1a;"><div><div class="t-lbl">THE REAL CULPRIT WAS</div><div class="t-val">${G.thief.full}</div></div><span class="t-chk">❌</span></div>
+    <div class="truth-row"><span class="t-em">${G.tool.em}</span><div><div class="t-lbl">THE TOOL</div><div class="t-val">${G.tool.name}</div></div><span class="t-chk">❌</span></div>
+    <div class="truth-row"><span class="t-em">${G.crimeRoom.em}</span><div><div class="t-lbl">THE LOCATION</div><div class="t-val">${G.crimeRoom.name}</div></div><span class="t-chk">❌</span></div>
+  `;
+  document.getElementById('story-box').innerHTML = `You ran out of time.<br><br>The real thief, <em>${G.thief.full}</em>, escaped with the diamond while the investigation was still underway. Motive: <em>${G.thief.motive}</em><br><br>Inspector Morgan closes the file — unsolved.`;
+  document.getElementById('score-ring').style.setProperty('--pct', G.score + '%');
+  document.getElementById('score-num').textContent = G.score;
+  document.getElementById('score-tag').textContent = 'FAILED: TOO SLOW';
+  show('s-reveal');
+  setMusicMode('accuse');
+  speakAfter(`Time is up. The real culprit was ${G.thief.full}. They escaped.`, 800, true);
+}
+
+function newGame(){
+  const thief=rnd(SUSPECTS),tool=rnd(TOOLS),crimeRoom=rnd(ROOMS);
+  const innocents=SUSPECTS.filter(s=>s.id!==thief.id);
+  const herring=rnd(innocents);
+  
+  const availableForLock = ROOMS.filter(r => r.id !== crimeRoom.id);
+  const lockedRoom = rnd(availableForLock).id;
+  
+  const availableForKey = ROOMS.filter(r => r.id !== lockedRoom);
+  const keyLocation = rnd(availableForKey).id;
+
+  G={thief,tool,crimeRoom,herring,
+     clues:[],searched:[],interviewed:{},acc:{k:null,w:null,r:null},
+     stress:{},asked:{},clicked:{},currentRoom:null,
+     time:300,score:0,
+     inventory:[],lockedRoom,keyLocation,
+     tempo:75,
+     roomPositions:shuffled(ROOMS.map(r=>r.id))};
+  G.roomClues=buildClues(thief,tool,crimeRoom,herring,keyLocation);
+  _lastNote='';
+}
+
+function buildClues(thief, tool, crimeRoom, herring, keyLocation) {
+  const wc = {
+    arsenic: [
+      {e:'🎯', t:'Tranquilizer Dart', b:'A small, custom-made dart found on the floor. It smells of a strong sedative.', type:'tool'},
+      {e:'😴', t:'Unconscious Guard', b:'The guard in this room was knocked out by a chemical agent. Not a scratch on him.', type:'tool'}
+    ],
+    knife: [
+      {e:'💎', t:'Cut Glass Circle', b:'A perfect circle cut from the display case glass. Expert work.', type:'tool'},
+      {e:'✨', t:'Glass Dust', b:'Fine glass powder on the floor, suggesting a cutter was used right here.', type:'tool'}
+    ],
+    rope: [
+      {e:'🗝️', t:'Unpicked Lock', b:'The door lock was opened without any force or picking marks. They had a key.', type:'tool'},
+      {e:'🚪', t:'Unlocked Case', b:'The display case was simply unlocked. No damage. The thief knew the mechanism.', type:'tool'}
+    ],
+    candlestick: [
+      {e:'💨', t:'Smoke Residue', b:'Thick black soot on the wall, consistent with a rapid-combustion smoke bomb.', type:'tool'},
+      {e:'🧨', t:'Burnt Canister', b:'A small metal canister that emitted dense smoke to blind the guards.', type:'tool'}
+    ]
+  };
+
+  const thiefClues = [
+    {e:'🧤', t:`${thief.name}'s Glove`, b:`A glove monogrammed with ${thief.name.split(' ').pop()}'s initials. Dropped here. Left in haste.`, type:'thief'},
+    {e:'👣', t:'Matching Footprint', b:`A heel print in the dust here. It exactly matches ${thief.name}'s evening shoes.`, type:'thief'},
+    {e:'📝', t:'Torn Note', b:`In the grate: "Tonight this ends." The handwriting matches ${thief.name}'s handwriting.`, type:'thief'},
+    {e:'🧵', t:'Fabric on the Door', b:`A fabric scrap on the door hinge. Matches the jacket ${thief.name} wore at dinner.`, type:'thief'}
+  ];
+
+  const herringClues = [
+    {e:'💰', t:`${herring.name}'s Debt`, b:`A letter: ${herring.name} owed Lord Blackwood a large sum. Motive — or coincidence?`, type:'herring'},
+    {e:'🔑', t:'Spare Study Key', b:`A spare key in ${herring.name}'s coat pocket. Why do they have access to the study?`, type:'herring'},
+    {e:'📸', t:'Photograph', b:`Photo of ${herring.name} in a heated confrontation with Lord Blackwood — taken last month.`, type:'herring'},
+    {e:'🩺', t:'Unmarked Vial', b:`An unlabelled vial near ${herring.name}'s belongings. Contents unknown — suspicious.`, type:'herring'}
+  ];
+
+  const general = [
+    {e:'🕰️', t:'Clock at Midnight', b:'The clock stopped exactly at midnight — struck in a struggle, or stopped deliberately?', type:'general'},
+    {e:'🪟', t:'Forced Window Latch', b:'The latch is broken from the inside. This was staged to suggest an outside intruder.', type:'general'},
+    {e:'📜', t:'Unsigned New Will', b:'A will on the desk, unsigned. Changing everything. Several people lose their inheritance.', type:'general'},
+    {e:'🍷', t:'Second Glass Untouched', b:'Two glasses set out. One drunk from. The thief refused a drink. Why?', type:'general'},
+    {e:'🚬', t:'Still-Burning Cigar', b:'The cigar is still smouldering. Death came suddenly — he had no time to finish it.', type:'general'}
+  ];
+
+  const toolClues = wc[tool.id];
+  
+  let remainingClues = [
+    ...thiefClues,
+    ...herringClues,
+    ...shuffled(general).slice(0, 2)
+  ];
+  remainingClues = shuffled(remainingClues);
+
+  const out = {};
+  for (const room of ROOMS) {
+    out[room.id] = {};
+    const slots = shuffled([0, 1, 2, 3, 4, 5, 6, 7]);
+    
+    let roomClues = [];
+    if (room.id === crimeRoom.id) {
+      roomClues = [...toolClues, remainingClues.pop()];
+    } else {
+      roomClues = [remainingClues.pop(), remainingClues.pop(), remainingClues.pop()];
+    }
+    
+    // Inject key if this is the key location
+    if (room.id === keyLocation) {
+      roomClues[0] = {e:'🔑', t:'Brass Key', b:'A heavy brass key. It looks like it belongs to one of the rooms in the manor.', type:'key'};
+    }
+    
+    roomClues = shuffled(roomClues);
+    
+    slots.slice(0, 3).forEach((idx, i) => {
+      out[room.id][idx] = roomClues[i] || null;
+    });
+    slots.slice(3).forEach(idx => { out[room.id][idx] = null; });
+  }
+  return out;
+}
+
+const rnd=a=>a[Math.floor(Math.random()*a.length)];
+function shuffled(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}return b;}
+
+// ═══════════════════════════════════════
+//  OVERLAY UTILS
+// ═══════════════════════════════════════
+function openOv(id){document.getElementById(id).classList.add('on');}
+function closeOv(id){
+  document.getElementById(id).classList.remove('on');
+  if(id==='ov-sus') setMusicMode('explore');
+}
+function ovClick(el,id){if(el===event.target)closeOv(id);}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')['ov-clue','ov-sus','joy'].forEach(closeOv);});
+
+// ═══════════════════════════════════════
+//  NAV
+// ═══════════════════════════════════════
+function show(id){
+  speechSynthesis.cancel();
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
+  document.getElementById(id).classList.add('on');
+  window.scrollTo(0,0);
+}
+function goMap(){
+  playSfx('footstep');
+  if(_roomAnimId){cancelAnimationFrame(_roomAnimId);_roomAnimId=null;}
+  _hoverHot=-1;
+  _stopRoomAmb();
+  show('s-map');renderMap();setMusicMode('explore');
+}
+function goSuspects(){if(_mapAnimId){cancelAnimationFrame(_mapAnimId);_mapAnimId=null;}show('s-suspects');renderSuspects();setMusicMode('interrogate');}
+function goAccuse(){if(_mapAnimId){cancelAnimationFrame(_mapAnimId);_mapAnimId=null;}show('s-accuse');renderAccuse();setMusicMode('accuse');}
+
+// ═══════════════════════════════════════
+//  GAME START
+// ═══════════════════════════════════════
+
+function initDust(){
+  const bg = document.body;
+  for(let i=0; i<35; i++){
+    const d = document.createElement('div');
+    d.className = 'dust-particle';
+    d.style.left = Math.random()*100 + 'vw';
+    d.style.animationDelay = (Math.random()*15) + 's';
+    d.style.animationDuration = (12 + Math.random()*12) + 's';
+    bg.appendChild(d);
+  }
+}
+window.addEventListener('load', initDust);
+
+function beginGame(){
+  initAudio();
+  newGame();
+  show('s-cin');
+  runCin(0);
+  // Browser voice check — show friendly warning in Firefox (no Web Speech API)
+  if(!window.speechSynthesis){
+    _showBrowserToast('🔇 Voice narration not supported in this browser. Use Chrome or Safari for the full experience.');
+  }
+}
+
+function _showBrowserToast(msg){
+  const t = document.createElement('div');
+  t.style.cssText = `position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
+    background:#1a1005;border:1px solid #c9a84c55;color:#ede0c4;font-family:inherit;
+    font-size:13px;padding:10px 20px;border-radius:6px;z-index:9999;
+    max-width:90vw;text-align:center;line-height:1.5;
+    animation:fadeUp .4s ease;pointer-events:none;`;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(()=>{ t.style.opacity='0'; t.style.transition='opacity .5s'; setTimeout(()=>t.remove(),500); }, 5000);
+}
+
+// per-slide hold time — generous so story reads completely, tap to skip early
+const _CIN_DELAYS=[5500,7000,5000,5500,7000];
+let _cinSlide=0,_cinTimer=null;
+
+// Short punchy sentences separated by periods — each period = a natural TTS breath
+const _CIN_VOICE=[
+  'October fourteenth. Nineteen twenty three. A storm rages over Blackwood Manor. Lightning tears the sky. No one... is leaving tonight.',
+  'The Star of Blackwood. A priceless diamond. Stolen from its pedestal in the locked study. At the stroke of midnight. This was no accident.',
+  'Scotland Yard receives the call. Five suspects. All still on the grounds. They send their best.',
+  'You are Inspector Morgan. You have solved every heist in London. The thief and the diamond are still in this manor.',
+  'Search every room. Interrogate every suspect. Collect your evidence. Then name the thief and close this case.'
+];
+
+function cinAdvance(){
+  if(_cinSlide>=5) return;
+  if(_cinTimer){clearTimeout(_cinTimer);_cinTimer=null;}
+  stopSpeech();
+  runCin(_cinSlide+1);
+}
+
+function runCin(n){
+  _cinSlide=n;
+  speechSynthesis.cancel();
+  document.querySelectorAll('.cin-slide').forEach(s=>s.classList.remove('on'));
+  document.getElementById('cin-'+n).classList.add('on');
+
+  const hint=document.getElementById('cin-tap');
+  if(hint) hint.style.display=n===5?'none':'block';
+
+  // Reset + animate progress bar at this slide's duration
+  const fill=document.getElementById('cf'+n);
+  if(fill){
+    fill.style.transition='none';fill.style.width='0';
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      fill.style.transition=`width ${(_CIN_DELAYS[n]||0)/1000}s linear`;
+      fill.style.width='100%';
+    }));
+  }
+
+  // Last slide: show suspects, wait for player to tap ENTER
+  if(n===5){
+    const el=document.getElementById('cin-suspects');
+    el.innerHTML='';
+    SUSPECTS.forEach(s=>{
+      const card=document.createElement('div');
+      card.style.cssText=`background:#0a0803;border:2px solid ${s.color}55;border-radius:12px;padding:0;text-align:center;width:110px;overflow:hidden;box-shadow:0 8px 25px ${s.dim},0 0 0 1px ${s.color}22;transition:transform 0.2s;cursor:default;`;
+      card.onmouseenter=()=>card.style.transform='scale(1.06) translateY(-4px)';
+      card.onmouseleave=()=>card.style.transform='scale(1)';
+      const img=document.createElement('img');
+      img.src=s.img||'';
+      img.alt=s.name;
+      img.style.cssText='width:100%;height:100px;object-fit:cover;display:block;';
+      img.onerror=()=>{img.style.display='none';};
+      const banner=document.createElement('div');
+      banner.style.cssText=`background:linear-gradient(180deg,${s.dim},rgba(0,0,0,0.95));padding:8px 6px 10px;`;
+      const nameEl=document.createElement('div');
+      nameEl.style.cssText=`font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;color:${s.color};font-size:10px;letter-spacing:1px;font-weight:bold;line-height:1.3;`;
+      nameEl.textContent=s.name;
+      const roleEl=document.createElement('div');
+      roleEl.style.cssText='color:#999;font-size:9px;margin-top:3px;font-style:italic;line-height:1.3;';
+      roleEl.textContent=s.title;
+      banner.appendChild(nameEl);
+      banner.appendChild(roleEl);
+      card.appendChild(img);
+      card.appendChild(banner);
+      el.appendChild(card);
+    });
+    return;
+  }
+  // Speak line — advance only after speech fully finishes (not on fixed timer)
+  if(_CIN_VOICE[n]){
+    setTimeout(()=>speakCinLine(_CIN_VOICE[n], n), 600);
+  } else {
+    _cinTimer=setTimeout(()=>runCin(n+1), _CIN_DELAYS[n]);
+  }
+}
+
+function enterManor(){
+  document.getElementById('hud').classList.add('on');
+  // ── Start the countdown timer ──
+  clearInterval(G.timerInt);
+  G.time=480;G.score=0;               // 8 minutes — enough for a new player
+  document.getElementById('hud-timer').innerText='08:00';
+  document.getElementById('hud-timer').classList.remove('timer-warn');
+  document.body.classList.remove('urgency-mode');
+  G.timerInt=setInterval(()=>{
+    if(!document.getElementById('hud').classList.contains('on'))return;
+    G.time--;
+    if(G.time<=0){clearInterval(G.timerInt);G.timerInt=null;triggerTimeoutGameOver();}
+    else{
+      let m=Math.floor(G.time/60),s=G.time%60;
+      const tEl=document.getElementById('hud-timer');
+      tEl.innerText=`${m<10?'0':''}${m}:${s<10?'0':''}${s}`;
+      if(G.time<=120){                  // warn at 2 minutes remaining
+        tEl.classList.add('timer-warn');
+        document.body.classList.add('urgency-mode');
+        if(G.time===120){
+          setMusicMode('accuse');
+          _triggerTensionStrings();
+          speakAfter('Two minutes remaining. Make your accusation.', 0, true);
+        }
+        if(G.time%2===0)playSfx('tension');
+      }
+    }
+  },1000);
+  const ap=document.getElementById('audio-ctrl');
+  ap.classList.add('live');
+  ap.classList.remove('collapsed');
+  fadeInAmbient();
+  show('s-map');
+  renderMap();
+  setMusicMode('explore');
+}
+
+// ═══════════════════════════════════════
+//  CANVAS FLOOR MAP SYSTEM
+// ═══════════════════════════════════════
+const MAP_W=860,MAP_H=520,ROOM_W=900,ROOM_H=500;
+
+// 4 room slot rects on floor plan [x,y,w,h]
+const MAP_SLOTS=[[22,22,372,210],[466,22,372,210],[22,288,372,210],[466,288,372,210]];
+
+// Furniture layout per room — relative positions (0-1) within room rect
+const FURNITURE={
+  study:[
+    {t:'bshelf',x:.03,y:.08,w:.14,h:.84},             // left bookshelf — colored spines
+    {t:'rect',x:.52,y:.18,w:.42,h:.32,c:'#6b3010'},   // mahogany desk — warm brown
+    {t:'rect',x:.56,y:.58,w:.14,h:.22,c:'#3d1a0a'},   // leather chair
+    {t:'win', x:.22,y:.02,w:.36,h:.07,c:'#4a7a9b'},   // window — blue glass
+    {t:'circ',x:.84,y:.14,r:.055,c:'#8b6914'},         // brass clock
+    {t:'rect',x:.28,y:.78,w:.1, h:.16,c:'#5c2e0a'},   // key hook
+    {t:'rect',x:.86,y:.58,w:.1, h:.34,c:'#3d1a0a'},   // cabinet
+    {t:'body',x:.68,y:.42},                             // body at desk
+  ],
+  library:[
+    {t:'bshelf',x:.01,y:.04,w:.11,h:.92},              // bookshelf left
+    {t:'bshelf',x:.13,y:.04,w:.1, h:.92},              // bookshelf inner
+    {t:'bshelf',x:.87,y:.04,w:.11,h:.92},              // bookshelf right
+    {t:'rect',x:.38,y:.12,w:.1, h:.52,c:'#5c2e0a'},   // lectern
+    {t:'oval',x:.6, y:.62,w:.18,h:.26,c:'#3d1a0a'},   // leather armchair
+    {t:'rect',x:.02,y:.8, w:.28,h:.18,c:'#2a1a12'},   // fireplace — stone
+    {t:'rect',x:.72,y:.76,w:.14,h:.18,c:'#5c2e0a'},   // side table
+  ],
+  cellar:[
+    {t:'rect',x:.03,y:.04,w:.38,h:.19,c:'#3a3228'},   // wine rack — stone shelf
+    {t:'rect',x:.03,y:.28,w:.38,h:.19,c:'#3a3228'},   // wine rack
+    {t:'circ',x:.72,y:.24,r:.09,c:'#4a2005'},          // barrel — dark oak
+    {t:'circ',x:.86,y:.24,r:.09,c:'#4a2005'},          // barrel
+    {t:'circ',x:.79,y:.44,r:.07,c:'#4a2005'},          // barrel small
+    {t:'rect',x:.5, y:.6, w:.2, h:.3, c:'#1e3a22'},   // chemical shelf — green-tinted
+    {t:'rect',x:.03,y:.72,w:.24,h:.2, c:'#3a3228'},   // stone shelf
+    {t:'stair',x:.78,y:.65},
+  ],
+  garden:[
+    {t:'circ',x:.14,y:.18,r:.09,c:'#1a5c1a'},         // plant — vivid green
+    {t:'circ',x:.3, y:.12,r:.07,c:'#24701a'},          // plant
+    {t:'circ',x:.7, y:.18,r:.1, c:'#1a5c1a'},          // plant large
+    {t:'circ',x:.86,y:.34,r:.07,c:'#2d8c1a'},          // plant bright
+    {t:'rect',x:.36,y:.55,w:.28,h:.2, c:'#5c3010'},   // garden table
+    {t:'rect',x:.07,y:.56,w:.13,h:.26,c:'#4a2a08'},   // bench
+    {t:'rect',x:.72,y:.65,w:.24,h:.28,c:'#4a2a08'},   // storage
+    {t:'win', x:.08,y:.01,w:.84,h:.06,c:'#4a7a9b'},   // glass roof — blue
+  ],
+};
+
+// Evidence hotspot positions within room canvas (fractions of ROOM_W x ROOM_H)
+const HOTSPOT_POS={
+  study:  [[.15,.4],[.3,.3],[.5,.5],[.8,.4],[.2,.8],[.8,.8],[.6,.2],[.4,.8]],
+  library:[[.1,.3],[.3,.6],[.5,.2],[.7,.7],[.9,.3],[.4,.8],[.8,.1],[.2,.8]],
+  cellar: [[.15,.5],[.5,.5],[.8,.6],[.3,.7],[.7,.8],[.2,.2],[.8,.2],[.5,.8]],
+  garden: [[.2,.4],[.5,.6],[.8,.4],[.3,.8],[.7,.8],[.5,.2],[.1,.8],[.9,.8]],
+};
+
+// Per-room colour themes for perspective renderer
+const _THEMES={
+  study:{
+    wall:'#4a1208',wallL:'#3a0e06',wallL:'#3a0e06',wallR:'#3e1008',
+    ceil:'#180604',floor:'#3d1a08',trim:'#7a3010',
+    accent:'#c9a84c',light:'rgba(201,140,50,0.22)',
+    floorA:'#5a2a10',floorB:'#4a2008'
+  },
+  library:{
+    wall:'#0e1240',wallL:'#090e2e',wallR:'#0c1036',
+    ceil:'#050718',floor:'#221008',trim:'#3a3a7a',
+    accent:'#9b8de0',light:'rgba(80,70,160,0.14)',
+    floorA:'#2a1408',floorB:'#1e0e04'
+  },
+  cellar:{
+    wall:'#222222',wallL:'#181818',wallR:'#1e1e1e',
+    ceil:'#080808',floor:'#141414',trim:'#3a3a3a',
+    accent:'#5d9cec',light:'rgba(60,100,160,0.10)',
+    floorA:'#1e1e1e',floorB:'#161616'
+  },
+  garden:{
+    wall:'#152e12',wallL:'#0f2210',wallR:'#122812',
+    ceil:'#081a20',floor:'#1a2810',trim:'#2a5c2a',
+    accent:'#4caf50',light:'rgba(30,150,50,0.12)',
+    floorA:'#1e3010',floorB:'#162408'
+  }
+};
+
+let _mapAnimId=null,_roomAnimId=null,_mapT=0;
+let _hoverRoom=null,_hoverHot=-1;
+let _mapCanvas=null,_mapCtx=null;
+let _roomCanvas=null,_roomCtx=null;
+
+// ── helpers ──
+function _rrect(ctx,x,y,w,h,r,fill,stroke){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.arcTo(x+w,y,x+w,y+r,r);
+  ctx.lineTo(x+w,y+h-r);ctx.arcTo(x+w,y+h,x+w-r,y+h,r);
+  ctx.lineTo(x+r,y+h);ctx.arcTo(x,y+h,x,y+h-r,r);
+  ctx.lineTo(x,y+r);ctx.arcTo(x,y,x+r,y,r);
+  ctx.closePath();
+  if(fill)ctx.fill();if(stroke)ctx.stroke();
+}
+function _hdpi(canvas,w,h){
+  const dpr=window.devicePixelRatio||1;
+  canvas.width=w*dpr;canvas.height=h*dpr;
+  canvas.style.width=w+'px';canvas.style.height=h+'px';
+  const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);return ctx;
+}
+function _canvasPos(canvas,logW,logH,e){
+  const r=canvas.getBoundingClientRect();
+  return{x:(e.clientX-r.left)*(logW/r.width),y:(e.clientY-r.top)*(logH/r.height)};
+}
+
+// ── FLOOR MAP ──
+function initMapCanvas(){
+  _mapCanvas=document.getElementById('floor-canvas');
+  if(!_mapCanvas)return;
+  _mapCtx=_hdpi(_mapCanvas,MAP_W,MAP_H);
+  _mapCanvas.style.width='';_mapCanvas.style.height='';// let CSS control
+  _mapCanvas.addEventListener('mousemove',onMapHover);
+  _mapCanvas.addEventListener('click',onMapClick);
+  _mapCanvas.addEventListener('mouseleave',()=>{_hoverRoom=null;});
+}
+function _roomAtPos(x,y){
+  for(let i=0;i<4;i++){
+    const[sx,sy,sw,sh]=MAP_SLOTS[i];
+    if(x>=sx&&x<=sx+sw&&y>=sy&&y<=sy+sh)return G.roomPositions[i];
+  }return null;
+}
+function onMapHover(e){
+  const p=_canvasPos(_mapCanvas,MAP_W,MAP_H,e);
+  const rid=_roomAtPos(p.x,p.y);
+  if(rid!==_hoverRoom){_hoverRoom=rid;_mapCanvas.style.cursor=rid?'pointer':'default';}
+}
+function onMapClick(e){
+  const p=_canvasPos(_mapCanvas,MAP_W,MAP_H,e);
+  const rid=_roomAtPos(p.x,p.y);
+  if(rid)enterRoom(rid);
+}
+
+function renderMap(){
+  updateHUD();
+  if(!_mapCanvas)initMapCanvas();
+  if(!_mapCanvas)return;
+  const si=Object.keys(G.interviewed).length;
+  const canAcc=G.clues.length>=4&&si>=2;
+  document.getElementById('accuse-btn').disabled=!canAcc;
+  let note='';
+  if(G.searched.length===0)note='The manor is quiet. Too quiet. I need to search these rooms carefully — every object could be the key.';
+  else if(G.searched.length<2)note=`I've searched ${G.searched.length} room${G.searched.length>1?'s':''} and found ${G.clues.length} piece${G.clues.length!==1?'s':''} of evidence. I need to cast a wider net.`;
+  else if(si===0)note=`${G.clues.length} clues in hand. Time to start talking to the people who were here that night. Someone is lying.`;
+  else if(!canAcc)note=`${G.clues.length} pieces of evidence. ${si} suspect${si!==1?'s':''} interviewed. The picture is forming, but I need more.`;
+  else note='I have what I need. The evidence points clearly in one direction. Time to make the accusation.';
+  document.getElementById('det-map-text').textContent=note;
+  document.getElementById('jcount').textContent=`(${G.clues.length})`;
+  if(note!==_lastNote){_lastNote=note;speakAfter(note,500);}
+  if(_mapAnimId)cancelAnimationFrame(_mapAnimId);
+  (function frame(t){_mapT=t;_drawFloorMap(_mapCtx,t);_mapAnimId=requestAnimationFrame(frame);})(0);
+}
+
+function _drawFloorMap(ctx,t){
+  const W=MAP_W,H=MAP_H;
+  ctx.clearRect(0,0,W,H);
+  // bg
+  ctx.fillStyle='#060402';ctx.fillRect(0,0,W,H);
+  // blueprint grid
+  ctx.strokeStyle='rgba(58,42,16,.22)';ctx.lineWidth=.5;
+  for(let x=20;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=20;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+  // outer manor walls
+  ctx.strokeStyle='#3a2a10';ctx.lineWidth=3;
+  _rrect(ctx,8,8,W-16,H-16,6,false,true);
+  // corridors fill
+  ctx.fillStyle='rgba(10,8,4,.95)';
+  ctx.fillRect(394,22,72,H-44); // vertical hall
+  ctx.fillRect(22,232,W-44,56); // horizontal hall
+  // corridor walls
+  ctx.strokeStyle='#2a1e08';ctx.lineWidth=1.5;
+  [[394,22,394,H-22],[466,22,466,H-22],[22,232,W-22,232],[22,288,W-22,288]].forEach(([x1,y1,x2,y2])=>{
+    ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+  });
+  // hall label
+  ctx.font="bold 9px 'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif";ctx.fillStyle='rgba(201,168,76,.18)';ctx.textAlign='center';
+  ctx.fillText('CENTRAL HALL',430,263);
+  // compass
+  _drawCompass(ctx,W-36,34);
+  // title watermark
+  ctx.font="10px 'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif";ctx.fillStyle='rgba(201,168,76,.15)';
+  ctx.fillText('BLACKWOOD MANOR — FLOOR PLAN',W/2,H-8);
+  ctx.textAlign='left';
+  // rooms
+  for(let i=0;i<4;i++){
+    const rid=G.roomPositions[i];
+    const room=ROOMS.find(r=>r.id===rid);
+    const[sx,sy,sw,sh]=MAP_SLOTS[i];
+    _drawMapRoom(ctx,room,sx,sy,sw,sh,_hoverRoom===rid,G.searched.includes(rid),G.crimeRoom.id===rid,t);
+  }
+  // door gaps
+  [[394,95,4,22],[394,380,4,22],[462,95,4,22],[462,380,4,22],
+   [130,232,22,4],[680,232,22,4],[130,284,22,4],[680,284,22,4]
+  ].forEach(([x,y,w,h])=>{ctx.fillStyle='#0a0806';ctx.fillRect(x,y,w,h);});
+}
+
+function _drawMapRoom(ctx,room,x,y,w,h,hover,done,crime,t){
+  ctx.fillStyle=done?'#0c0906':'#110e08';
+  _rrect(ctx,x,y,w,h,4,true,false);
+  // border
+  ctx.strokeStyle=hover?'#c9a84c':done?'#3a2814':'#2a1e08';
+  ctx.lineWidth=hover?2.5:1.5;
+  _rrect(ctx,x,y,w,h,4,false,true);
+  // furniture silhouettes
+  _drawFurnitureOnMap(ctx,room.id,x,y,w,h);
+  // room header strip
+  ctx.fillStyle='rgba(6,4,2,.92)';ctx.fillRect(x+1,y+1,w-2,28);
+  ctx.font=`bold 9.5px 'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif`;
+  ctx.fillStyle=hover?'#c9a84c':'rgba(201,168,76,.75)';
+  ctx.textAlign='center';
+  const label=room.name.toUpperCase();
+  ctx.fillText(label,x+w/2,y+19);
+  ctx.textAlign='left';
+  // searched stamp
+  if(done){
+    const got=G.clues.filter(c=>c.rid===room.id).length;
+    ctx.font=`7.5px 'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif`;ctx.fillStyle='rgba(76,175,80,.65)';ctx.textAlign='center';
+    ctx.fillText(`✓ SEARCHED · ${got} CLUE${got!==1?'S':''} FOUND`,x+w/2,y+h-8);ctx.textAlign='left';
+  }
+  // hotspot dots on map
+  if(!done){
+    (HOTSPOT_POS[room.id]||[]).forEach((pos,idx)=>{
+      const clue=G.roomClues[room.id][idx];
+      const hx=x+pos[0]*w,hy=y+28+pos[1]*(h-36);
+      const pulse=.5+.5*Math.sin(t*.002+idx*.9);
+      if(clue){
+        ctx.beginPath();ctx.arc(hx,hy,4,0,Math.PI*2);
+        ctx.fillStyle=`rgba(201,168,76,${.6+.4*pulse})`;
+        ctx.shadowColor='rgba(201,168,76,.8)';ctx.shadowBlur=7*pulse;
+        ctx.fill();ctx.shadowBlur=0;
+      }else{
+        ctx.beginPath();ctx.arc(hx,hy,2,0,Math.PI*2);
+        ctx.fillStyle='rgba(42,30,8,.4)';ctx.fill();
+      }
+    });
+  }
+}
+
+function _drawFurnitureOnMap(ctx,rid,rx,ry,rw,rh){
+  (FURNITURE[rid]||[]).forEach(f=>{
+    ctx.globalAlpha=.38;ctx.fillStyle=f.c||'#3a1e08';ctx.strokeStyle='#1a0e04';ctx.lineWidth=.5;
+    if(f.t==='rect'||f.t==='oval'||f.t==='bshelf'){
+      ctx.fillRect(rx+f.x*rw,ry+28+f.y*(rh-36),f.w*rw,f.h*(rh-36));
+      ctx.strokeRect(rx+f.x*rw,ry+28+f.y*(rh-36),f.w*rw,f.h*(rh-36));
+    }else if(f.t==='circ'){
+      ctx.beginPath();ctx.arc(rx+f.x*rw,ry+28+f.y*(rh-36),f.r*Math.min(rw,rh-36),0,Math.PI*2);ctx.fill();ctx.stroke();
+    }else if(f.t==='win'){
+      ctx.globalAlpha=.2;ctx.fillStyle=f.c||'#4a7a9b';ctx.fillRect(rx+f.x*rw,ry+28+f.y*(rh-36),f.w*rw,f.h*(rh-36));
+    }
+    ctx.globalAlpha=1;
+  });
+}
+
+function _drawCompass(ctx,cx,cy){
+  ctx.font="7px 'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif";ctx.fillStyle='rgba(201,168,76,.22)';ctx.textAlign='center';
+  ['N','S','E','W'].forEach((d,i)=>{
+    const ang=[-.72,.72,.36,-.36][i];
+    ctx.fillText(d,cx+[0,0,13,-13][i],cy+[-13,17,5,5][i]);
+  });
+  ctx.beginPath();ctx.arc(cx,cy,8,0,Math.PI*2);ctx.strokeStyle='rgba(201,168,76,.15)';ctx.lineWidth=.8;ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx,cy-8);ctx.lineTo(cx-3,cy+1);ctx.lineTo(cx+3,cy+1);ctx.closePath();
+  ctx.fillStyle='rgba(139,26,26,.45)';ctx.fill();
+  ctx.textAlign='left';
+}
+
+// ── ROOM VIEW ──
+function enterRoom(id){
+  if (id === G.lockedRoom && !G.inventory.includes('key')) {
+    const room = ROOMS.find(r => r.id === id);
+    const msg = `The ${room.name} is locked. I need to find a key first.`;
+    document.getElementById('det-map-text').textContent = msg;
+    speakAfter(msg, 0, true);
+    return;
+  }
+  playSfx('footstep');
+  if(_mapAnimId){cancelAnimationFrame(_mapAnimId);_mapAnimId=null;}
+  G.currentRoom=id;
+  const imgMap = {
+    'study': 'room_study_1778769151445.png',
+    'library': 'room_library_1778769167289.png',
+    'cellar': 'room_cellar_1778769187864.png',
+    'garden': 'room_garden_1778769202763.png'
+  };
+  document.getElementById('room-bg-container').style.backgroundImage = 'url(./' + imgMap[id] + ')';
+
+  if(!G.searched.includes(id))G.searched.push(id);
+  const room=ROOMS.find(r=>r.id===id);
+  document.getElementById('rv-atmo').textContent=room.atmo;
+  show('s-room-view');
+  playSfx('door');setMusicMode('search');
+  _startRoomAmb(id);
+  speakAfter(room.thought,1100);
+  if(!_roomCanvas){
+    _roomCanvas=document.getElementById('room-canvas');
+    _roomCtx=_hdpi(_roomCanvas,ROOM_W,ROOM_H);
+    _roomCanvas.style.width='';_roomCanvas.style.height='';
+    _roomCanvas.addEventListener('mousemove',onRoomHover);
+    _roomCanvas.addEventListener('click',onRoomClick);
+    _roomCanvas.addEventListener('mouseleave',()=>{_hoverHot=-1;document.getElementById('obj-tooltip').style.display='none';});
+  }
+  _hoverHot=-1;
+  if(_roomAnimId)cancelAnimationFrame(_roomAnimId);
+  (function frame(t){_drawRoomView(_roomCtx,id,t);_roomAnimId=requestAnimationFrame(frame);})(0);
+}
+
+function _drawRoomView(ctx,id,t){
+  ctx.clearRect(0,0,ROOM_W,ROOM_H);
+  const hots=HOTSPOT_POS[id]||[];
+  hots.forEach((pos,i)=>{
+    const x=pos[0]*ROOM_W, y=pos[1]*ROOM_H;
+    const isHover=_hoverHot===i;
+    const clicked=(G.clicked[id]&&G.clicked[id].has(i));
+    const pulse=Math.sin(t*0.004+i*1.2)*0.5+0.5;
+    
+    if(clicked){
+      // Checked stamp
+      ctx.beginPath();ctx.arc(x,y,16,0,Math.PI*2);
+      ctx.fillStyle='rgba(76,175,80,0.5)';ctx.fill();
+      ctx.strokeStyle='#4caf50';ctx.lineWidth=2;ctx.stroke();
+      ctx.fillStyle='#4caf50';ctx.font='bold 14px Arial';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText('✓',x,y);ctx.textBaseline='alphabetic';ctx.textAlign='left';
+    } else {
+      // Outer pulse ring
+      const outerR=isHover?36:28+pulse*6;
+      ctx.beginPath();ctx.arc(x,y,outerR,0,Math.PI*2);
+      ctx.strokeStyle=`rgba(255,220,80,${0.15+pulse*0.2})`;ctx.lineWidth=2;ctx.stroke();
+      
+      // Middle ring
+      ctx.beginPath();ctx.arc(x,y,isHover?22:18,0,Math.PI*2);
+      ctx.strokeStyle=`rgba(255,200,50,${0.5+pulse*0.4})`;ctx.lineWidth=2.5;ctx.stroke();
+      
+      // Glow fill
+      const grad=ctx.createRadialGradient(x,y,0,x,y,isHover?22:18);
+      grad.addColorStop(0,`rgba(255,230,100,${0.35+pulse*0.3})`);
+      grad.addColorStop(1,'rgba(255,180,0,0)');
+      ctx.beginPath();ctx.arc(x,y,isHover?22:18,0,Math.PI*2);
+      ctx.fillStyle=grad;ctx.fill();
+      
+      // Center dot
+      ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);
+      ctx.fillStyle=`rgba(255,240,150,${0.8+pulse*0.2})`;ctx.fill();
+      
+      // Magnify icon on hover
+      if(isHover){
+        ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillRect(x+14,y-24,56,22);
+        ctx.fillStyle='#ffd700';ctx.font='bold 11px Cinzel,serif';ctx.textAlign='left';ctx.textBaseline='alphabetic';
+        ctx.fillText('🔍 EXAMINE',x+17,y-8);
+      }
+    }
+  });
+}
+
+function _hotspotAt(rid,x,y){
+  return(HOTSPOT_POS[rid]||[]).findIndex((pos,i)=>{
+    const hx=pos[0]*ROOM_W,hy=pos[1]*ROOM_H;
+    return Math.hypot(x-hx,y-hy)<24;
+  });
+}
+function onRoomHover(e){
+  const p=_canvasPos(_roomCanvas,ROOM_W,ROOM_H,e);
+  const idx=_hotspotAt(G.currentRoom,p.x,p.y);
+  if(idx!==_hoverHot){
+    _hoverHot=idx;
+    _roomCanvas.style.cursor=idx>=0?'pointer':'default';
+  }
+  const tip=document.getElementById('obj-tooltip');
+  if(idx>=0&&!G.clicked[G.currentRoom]?.has(idx)){
+    const obj=ROOM_OBJS[G.currentRoom][idx];
+    tip.textContent=obj.l;tip.style.display='block';
+    tip.style.left=e.clientX+'px';tip.style.top=e.clientY+'px';
+  }else{tip.style.display='none';}
+}
+function onRoomClick(e){
+  const p=_canvasPos(_roomCanvas,ROOM_W,ROOM_H,e);
+  const idx=_hotspotAt(G.currentRoom,p.x,p.y);
+  if(idx<0)return;
+  if(!G.clicked[G.currentRoom])G.clicked[G.currentRoom]=new Set();
+  if(G.clicked[G.currentRoom].has(idx))return;
+  G.clicked[G.currentRoom].add(idx);
+  document.getElementById('obj-tooltip').style.display='none';
+  const clue=G.roomClues[G.currentRoom][idx];
+  if(clue&&!G.clues.some(c=>c.t===clue.t)){
+    G.clues.push({...clue,rid:G.currentRoom,idx});
+    addScore(100, e.clientX, e.clientY);
+    if(clue.type === 'key') {
+      G.inventory.push('key');
+    }
+  } else {
+    addScore(10, e.clientX, e.clientY, '#ccc');
+  }
+  showClueCard(clue);updateHUD();
+}
+
+// ── perspective shell constants ──
+// Canvas: 900×500  vanishing point: (450, 55)
+// Back wall rect: (145,65) → (755,295)
+// Floor poly: (145,295)→(755,295)→(900,500)→(0,500)
+// Ceiling poly: (0,0)→(900,0)→(755,65)→(145,65)
+// Left wall poly: (0,0)→(145,65)→(145,295)→(0,500)
+// Right wall poly: (900,0)→(755,65)→(755,295)→(900,500)
+
+// ─── helper: draw colored bookshelf ───
+function _bshelf(ctx,x,y,w,h){
+  const BC=['#8b1a1a','#1a3a8b','#1a6b1a','#8b6b1a','#6b1a6b','#c9a84c','#3d5c3a','#8b4513','#2a5c8b','#7a1a3a'];
+  ctx.fillStyle='#1e0a04';ctx.fillRect(x,y,w,h);
+  ctx.strokeStyle='#0a0402';ctx.lineWidth=1.5;ctx.strokeRect(x,y,w,h);
+  const rowH=Math.max(6,Math.floor(h/10));
+  for(let row=0;row*rowH<h-2;row++){
+    let bx=x+2,col=0;
+    while(bx<x+w-2){
+      const bw=4+(row*7+col*3)%6;
+      ctx.fillStyle=BC[(row*3+col*2)%BC.length];
+      ctx.globalAlpha=.9;
+      ctx.fillRect(bx,y+row*rowH+1,Math.min(bw,x+w-bx-2),rowH-1);
+      bx+=bw+1;col++;
+    }
+  }
+  ctx.globalAlpha=1;
+}
+
+// ─── STUDY ───
+// ─── LIBRARY ───
+// ─── CELLAR ───
+// ─── GARDEN CONSERVATORY ───
+function _drawGarden(ctx,th,W,H,t){
+  const BX1=145,BX2=755,BY1=65,BY2=295;
+  // glass ceiling panels — back wall shows sky
+  ctx.fillStyle='#0a2030';ctx.fillRect(BX1,BY1,BX2-BX1,BY2-BY1);
+  // rain on glass
+  ctx.strokeStyle='rgba(140,200,230,.12)';ctx.lineWidth=1;
+  for(let ri=0;ri<30;ri++){
+    const rx=BX1+((ri*67+Math.floor(t*.04)*11)%(BX2-BX1));
+    const ry0=BY1+((ri*41+Math.floor(t*.06)*9)%(BY2-BY1-20));
+    ctx.beginPath();ctx.moveTo(rx,ry0);ctx.lineTo(rx-2,ry0+12);ctx.stroke();
+  }
+  // glass frame grid
+  ctx.strokeStyle='rgba(100,160,100,.4)';ctx.lineWidth=2;
+  for(let gx=BX1+80;gx<BX2-40;gx+=80){
+    ctx.beginPath();ctx.moveTo(gx,BY1);ctx.lineTo(gx,BY2);ctx.stroke();
+  }
+  ctx.beginPath();ctx.moveTo(BX1,BY1+(BY2-BY1)/2);ctx.lineTo(BX2,BY1+(BY2-BY1)/2);ctx.stroke();
+  // CEILING glass panels
+  ctx.fillStyle='#0d1e28';
+  ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(W,0);ctx.lineTo(BX2,BY1);ctx.lineTo(BX1,BY1);ctx.closePath();ctx.fill();
+  ctx.strokeStyle='rgba(80,140,80,.35)';ctx.lineWidth=2;
+  for(let gx=80;gx<W-40;gx+=80){
+    const gy=BY1*(gx<W/2?gx/BX1:(W-gx)/(W-BX2));
+    ctx.beginPath();ctx.moveTo(gx,0);ctx.lineTo(gx>BX1&&gx<BX2?gx:gx<BX1?BX1:BX2,BY1);ctx.stroke();
+  }
+  // LEFT WALL: tropical foliage
+  const leafPositions=[[30,80],[60,150],[20,220],[80,300],[40,380]];
+  leafPositions.forEach(([lx,ly],i)=>{
+    const ls=0.8+.4*(i*.7%1);
+    ctx.strokeStyle=`rgba(30,${130+i*15},30,.85)`;ctx.fillStyle=`rgba(20,${100+i*12},20,.6)`;
+    ctx.lineWidth=2;
+    for(let li2=0;li2<5;li2++){
+      const la=(li2*72+i*36)*Math.PI/180;
+      const llen=35*ls+Math.sin(t*.003+i+li2)*4;
+      ctx.beginPath();ctx.moveTo(lx,ly);
+      ctx.quadraticCurveTo(lx+Math.cos(la)*llen*.5+10,ly+Math.sin(la)*llen*.5,lx+Math.cos(la)*llen,ly+Math.sin(la)*llen);
+      ctx.stroke();
+      ctx.beginPath();ctx.ellipse(lx+Math.cos(la)*llen*.6,ly+Math.sin(la)*llen*.6,12*ls,5*ls,la,0,Math.PI*2);
+      ctx.fill();
+    }
+  });
+  // RIGHT WALL: more foliage
+  [[840,100],[870,200],[820,320],[860,420]].forEach(([lx,ly],i)=>{
+    ctx.strokeStyle=`rgba(30,${120+i*10},30,.8)`;ctx.fillStyle=`rgba(15,${90+i*10},20,.55)`;
+    ctx.lineWidth=2;
+    for(let li2=0;li2<4;li2++){
+      const la=(li2*90+180+i*45)*Math.PI/180;
+      const llen=30+Math.sin(t*.004+i+li2)*3;
+      ctx.beginPath();ctx.moveTo(lx,ly);
+      ctx.quadraticCurveTo(lx+Math.cos(la)*llen*.5-8,ly+Math.sin(la)*llen*.5,lx+Math.cos(la)*llen,ly+Math.sin(la)*llen);
+      ctx.stroke();
+      ctx.beginPath();ctx.ellipse(lx+Math.cos(la)*llen*.6,ly+Math.sin(la)*llen*.6,10,4,la,0,Math.PI*2);
+      ctx.fill();
+    }
+  });
+  // GARDEN TABLE
+  ctx.fillStyle='#f5f0e8';ctx.fillRect(330,290,180,14);// tabletop — white iron
+  ctx.strokeStyle='#d4cfc0';ctx.lineWidth=1.5;ctx.strokeRect(330,290,180,14);
+  // table legs
+  [[340,304],[500,304],[365,304],[495,304]].forEach(([lx,ly])=>{ctx.fillStyle='#c8c0b0';ctx.fillRect(lx-3,ly,6,85);});
+  // TEA SERVICE on table
+  // teapot
+  ctx.fillStyle='#e8e0d0';ctx.beginPath();ctx.ellipse(420,286,22,18,0,0,Math.PI*2);ctx.fill();ctx.stroke();
+  ctx.strokeStyle='#c0b8a0';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(398,284);ctx.quadraticCurveTo(388,280,390,275);ctx.stroke();// spout
+  ctx.beginPath();ctx.moveTo(442,284);ctx.quadraticCurveTo(452,280,450,290);ctx.stroke();// handle
+  // teacups
+  [[365,285],[475,285]].forEach(([cx,cy])=>{
+    ctx.fillStyle='#f0ece0';ctx.beginPath();ctx.ellipse(cx,cy,12,9,0,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#d0c8b0';ctx.lineWidth=1;ctx.stroke();
+    ctx.fillStyle='rgba(100,60,20,.4)';ctx.beginPath();ctx.ellipse(cx,cy-1,9,6,0,0,Math.PI*2);ctx.fill();
+  });
+  // GLOVES on floor (evidence)
+  ctx.globalAlpha=.85;ctx.fillStyle='#3a1a08';
+  ctx.beginPath();ctx.ellipse(230,440,28,12,.2,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.ellipse(270,452,26,11,-.15,0,Math.PI*2);ctx.fill();
+  ctx.globalAlpha=1;
+  // large potted plant floor right
+  ctx.fillStyle='#5c3010';ctx.fillRect(650,360,60,100);// pot
+  ctx.strokeStyle='#7a4020';ctx.lineWidth=2;ctx.strokeRect(650,360,60,100);
+  ctx.fillStyle='rgba(30,90,25,.7)';
+  for(let fi=0;fi<6;fi++){
+    const fa=(fi*60+10)*Math.PI/180;const fl=60+Math.sin(t*.003+fi)*5;
+    ctx.beginPath();ctx.moveTo(680,358);
+    ctx.quadraticCurveTo(680+Math.cos(fa)*fl*.4,358+Math.sin(fa)*fl*.4-20,680+Math.cos(fa)*fl,358+Math.sin(fa)*fl);
+    ctx.lineWidth=3;ctx.strokeStyle=`rgba(30,${110+fi*8},25,.9)`;ctx.stroke();
+    ctx.beginPath();ctx.ellipse(680+Math.cos(fa)*fl*.65,358+Math.sin(fa)*fl*.65-10,14,5,fa,0,Math.PI*2);
+    ctx.fillStyle=`rgba(20,${90+fi*8},20,.6)`;ctx.fill();
+  }
+}
+
+function goBackToMap(){
+  if(_roomAnimId){cancelAnimationFrame(_roomAnimId);_roomAnimId=null;}
+  _hoverHot=-1;document.getElementById('obj-tooltip').style.display='none';
+  goMap();
+}
+
+function showClueCard(clue){
+  const card=document.getElementById('clue-card');
+  if(clue){
+    card.className='clue-card';
+    document.getElementById('cc-icon').textContent=clue.e;
+    document.getElementById('cc-tag').textContent='🔍  EVIDENCE DISCOVERED';
+    document.getElementById('cc-title').textContent=clue.t;
+    document.getElementById('cc-body').textContent=clue.b;
+    const detLine=rnd(DET_COMMENTS[clue.type]||DET_COMMENTS.general);
+    document.getElementById('cc-det').textContent=detLine;
+    document.querySelector('#ov-clue .btn').textContent=t('noted');
+    playSfx('clue');
+    speakAfter(detLine,700);
+  } else {
+    card.className='clue-card empty-card';
+    document.getElementById('cc-icon').textContent=rnd(['🕸️','💨','🪹','👻']);
+    document.getElementById('cc-tag').textContent='NOTHING HERE';
+    document.getElementById('cc-title').textContent=rnd(['Just dust.','Nothing found.','Empty.','A dead end.']);
+    document.getElementById('cc-body').textContent='Nothing of use here. Keep searching.';
+    document.getElementById('cc-det').textContent=rnd(DET_COMMENTS.empty);
+    document.querySelector('#ov-clue .btn').textContent=t('continue');
+  }
+  playSfx('page'); openOv('ov-clue');
+}
+
+// ═══════════════════════════════════════
+//  SUSPECTS GALLERY
+// ═══════════════════════════════════════
+function renderSuspects(){
+  updateHUD();
+  const grid=document.getElementById('sus-grid');
+  grid.innerHTML='';
+  SUSPECTS.forEach(s=>{
+    const stress=G.interviewed[s.id]||0;
+    const exIdx=stress<30?0:stress<55?1:stress<75?2:3;
+    const done=s.id in G.interviewed;
+    const div=document.createElement('div');
+    div.className='sus-gallery-card'+(done?' done':'');
+    div.style.cssText=`--cc:${s.color};--cc-dim:${s.dim};border-color:${s.color}33;box-shadow:0 4px 26px ${s.dim}`;
+    div.innerHTML=`
+      <div class="sgc-banner" style="background:linear-gradient(90deg,${s.dim},${s.color},${s.dim})"></div>
+      <div style="position:relative;overflow:hidden;border-radius:10px;width:100%;aspect-ratio:1;border:2px solid ${s.color}44;box-shadow:0 0 20px ${s.dim};">
+        <img src="${s.img}" onerror="this.style.display='none'" style="width:100%;height:100%;object-fit:cover;display:block;">
+        <div style="position:absolute;bottom:0;left:0;right:0;text-align:center;padding:5px 2px;background:linear-gradient(transparent,rgba(0,0,0,0.85));font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;font-size:10px;color:${s.color};letter-spacing:1px;">${s.badge}</div>
+      </div>
+      <div class="sgc-info">
+        <div class="sgc-name">${s.full}</div>
+        <div class="sgc-role">${s.title}</div>
+        <div class="sgc-quote">${s.quote}</div>
+        <div class="sgc-stress-lbl"><span>STRESS</span><span style="color:${s.color}">${Math.round(stress)}%</span></div>
+        <div class="sgc-stress-track"><div class="sgc-stress-fill" style="width:${stress}%;background:linear-gradient(90deg,${s.color},#f44336)"></div></div>
+      </div>
+      <div class="sgc-done-stamp">INTERVIEWED</div>
+    `;
+    div.onmouseenter=()=>div.style.boxShadow=`0 14px 50px ${s.dim},0 0 0 2px ${s.color}55`;
+    div.onmouseleave=()=>div.style.boxShadow=`0 4px 26px ${s.dim}`;
+    div.onclick=()=>openSuspect(s.id);
+    grid.appendChild(div);
+  });
+
+  const canAcc=G.clues.length>=4&&Object.keys(G.interviewed).length>=2;
+  document.getElementById('accuse-sus-btn').disabled=!canAcc;
+}
+
+// ═══════════════════════════════════════
+//  SUSPECT POPUP
+// ═══════════════════════════════════════
+function openSuspect(id){
+  playSfx('page');
+  const s=SUSPECTS.find(x=>x.id===id);
+  G.currentSus=id;
+  if(!G.asked[id]) G.asked[id]=[];
+  if(!G.stress[id]) G.stress[id]=s.baseStress;
+
+  const isGuilty=id===G.thief.id;
+  const pop=document.getElementById('sus-pop');
+  pop.style.setProperty('--cc',s.color);
+  pop.style.border=`2px solid ${s.color}44`;
+  pop.style.boxShadow=`0 0 80px ${s.dim}`;
+
+  document.getElementById('scp-portrait').style.borderColor=s.color;
+  document.getElementById('scp-portrait').style.boxShadow=`0 0 30px ${s.dim}`;
+  const scpImg=document.getElementById('scp-em');
+  scpImg.src=s.img;
+  scpImg.style.filter='none';
+  document.getElementById('scp-name').textContent=s.full;
+  document.getElementById('scp-role').textContent=s.title;
+  document.getElementById('scp-badge').textContent=s.badge;
+  document.getElementById('scp-badge').style.cssText=`color:${s.color};font-size:12px;`;
+  document.getElementById('scp-words').textContent=isGuilty?s.atmoGreet.g:s.atmoGreet.i;
+  document.getElementById('scp-words').style.borderColor=s.color;
+  document.getElementById('scp-sig-em').textContent=s.sig;
+  document.getElementById('scp-sig-txt').textContent=s.sigTxt;
+  document.getElementById('scp-answer').className='scp-answer';
+  document.getElementById('scp-answer').style.borderColor=s.color;
+
+  updateStressUI(s);
+  renderQuestions(s,isGuilty);
+  openOv('ov-sus');
+  setMusicMode('interrogate');
+}
+
+function renderQuestions(s,isGuilty){
+  const list=document.getElementById('scp-questions');
+  list.innerHTML='';
+  (G.asked[s.id]||[]).forEach(i=>{
+    const q=s.questions[i];
+    const res=q.evalRes || (isGuilty?q.gr:q.ir);
+    const li=document.createElement('button');
+    li.className='q-item done';
+    li.innerHTML=`<span class="q-num">✓</span>${q.txt}<span class="lie-tag ${res}">${rl(res)}</span>`;
+    list.appendChild(li);
+  });
+  s.questions.forEach((q,i)=>{
+    if((G.asked[s.id]||[]).includes(i)) return;
+    const li=document.createElement('button');
+    li.className='q-item';
+    li.innerHTML=`<span class="q-num">${i+1}</span>${q.txt}`;
+    li.onclick=()=>askQ(s,i,isGuilty);
+    list.appendChild(li);
+  });
+}
+
+function askQ(s,idx,isGuilty){
+  if(!G.asked[s.id]) G.asked[s.id]=[];
+  G.asked[s.id].push(idx);
+  const q=s.questions[idx];
+  const ans=isGuilty?q.ga:q.ia;
+  const det=isGuilty?q.gdet:q.idet;
+  
+  // Normalize stress delta to prevent immediate giveaways
+  const baseDelta = 10 + Math.random() * 15; // 10-25
+  const delta = isGuilty ? baseDelta * 1.5 : baseDelta * 0.5;
+
+  // Add a chance for innocent suspects to lie to protect secrets
+  let isLying = false;
+  if(isGuilty && q.gr === 'lie') isLying = true;
+  if(!isGuilty && q.ir === 'truth' && Math.random() < 0.3) isLying = true; // 30% chance innocent lies
+  if(isLying) {
+      q.evalRes = 'lie';
+  } else {
+      q.evalRes = isGuilty ? q.gr : q.ir;
+  }
+
+  // Atmospheric description + answer + detective note
+  const ansEl=document.getElementById('scp-answer');
+  ansEl.innerHTML=`<span style="color:var(--text)">${ans}</span><br><br><span style="color:var(--muted);font-size:14px;font-style:italic" id="det-note" style="opacity:0;transition:opacity 1.5s">${det}</span>`;
+  ansEl.className='scp-answer show';
+  
+  // Delay the lie tag and note reveal for tension
+  document.querySelectorAll('.q-item').forEach(el=>el.style.pointerEvents='none'); // block clicking during tension
+  playSfx('tension');
+  
+  setTimeout(()=>{
+      document.getElementById('det-note').style.opacity='1';
+      speakAfter(det,900);
+      addScore(50, window.innerWidth/2 + (Math.random()*100-50), window.innerHeight/2, '#c9a84c');
+      if(delta > 15 || isLying) {
+          const pop = document.querySelector('.sus-card-pop');
+          pop.classList.remove('shake-anim');
+          void pop.offsetWidth; // trigger reflow
+          pop.classList.add('shake-anim');
+      }
+      if(delta>15 || isLying){
+        const em=document.getElementById('scp-em');
+        em.classList.add('suspect-stress-glow');
+        em.classList.add('suspect-stress-shake');
+        setTimeout(()=>{
+          em.classList.remove('suspect-stress-glow');
+          em.classList.remove('suspect-stress-shake');
+        }, 1200);
+      }
+      G.stress[s.id]=Math.min(95,(G.stress[s.id]||10)+delta);
+      G.interviewed[s.id]=G.stress[s.id];
+      updateStressUI(s);
+      renderQuestions(s,isGuilty);
+      updateHUD();
+      renderSuspects();
+      document.querySelectorAll('.q-item').forEach(el=>el.style.pointerEvents='auto');
+  }, 1200); // 1.2s delay for tension
+}
+
+function updateStressUI(s){
+  const val=G.stress[s.id]||0;
+  const exIdx=val<30?0:val<55?1:val<75?2:3;
+  document.getElementById('scp-stress-bar').style.width=val+'%';
+  document.getElementById('scp-stress-pct').textContent=Math.round(val)+'%';
+  document.getElementById('scp-stress-pct').style.color=s.color;
+  document.getElementById('scp-em').textContent=s.exprs[exIdx];
+  document.getElementById('scp-sweat').textContent=val<30?'':val<55?'💧':val<75?'💧💧':'💧💧💧';
+}
+function rl(r){return r==='lie'?'⚠ LYING':r==='truth'?'✓ TRUTH':'~ NERVOUS';}
+
+function toggleEvidence() {
+  const qList = document.getElementById('scp-questions');
+  const evList = document.getElementById('scp-evidence');
+  const btn = document.getElementById('present-ev-btn');
+  const hint = document.getElementById('scp-q-hint');
+  
+  if (qList.style.display === 'none') {
+    qList.style.display = 'block';
+    evList.style.display = 'none';
+    btn.textContent = 'Present Evidence 🔍';
+    hint.textContent = 'YOUR QUESTIONS — CLICK TO ASK';
+  } else {
+    qList.style.display = 'none';
+    evList.style.display = 'block';
+    btn.textContent = 'Back to Questions ↩';
+    hint.textContent = 'YOUR EVIDENCE — CLICK TO PRESENT';
+    renderEvidenceList();
+  }
+}
+
+function renderEvidenceList() {
+  const list = document.getElementById('scp-evidence');
+  list.innerHTML = '';
+  const s = SUSPECTS.find(x => x.id === G.currentSus);
+  
+  if (G.clues.length === 0) {
+    list.innerHTML = '<div style="color:var(--muted);text-align:center;padding:20px;">No evidence collected yet.</div>';
+    return;
+  }
+  
+  G.clues.forEach(clue => {
+    const li = document.createElement('button');
+    li.className = 'q-item';
+    li.innerHTML = `<span class="q-num">${clue.e}</span>${clue.t}`;
+    li.onclick = () => presentEvidence(clue, s);
+    list.appendChild(li);
+  });
+}
+
+function presentEvidence(clue, s) {
+  const ansEl = document.getElementById('scp-answer');
+  let ans = '';
+  let det = '';
+  let stressDelta = 0;
+  const isGuilty = s.id === G.thief.id;
+  
+  // Check if clue relates to suspect
+  const isRelated = (clue.type === 'thief' && isGuilty) || 
+                    (clue.type === 'herring' && s.id === G.herring.id) ||
+                    (clue.t.includes(s.name.split(' ').pop()));
+                    
+  if (isRelated) {
+    ans = `"The ${clue.t}? I... I don't know how that got there. It proves nothing!"`;
+    det = `They are visibly shaken by the ${clue.t}. They are losing composure.`;
+    stressDelta = 30;
+    playSfx('tension');
+  } else {
+    ans = `"What does this ${clue.t} have to do with me? You are wasting my time, Inspector."`;
+    det = `They dismiss the ${clue.t} with a bored look.`;
+    stressDelta = 5;
+  }
+  
+  ansEl.innerHTML = `<span style="color:var(--text)">${ans}</span><br><br><span style="color:var(--muted);font-size:14px;font-style:italic" id="det-note" style="opacity:0;transition:opacity 1.5s">${det}</span>`;
+  ansEl.className = 'scp-answer show';
+  
+  setTimeout(() => {
+    const detNote = document.getElementById('det-note');
+    if (detNote) detNote.style.opacity = '1';
+    speakAfter(det, 900);
+    
+    G.stress[s.id] = Math.min(95, (G.stress[s.id] || 10) + stressDelta);
+    updateStressUI(s);
+    renderSuspects();
+    updateHUD();
+  }, 500);
+}
+
+// ═══════════════════════════════════════
+//  ACCUSATION
+// ═══════════════════════════════════════
+function renderAccuse(){
+  function makeCards(containerId,arr,accKey){
+    const c=document.getElementById(containerId);c.innerHTML='';
+    arr.forEach(item=>{
+      const d=document.createElement('div');
+      d.className='choice-card'+(G.acc[accKey]===item.id?' sel':'');
+      if(item.img) {
+        d.innerHTML=`<img src="${item.img}" onerror="this.outerHTML='<span class=\\'cem\\'>${item.em}</span>'" style="width:64px;height:64px;object-fit:cover;border-radius:50%"><div>${item.name}</div>`;
+      } else {
+        d.innerHTML=`<span class="cem">${item.em}</span><div>${item.name}</div>`;
+      }
+      d.onclick=()=>{G.acc[accKey]=item.id;renderAccuse();};
+      c.appendChild(d);
+    });
+  }
+  makeCards('chips-k',SUSPECTS,'k');
+  makeCards('chips-w',TOOLS,'w');
+  makeCards('chips-r',ROOMS,'r');
+
+  let conf=Math.min(40,G.clues.length*8)+Math.min(40,Object.keys(G.interviewed).length*8);
+  if(G.acc.k)conf+=7;if(G.acc.w)conf+=7;if(G.acc.r)conf+=6;conf=Math.min(conf,100);
+  document.getElementById('conf-fill').style.width=conf+'%';
+  document.getElementById('conf-txt').textContent=conf+'%';
+  document.getElementById('submit-acc').disabled=!(G.acc.k&&G.acc.w&&G.acc.r);
+}
+
+function confirmAccusation(){
+  if(!(G.acc.k&&G.acc.w&&G.acc.r)) return;
+  const sus  = SUSPECTS.find(s=>s.id===G.acc.k)?.name || '—';
+  const tool = TOOLS.find(t=>t.id===G.acc.w)?.name    || '—';
+  const room = ROOMS.find(r=>r.id===G.acc.r)?.name    || '—';
+  document.getElementById('confirm-summary').innerHTML =
+    `Suspect: <b style="color:#c9a84c">${sus}</b><br>
+     Tool: <b style="color:#c9a84c">${tool}</b><br>
+     Location: <b style="color:#c9a84c">${room}</b>`;
+  openOv('ov-confirm');
+  speakAfter(`${sus}. Used ${tool}. In ${room}. Are you certain?`, 200, true);
+}
+
+function submitAccusation(){
+  clearInterval(G.timerInt); // stop timer — game is over, no more countdown
+  G.timerInt = null;
+  const kr=G.acc.k===G.thief.id,wr=G.acc.w===G.tool.id,rr=G.acc.r===G.crimeRoom.id,all=kr&&wr&&rr;
+  let score=(kr?50:0)+(wr?25:0)+(rr?25:0);
+  if(all)score=Math.min(100,score+Math.min(20,G.clues.length*2+Object.keys(G.interviewed).length*2));
+  showReveal(all,kr,wr,rr,score);
+}
+
+// ═══════════════════════════════════════
+//  REVEAL
+// ═══════════════════════════════════════
+function showReveal(all,kr,wr,rr,score){
+  const scr=document.getElementById('s-reveal');
+  scr.className='screen'+(all?' win':'');
+  document.getElementById('rv-icon').textContent=all?'🏆':'💀';
+  const vrd=document.getElementById('rv-verdict');
+  vrd.textContent=all?'CASE SOLVED!':'WRONG ACCUSATION!';
+  vrd.className='rv-verdict '+(all?'r':'w');
+  document.getElementById('rv-sub').textContent=all
+    ?'Justice is served. The case is closed.'
+    :'The evidence was not strong enough. They walked free.';
+
+  const accSus=SUSPECTS.find(s=>s.id===G.acc.k);
+  document.getElementById('truth-box').innerHTML=`
+    <div class="truth-row"><img src="${G.thief.img}" style="width:42px;height:42px;border-radius:50%;object-fit:cover;border:1px solid #c9a84c;box-shadow:0 2px 4px rgba(201,168,76,0.3);">
+      <div><div class="t-lbl">CULPRIT IS</div><div class="t-val">${G.thief.full}</div></div><span class="t-chk">${kr?'✅':'❌'}</span></div>
+    <div class="truth-row"><span class="t-em">${G.tool.em}</span>
+      <div><div class="t-lbl">THE TOOL</div><div class="t-val">${G.tool.name} — ${G.tool.desc}</div></div><span class="t-chk">${wr?'✅':'❌'}</span></div>
+    <div class="truth-row"><span class="t-em">${G.crimeRoom.em}</span>
+      <div><div class="t-lbl">THE LOCATION</div><div class="t-val">${G.crimeRoom.name}</div></div><span class="t-chk">${rr?'✅':'❌'}</span></div>
+    ${!kr?`<div class="truth-row"><span class="t-em">🔎</span><div><div class="t-lbl">YOUR ACCUSATION</div><div class="t-val">${accSus?.name||'—'}</div></div><span class="t-chk">❌</span></div>`:''}
+  `;
+
+  // Build confession narrative
+  const motive=G.thief.motive.toLowerCase();
+  
+  let story = "";
+  if(all) {
+      story = `<em>${G.thief.full}</em> breaks down. The pressure of your flawless deduction is too much.<br><br>
+               "Yes! I did it!" they scream. "They gave me no choice!" The confession pours out. <em>${G.tool.name}</em> was used in <em>${G.crimeRoom.name}</em>. The motive: <em>${G.thief.motive}</em><br><br>
+               Inspector Morgan closes the case file. Case number 47: solved.`;
+  } else if (kr && (!wr || !rr)) {
+      story = `<em>${G.thief.full}</em> smirks. "You think it was me? Where is your proof? Your story doesn't even make sense!"<br><br>
+               Because you failed to identify the correct tool and room, the case falls apart in court. The thief: <em>${G.thief.full}</em> escapes justice.<br><br>
+               Inspector Morgan has failed.`;
+  } else {
+      story = `You pointed the finger at the wrong person.<br><br>
+               While you were distracted, the real thief, <em>${G.thief.full}</em>, slipped out into the storm. They used <em>${G.tool.name}</em> in <em>${G.crimeRoom.name}</em>. Motive: <em>${G.thief.motive}</em><br><br>
+               The case goes cold. Inspector Morgan has no comment.`;
+  }
+  
+  document.getElementById('story-box').innerHTML = story;
+
+  document.getElementById('score-ring').style.setProperty('--pct',score+'%');
+  document.getElementById('score-num').textContent=score;
+  document.getElementById('score-tag').textContent=score>=90?'MASTER DETECTIVE':score>=70?'SHARP INVESTIGATOR':score>=50?'DECENT DETECTIVE':'KEEP PRACTICING';
+  document.getElementById('hud').classList.remove('on');
+  show('s-reveal');
+  playSfx(all?'victory':'reveal');
+  setMusicMode(all?'explore':'accuse');
+  const verdictLine=all
+    ?`Case solved. ${G.thief.full} confessed to everything.`
+    :`Your deduction was flawed. The real thief was ${G.thief.full}. They slip away into the night.`;
+  speakAfter(verdictLine,1200,true);
+}
+
+// ═══════════════════════════════════════
+//  JOURNAL
+// ═══════════════════════════════════════
+
+let _tutSlide=0;
+function _tutGo(n){
+  _tutSlide=Math.max(0,Math.min(2,n));
+  for(let i=0;i<3;i++){
+    const el=document.getElementById('ts-'+i);
+    if(el)el.style.display=i===_tutSlide?'flex':'none';
+  }
+  document.querySelectorAll('.tut-dot').forEach((d,i)=>{
+    d.style.background=i===_tutSlide?'#c9a84c':'#333';
+    d.style.border=i===_tutSlide?'none':'1px solid rgba(201,168,76,0.3)';
+  });
+  const prog=document.getElementById('tut-progress');
+  if(prog)prog.style.width=(_tutSlide===0?'33%':_tutSlide===1?'66%':'100%');
+  const ctr=document.getElementById('tut-counter');
+  if(ctr)ctr.textContent=(_tutSlide+1)+' / 3';
+  const pb=document.getElementById('tut-prev-btn'),nb=document.getElementById('tut-next-btn');
+  if(pb)pb.style.opacity=_tutSlide===0?'0.4':'1';
+  if(nb){
+    if(_tutSlide===2){
+      nb.textContent='GOT IT ✓';
+      nb.onclick=()=>closeOv('ov-tutorial');
+    } else {
+      nb.textContent='NEXT →';
+      nb.onclick=_tutNext;
+    }
+  }
+}
+function _tutNext(){_tutGo(_tutSlide+1);}
+function _tutPrev(){_tutGo(_tutSlide-1);}
+function openTutorial(){
+  initAudio();
+  playSfx('page');
+  _tutGo(0);
+  openOv('ov-tutorial');
+}
+
+function openJournal(){
+  playSfx('page');
+  const list=document.getElementById('joy-list');
+  if(!G.clues||G.clues.length===0){
+    list.innerHTML=`<div class="joy-empty">${t('noEvidence').replace('\n','<br>')}</div>`;
+  } else {
+    list.innerHTML=G.clues.map(c=>`
+      <div class="joy-item">
+        <span class="ji-em">${c.e}</span>
+        <div>
+          <div class="ji-title">${c.t}</div>
+          <div class="ji-body">${c.b}</div>
+          <div class="ji-note">${rnd(DET_COMMENTS[c.type]||DET_COMMENTS.general)}</div>
+        </div>
+      </div>`).join('');
+  }
+  openOv('joy');
+}
+
+// ═══════════════════════════════════════
+//  HUD
+// ═══════════════════════════════════════
+function updateHUD(){
+  const si=Object.keys(G.interviewed||{}).length;
+  document.getElementById('hud-clues').textContent=G.clues?.length||0;
+  document.getElementById('hud-sus').textContent=`${si}/5`;
+  document.getElementById('jcount').textContent=`(${G.clues?.length||0})`;
+  const step=si>=3&&(G.clues?.length||0)>=6?t('step3'):si>=1?t('step2'):t('step1');
+  document.getElementById('hud-step').textContent=step;
+}
+
+function playAgain(){
+  const oldTimer = G.timerInt;   // capture BEFORE newGame() replaces G
+  clearInterval(oldTimer);        // kill any still-running timer from previous game
+  stopSpeech();
+  document.body.classList.remove('urgency-mode');
+  newGame();
+  enterManor();                   // restarts everything cleanly (timer, audio, map)
+}
+
+// ═══════════════════════════════════════
+//  AUDIO SYSTEM — lo-fi 1920s noir
+// ═══════════════════════════════════════
+let AC=null,_mGain=null,_aGain=null,_lofi=null,_padOut=null,
+    _melNode=null,_hbNode=null,_ambVol=0.72,_voxVol=0.85,_lastNote='',_voices=[],
+    _rvbIn=null,_rvbWet=null,_roomAmbStop=null,
+    _padGainNode=null,    // controllable pad volume for music modes
+    _bassDirectNode=null, // sub-bass bypass (below HPF cutoff)
+    _stringsNode=null;    // tension strings layer (accuse mode)
+
+// ── Music theory constants ──────────────
+// 66 BPM: slow, tense, cinematic
+const _BPM=66,_B=60/_BPM;
+// A natural minor scale, 3 octaves
+const _N={
+  E2:82.41,F2:87.31,G2:98.0,A2:110,B2:123.47,
+  C3:130.81,D3:146.83,E3:164.81,F3:174.61,G3:196,
+  A3:220,B3:246.94,C4:261.63,D4:293.66,E4:329.63,F4:349.23,G4:392,
+  A4:440,_:0
+};
+// Haunting 1920s detective melody — [freq, beats]
+// Descends, rises, resolves in A minor
+const _MEL=[
+  [_N.A4,.5],[_N.G4,.5],[_N.F4,1],[_N.E4,.5],[_N.D4,.5],[_N.C4,1],[_N.B3,.5],[_N.A3,1.5],[_N._,.5],
+  [_N.C4,.5],[_N.E4,.5],[_N.A4,1],[_N.G4,.75],[_N.F4,.5],[_N.E4,1.25],[_N._,.5],
+  [_N.A3,.5],[_N.B3,.5],[_N.C4,.5],[_N.B3,.5],[_N.A3,.5],[_N.G3,.5],[_N.F3,.5],[_N.E3,1.5],[_N._,.5],
+  [_N.D4,.5],[_N.C4,.5],[_N.B3,.5],[_N.A3,.5],[_N.G3,.5],[_N.F3,.5],[_N.G3,.5],[_N.A3,1],
+  [_N.B3,.5],[_N.C4,.5],[_N.B3,.5],[_N.A3,.5],[_N.G3,.5],[_N.E3,2],[_N._,.5],
+  [_N.F3,.5],[_N.G3,.5],[_N.A3,.5],[_N.G3,.5],[_N.F3,.5],[_N.E3,.5],[_N.D3,.5],[_N.E3,.5],
+  [_N.F3,1],[_N.E3,.5],[_N.D3,.5],[_N.C3,.75],[_N.B2,.5],[_N.A2,2.25],[_N._,2.5],
+];
+// Walking bass — pedal on A/E with movement
+const _BASS=[
+  [_N.A2,1.5],[_N.E2,1],[_N.A2,.5],[_N.G2,.5],[_N.A2,.5],
+  [_N.E2,1.5],[_N.F2,.5],[_N.E2,1],
+  [_N.A2,2],[_N.D3,1],[_N.E2,1],
+  [_N.A2,1],[_N.C3,.5],[_N.B2,.5],[_N.A2,1],[_N.E2,1],[_N.A2,2],
+];
+
+
+let _lofiNodes = [];
+function _startLofiMusic() {
+  if(!AC || !_mGain) return;
+  try{
+  _lofiNodes.forEach(n => {try{n.stop();}catch(e){}});
+  _lofiNodes = [];
+  
+  // A dark, mysterious, slow tempo noir/lofi bassline & chords
+  const tempo = G.tempo || 75; 
+  const beat = 60 / tempo;
+  const now = AC.currentTime;
+  
+  // 1. Warm sub bass (sine + slight triangle)
+  const bassFilter = AC.createBiquadFilter();
+  bassFilter.type = 'lowpass';
+  bassFilter.frequency.value = 150;
+  
+  const bassGain = AC.createGain();
+  bassGain.gain.value = 0.4;
+  bassFilter.connect(bassGain);
+  bassGain.connect(_mGain);
+
+  const bassNotes = [32.7, 32.7, 36.7, 36.7, 41.2, 41.2, 29.1, 29.1]; // C1, D1, E1, Bb0
+  let bassTime = now + 0.1;
+  for(let i=0; i<32; i++) {
+    const osc = AC.createOscillator();
+    osc.type = 'triangle';
+    osc.frequency.value = bassNotes[i % bassNotes.length];
+    
+    const env = AC.createGain();
+    env.gain.setValueAtTime(0, bassTime);
+    env.gain.linearRampToValueAtTime(0.8, bassTime + 0.1);
+    env.gain.exponentialRampToValueAtTime(0.01, bassTime + beat * 2 - 0.1);
+    
+    osc.connect(env);
+    env.connect(bassFilter);
+    osc.start(bassTime);
+    osc.stop(bassTime + beat * 2);
+    _lofiNodes.push(osc);
+    bassTime += beat * 2;
+  }
+
+  // 2. Moody chords (Electric Piano style: Sine + FM)
+  const chordFilter = AC.createBiquadFilter();
+  chordFilter.type = 'lowpass';
+  chordFilter.frequency.value = 600;
+  const chordGain = AC.createGain();
+  chordGain.gain.value = 0.15;
+  chordFilter.connect(chordGain);
+  chordGain.connect(_mGain);
+
+  // Cmin9, Dmin9, Emin9, Bbmaj9
+  const chords = [
+    [130.8, 155.5, 196.0, 233.0, 293.6], // Cm9
+    [146.8, 174.6, 220.0, 261.6, 329.6], // Dm9
+    [164.8, 196.0, 246.9, 293.6, 369.9], // Em9
+    [116.5, 146.8, 174.6, 220.0, 261.6]  // Bbmaj9
+  ];
+  
+  let chordTime = now + 0.1;
+  for(let i=0; i<16; i++) {
+    const chord = chords[i % chords.length];
+    chord.forEach(freq => {
+      const osc = AC.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      
+      const env = AC.createGain();
+      env.gain.setValueAtTime(0, chordTime);
+      env.gain.linearRampToValueAtTime(0.3 / chord.length, chordTime + 0.05);
+      env.gain.exponentialRampToValueAtTime(0.001, chordTime + beat * 4 - 0.1);
+      
+      osc.connect(env);
+      env.connect(chordFilter);
+      osc.start(chordTime);
+      osc.stop(chordTime + beat * 4);
+      _lofiNodes.push(osc);
+    });
+    chordTime += beat * 4;
+  }
+
+  // 3. Vinyl Crackle / Rain noise (constant)
+  const noiseLen = Math.floor(AC.sampleRate * 2);
+  const noiseBuf = AC.createBuffer(1, noiseLen, AC.sampleRate);
+  const data = noiseBuf.getChannelData(0);
+  for(let i=0; i<noiseLen; i++) data[i] = (Math.random()*2 - 1) * 0.05;
+  
+  const noiseSrc = AC.createBufferSource();
+  noiseSrc.buffer = noiseBuf;
+  noiseSrc.loop = true;
+  const noiseFilter = AC.createBiquadFilter();
+  noiseFilter.type = 'lowpass';
+  noiseFilter.frequency.value = 800;
+  const noiseGain = AC.createGain();
+  noiseGain.gain.value = 0.2;
+  
+  noiseSrc.connect(noiseFilter);
+  noiseFilter.connect(noiseGain);
+  noiseGain.connect(_mGain);
+  noiseSrc.start(now);
+  _lofiNodes.push(noiseSrc);
+
+  // Auto-restart loop after exactly 32 beats (about 25.6s at 75bpm)
+  const loopTid = setTimeout(_startLofiMusic, (beat * 32) * 1000);
+  _lofiNodes.push({stop: () => clearTimeout(loopTid)});
+  }catch(e){console.warn('Lofi music error',e);}
+}
+
+function initAudio(){
+  if(AC) return;
+  try{
+    AC=new(window.AudioContext||window.webkitAudioContext)();
+
+    // ── 1. Master buses ───────────────────────────────────────────────────────
+    _mGain=AC.createGain();_mGain.gain.value=0;_mGain.connect(AC.destination);
+    _aGain=AC.createGain();_aGain.gain.value=0.85;_aGain.connect(_mGain);
+
+    // ── 2. Reverb (Schroeder) — MUST be created first so everything can connect to it ──
+    _rvbIn =AC.createGain();_rvbIn.gain.value=1;
+    _rvbWet=AC.createGain();_rvbWet.gain.value=0.28;
+    _rvbWet.connect(_mGain);
+    const rvbMerge=AC.createGain();rvbMerge.gain.value=0.20;
+    [0.0297,0.0371,0.0411,0.0437].forEach(d=>{
+      const del=AC.createDelay(1.0);del.delayTime.value=d*1.9;
+      const fb=AC.createGain();fb.gain.value=0.74;
+      const damp=AC.createBiquadFilter();damp.type='lowpass';damp.frequency.value=3200;
+      _rvbIn.connect(del);del.connect(damp);damp.connect(fb);fb.connect(del);del.connect(rvbMerge);
+    });
+    const ap1=AC.createBiquadFilter();ap1.type='allpass';ap1.frequency.value=225;ap1.Q.value=0.5;
+    const ap2=AC.createBiquadFilter();ap2.type='allpass';ap2.frequency.value=556;ap2.Q.value=0.5;
+    rvbMerge.connect(ap1);ap1.connect(ap2);ap2.connect(_rvbWet);
+
+    // ── 3. Gramophone chain (music → warmth/distortion → master) ─────────────
+    const dist=AC.createWaveShaper();dist.curve=_distCurve(38);dist.oversample='2x';
+    const ghpf=AC.createBiquadFilter();ghpf.type='highpass';ghpf.frequency.value=220;ghpf.Q.value=0.7;
+    const gmid=AC.createBiquadFilter();gmid.type='peaking';gmid.frequency.value=900;gmid.gain.value=8;gmid.Q.value=1.2;
+    const glpf=AC.createBiquadFilter();glpf.type='lowpass';glpf.frequency.value=2800;glpf.Q.value=0.7;
+    const lofiOut=AC.createGain();lofiOut.gain.value=0.58;
+    const flutLFO=AC.createOscillator(),flutG=AC.createGain();
+    flutLFO.frequency.value=3.0;flutG.gain.value=0.04;
+    flutLFO.connect(flutG);flutG.connect(lofiOut.gain);flutLFO.start();
+    const raw=AC.createGain();raw.gain.value=1;
+    raw.connect(dist);dist.connect(ghpf);ghpf.connect(gmid);gmid.connect(glpf);glpf.connect(lofiOut);lofiOut.connect(_mGain);
+    _lofi=raw;
+
+    // ── 4. Sub-bass bypass (below gramophone HPF cutoff) ─────────────────────
+    const subBassGain=AC.createGain();subBassGain.gain.value=1.4;
+    const subLPF=AC.createBiquadFilter();subLPF.type='lowpass';subLPF.frequency.value=180;subLPF.Q.value=0.7;
+    subLPF.connect(subBassGain);subBassGain.connect(_mGain);
+    _bassDirectNode=subLPF;
+
+    // ── 5. Pad bus (warm sustain, no distortion) ──────────────────────────────
+    const padLPF=AC.createBiquadFilter();padLPF.type='lowpass';padLPF.frequency.value=900;
+    _padGainNode=AC.createGain();_padGainNode.gain.value=0.55;
+    padLPF.connect(_padGainNode);_padGainNode.connect(_mGain);
+    _padOut=padLPF;
+    // pad → reverb send
+    const padRvbSend=AC.createGain();padRvbSend.gain.value=0.35;
+    _padOut.connect(padRvbSend);padRvbSend.connect(_rvbIn);
+
+    // ── 6. Melody gain (dynamic control per mode) ────────────────────────────
+    _melNode=AC.createGain();_melNode.gain.value=1;
+    _melNode.connect(_lofi);
+    const melRvbSend=AC.createGain();melRvbSend.gain.value=0.30;
+    _melNode.connect(melRvbSend);melRvbSend.connect(_rvbIn);
+
+    // ── 7. Tension strings bus ────────────────────────────────────────────────
+    _stringsNode=AC.createGain();_stringsNode.gain.value=0;
+    const strLPF=AC.createBiquadFilter();strLPF.type='lowpass';strLPF.frequency.value=1800;
+    _stringsNode.connect(strLPF);
+    strLPF.connect(_mGain);
+    const strRvbSend=AC.createGain();strRvbSend.gain.value=0.4;
+    strLPF.connect(strRvbSend);strRvbSend.connect(_rvbIn);
+    _startStrings();
+
+    // ── 8. Heartbeat layer ────────────────────────────────────────────────────
+    _hbNode=AC.createGain();_hbNode.gain.value=0;_hbNode.connect(_mGain);
+
+    // ── 9. Start all ambient + music layers ──────────────────────────────────
+    _mkRain();_mkClock();_scheduleThunder();
+    _startCrackle();
+    _startPad();_startMelody();_startBass();_startKick();_startHeartbeat();
+
+  }catch(e){console.error('AudioContext init failed:',e);}
+  _loadVoices();
+}
+
+function _distCurve(amt){
+  const n=512,c=new Float32Array(n),k=amt,deg=Math.PI/180;
+  for(let i=0;i<n;i++){const x=i*2/n-1;c[i]=(3+k)*x*20*deg/(Math.PI+k*Math.abs(x));}
+  return c;
+}
+
+function fadeInAmbient(){
+  if(!AC) return;
+  // Ensure volume is at the correct default if it was somehow zeroed
+  if(_ambVol < 0.05) _ambVol = 0.72;
+  if(_voxVol < 0.05) _voxVol = 0.85;
+  // Sync sliders to actual values
+  const sAmb = document.getElementById('sl-amb');
+  const sVox = document.getElementById('sl-vox');
+  const pAmb = document.getElementById('pct-amb');
+  const pVox = document.getElementById('pct-vox');
+  if(sAmb){ sAmb.value = Math.round(_ambVol*100); if(pAmb) pAmb.textContent = sAmb.value+'%'; }
+  if(sVox){ sVox.value = Math.round(_voxVol*100); if(pVox) pVox.textContent = sVox.value+'%'; }
+  AC.resume();
+  _mGain.gain.cancelScheduledValues(AC.currentTime);
+  _mGain.gain.setTargetAtTime(_ambVol, AC.currentTime, 1.8);
+}
+function setAmbVol(v){
+  _ambVol=v;
+  if(_mGain) _mGain.gain.setTargetAtTime(v,AC.currentTime,0.3);
+}
+function setVoxVol(v){_voxVol=v;}
+function toggleAudPanel(){document.getElementById('audio-ctrl').classList.toggle('collapsed');}
+
+// ── Mute toggle ──────────────────────────
+let _muted=false,_preMuteAmb=0.55,_preMuteVox=0.8;
+function toggleMute(){
+  _muted=!_muted;
+  const btn=document.getElementById('hud-mute');
+  if(_muted){
+    _preMuteAmb=_ambVol;_preMuteVox=_voxVol;
+    if(AC&&_mGain) _mGain.gain.setTargetAtTime(0,AC.currentTime,0.1);
+    speechSynthesis.cancel();
+    _ambVol=0;_voxVol=0;
+    if(btn) btn.textContent='🔇';
+  }else{
+    _ambVol=_preMuteAmb;_voxVol=_preMuteVox;
+    if(AC&&_mGain) _mGain.gain.setTargetAtTime(_ambVol,AC.currentTime,0.3);
+    if(btn) btn.textContent='🔊';
+  }
+}
+
+// ═══════════════════════════════════════
+//  LANGUAGE SYSTEM
+// ═══════════════════════════════════════
+const LANG={
+  en:{
+    step1:'STEP 1: SEARCH',step2:'STEP 2: INTERROGATE',step3:'STEP 3: ACCUSE',
+    evidence:'Evidence',interviews:'Interviews',
+    investigate:'INVESTIGATE',enterManor:'ENTER THE MANOR →',
+    exitRoom:'← Exit Room',evidenceJournal:'📓 Evidence Journal',
+    makeAccusation:'⚖️ Make Accusation',interrogateSuspects:'👥 Interrogate Suspects',
+    backToManor:'← Back to Manor',reviewEvidence:'📓 Review Evidence',
+    makeTheAccusation:'MAKE THE ACCUSATION',playAgain:'PLAY AGAIN',
+    theThiefIs:'THE THIEF IS',theToolWas:'THE TOOL WAS',
+    theCrimeSceneWas:'THE CRIME SCENE WAS',confidence:'CONFIDENCE IN YOUR DEDUCTIONS',
+    noEvidence:"No evidence collected yet.\nSearch the manor's rooms.",
+    yourQuestions:'YOUR QUESTIONS — CLICK TO ASK',
+    closeInterview:'Close Interview ✕',noted:'NOTED — CLOSE ✕',continue:'CONTINUE →',
+    searchHint:'Glowing hotspots mark possible evidence — click to examine.',
+    inspectorsNotebook:"INSPECTOR'S NOTEBOOK",stressLevel:'STRESS LEVEL',interviewed:'INTERVIEWED',
+  },
+  hi:{
+    step1:'चरण 1: खोज',step2:'चरण 2: पूछताछ',step3:'चरण 3: आरोप',
+    evidence:'साक्ष्य',interviews:'पूछताछ',
+    investigate:'जांच करें',enterManor:'हवेली में प्रवेश करें →',
+    exitRoom:'← कमरा छोड़ें',evidenceJournal:'📓 साक्ष्य डायरी',
+    makeAccusation:'⚖️ आरोप लगाएं',interrogateSuspects:'👥 संदिग्धों से पूछताछ',
+    backToManor:'← हवेली में वापस',reviewEvidence:'📓 साक्ष्य देखें',
+    makeTheAccusation:'आरोप लगाएं',playAgain:'फिर खेलें',
+    theThiefIs:'हत्यारा है',theToolWas:'हथियार था',
+    theCrimeSceneWas:'अपराध स्थल था',confidence:'आपकी निश्चितता',
+    noEvidence:'अभी तक कोई साक्ष्य नहीं।\nकमरे खोजें।',
+    yourQuestions:'आपके प्रश्न — क्लिक करें',
+    closeInterview:'साक्षात्कार बंद करें ✕',noted:'नोट किया — बंद करें ✕',continue:'जारी रखें →',
+    searchHint:'चमकते बिंदु साक्ष्य दर्शाते हैं — क्लिक करें।',
+    inspectorsNotebook:'जासूस की डायरी',stressLevel:'तनाव स्तर',interviewed:'पूछताछ हुई',
+  }
+};
+let _lang='en';
+function t(key){return LANG[_lang]?.[key]??LANG.en[key]??key;}
+function setLang(l){
+  _lang=l;
+  document.getElementById('lang-en').classList.toggle('active',l==='en');
+  document.getElementById('lang-hi').classList.toggle('active',l==='hi');
+  document.querySelectorAll('[data-t]').forEach(el=>{el.textContent=t(el.dataset.t);});
+  updateHUD();
+
+  // timer now started in enterManor()
+
+}
+
+// ── Rain ────────────────────────────────
+function _mkRain(){
+  const sr=AC.sampleRate,buf=AC.createBuffer(1,sr*3,sr),d=buf.getChannelData(0);
+  for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
+  const src=AC.createBufferSource();src.buffer=buf;src.loop=true;
+  const hpf=AC.createBiquadFilter();hpf.type='highpass';hpf.frequency.value=1000;
+  const lpf=AC.createBiquadFilter();lpf.type='lowpass';lpf.frequency.value=5500;
+  const g=AC.createGain();g.gain.value=0.032;
+  src.connect(hpf);hpf.connect(lpf);lpf.connect(g);g.connect(_aGain);src.start();
+}
+
+// ── Clock tick ──────────────────────────
+function _mkClock(){
+  (function tick(){
+    if(!AC) return;
+    const now=AC.currentTime,o=AC.createOscillator(),g=AC.createGain();
+    o.type='triangle';o.frequency.value=920;
+    g.gain.setValueAtTime(0,now);g.gain.linearRampToValueAtTime(.013,now+.003);
+    g.gain.exponentialRampToValueAtTime(.0001,now+.09);
+    o.connect(g);g.connect(_aGain);o.start(now);o.stop(now+.12);
+    setTimeout(tick,1000);
+  })();
+}
+
+// ── Thunder ─────────────────────────────
+function _scheduleThunder(){
+  setTimeout(()=>{if(AC&&_ambVol>0.04)_playThunder();_scheduleThunder();},24000+Math.random()*42000);
+}
+function _playThunder(){
+  const dur=2.5+Math.random()*2,sr=AC.sampleRate,buf=AC.createBuffer(1,sr*dur,sr),d=buf.getChannelData(0);
+  for(let i=0;i<d.length;i++){const t=i/sr;d[i]=(Math.random()*2-1)*Math.exp(-t*1.7);}
+  const src=AC.createBufferSource();src.buffer=buf;
+  const lpf=AC.createBiquadFilter();lpf.type='lowpass';lpf.frequency.value=220;
+  const g=AC.createGain();
+  g.gain.setValueAtTime(0,AC.currentTime);g.gain.linearRampToValueAtTime(.6,AC.currentTime+.05);
+  g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+dur);
+  src.connect(lpf);lpf.connect(g);g.connect(_aGain);src.start();
+}
+
+// ── Vinyl crackle ───────────────────────
+function _startCrackle(){
+  // Continuous hiss layer
+  const sr=AC.sampleRate,buf=AC.createBuffer(1,sr*2,sr),d=buf.getChannelData(0);
+  for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
+  const src=AC.createBufferSource();src.buffer=buf;src.loop=true;
+  const hpf=AC.createBiquadFilter();hpf.type='highpass';hpf.frequency.value=4500;
+  const g=AC.createGain();g.gain.value=0.012;
+  src.connect(hpf);hpf.connect(g);g.connect(_mGain);src.start();
+  // Random pops and clicks
+  (function pop(){
+    if(!AC) return;
+    const len=Math.floor(AC.sampleRate*.022),b=AC.createBuffer(1,len,AC.sampleRate),dd=b.getChannelData(0);
+    for(let i=0;i<len;i++) dd[i]=(Math.random()*2-1)*Math.exp(-i/(len*.18));
+    const s=AC.createBufferSource(),gp=AC.createGain(),hf=AC.createBiquadFilter();
+    s.buffer=b;gp.gain.value=.022+Math.random()*.038;hf.type='highpass';hf.frequency.value=3200;
+    s.connect(hf);hf.connect(gp);gp.connect(_mGain);s.start();
+    setTimeout(pop,60+Math.random()*650);
+  })();
+}
+
+// ── Sustained pad chords (A minor atmosphere) ─
+// Am → F → Am → Em — 8 beats each, very slow attack/release
+const _PCHORDS=[
+  [[_N.A2,_N.E3],8],
+  [[_N.F2,_N.C3],8],
+  [[_N.A2,_N.E3],8],
+  [[_N.E2,_N.B2],8],
+];
+function _startPad(){
+  if(!_padOut) return;
+  let t=AC.currentTime+.4,i=0;
+  (function sched(){
+    while(t<AC.currentTime+5){
+      const [notes,beats]=_PCHORDS[i%_PCHORDS.length];
+      notes.forEach(f=>_notePad(f,beats,t));
+      t+=beats*_B; i++;
+    }
+    setTimeout(sched,1200);
+  })();
+}
+function _notePad(freq,beats,when){
+  const dur=beats*_B,o=AC.createOscillator(),g=AC.createGain();
+  o.type='sine';o.frequency.value=freq;
+  // Very slow attack/release = breathing, cinematic pad feel
+  g.gain.setValueAtTime(0,when);
+  g.gain.linearRampToValueAtTime(.055,when+1.6);
+  g.gain.setValueAtTime(.055,when+Math.max(0,dur-1.6));
+  g.gain.exponentialRampToValueAtTime(.0001,when+dur+1.4);
+  o.connect(g);g.connect(_padOut);
+  o.start(when);o.stop(when+dur+1.8);
+}
+
+// ── Melody sequencer (look-ahead scheduling) ─
+function _startMelody(){
+  let t=AC.currentTime+.3,i=0;
+  (function sched(){
+    while(t<AC.currentTime+2.5){
+      const [f,b]=_MEL[i%_MEL.length];
+      if(f>0) _noteHarp(f,b,t);
+      t+=b*_B; i++;
+      if(i>0&&i%_MEL.length===0) t+=_B*.8; // breath between loops
+    }
+    setTimeout(sched,600);
+  })();
+}
+// Additive synthesis — piano/harpsichord timbre via harmonic partials
+function _noteHarp(freq,beats,when){
+  const dur=beats*_B;
+  const bus=AC.createGain();
+  // Pluck envelope: sharp attack, natural piano decay
+  bus.gain.setValueAtTime(0,when);
+  bus.gain.linearRampToValueAtTime(.1,when+.008);
+  bus.gain.exponentialRampToValueAtTime(.062,when+.18);
+  bus.gain.setValueAtTime(.062,when+Math.max(0,dur-.1));
+  bus.gain.exponentialRampToValueAtTime(.0001,when+dur+.12);
+  bus.connect(_melNode); // through melody gain for dynamic control
+  // Harmonic partials: [multiplier, amplitude, detune_cents]
+  // Higher partials decay faster — mimics real string behaviour
+  [[1,.62,0],[2,.20,1],[3,.10,-1],[4,.05,2],[6,.02,0]].forEach(([m,a,c])=>{
+    const o=AC.createOscillator(),g=AC.createGain();
+    o.type='sine';o.frequency.value=freq*m;
+    if(c) o.detune.value=c;
+    g.gain.value=a;
+    o.connect(g);g.connect(bus);
+    o.start(when);o.stop(when+dur+.16);
+  });
+}
+
+// ── Bass sequencer ──────────────────────
+function _startBass(){
+  let t=AC.currentTime+.3,i=0;
+  (function sched(){
+    while(t<AC.currentTime+2.5){
+      const [f,b]=_BASS[i%_BASS.length];
+      _noteBass(f,b,t); t+=b*_B; i++;
+    }
+    setTimeout(sched,600);
+  })();
+}
+function _noteBass(freq,beats,when){
+  const dur=beats*_B,o=AC.createOscillator(),g=AC.createGain();
+  o.type='sine';o.frequency.value=freq;
+  g.gain.setValueAtTime(0,when);g.gain.linearRampToValueAtTime(.22,when+.05);
+  g.gain.exponentialRampToValueAtTime(.14,when+.28);
+  g.gain.setValueAtTime(.14,when+Math.max(0,dur-.12));
+  g.gain.exponentialRampToValueAtTime(.0001,when+dur+.15);
+  o.connect(g);
+  g.connect(_lofi); // through gramophone (adds warmth to mids)
+  if(_bassDirectNode){  // sub-bass bypass → below 180Hz passes to master directly
+    const subSend=AC.createGain();subSend.gain.value=1.0;
+    g.connect(subSend);subSend.connect(_bassDirectNode);
+  }
+  o.start(when);o.stop(when+dur+.2);
+}
+
+// ── Heartbeat / tension pulse ───────────
+function _startHeartbeat(){
+  const bar=4*_B*1000;
+  (function beat(){
+    if(!AC||!_hbNode) return;
+    // lub-dub double beat
+    [[0,.055],[190,.038]].forEach(([ms,vol])=>{
+      const w=AC.currentTime+ms/1000+.05;
+      const o=AC.createOscillator(),g=AC.createGain(),lp=AC.createBiquadFilter();
+      o.type='sine';
+      o.frequency.setValueAtTime(58,w);
+      o.frequency.exponentialRampToValueAtTime(22,w+.28);
+      lp.type='lowpass';lp.frequency.value=85;
+      g.gain.setValueAtTime(0,w);
+      g.gain.linearRampToValueAtTime(vol,w+.005);
+      g.gain.exponentialRampToValueAtTime(.001,w+.32);
+      o.connect(lp);lp.connect(g);g.connect(_hbNode);
+      o.start(w);o.stop(w+.36);
+    });
+    setTimeout(beat,bar);
+  })();
+}
+
+// ── Tension strings layer — tremolo sawtooth, activated in accuse mode ──
+function _startStrings(){
+  if(!AC||!_stringsNode) return;
+  // A-minor drone string: A2 + E3 sustained with slow tremolo
+  const freqs=[110, 164.81, 220]; // A2, E3, A3
+  (function loop(){
+    if(!AC) return;
+    const now=AC.currentTime;
+    freqs.forEach((f,fi)=>{
+      const dur=3.8+Math.random()*1.2;
+      const o=AC.createOscillator(),env=AC.createGain(),trem=AC.createGain();
+      o.type='sawtooth';
+      o.frequency.value=f*(1+(Math.random()-.5)*0.003); // slight natural detune
+      // Tremolo LFO — 5.5Hz, mimics bowing vibrato
+      const lfo=AC.createOscillator(),lfoG=AC.createGain();
+      lfo.frequency.value=5.5+fi*.4; lfoG.gain.value=0.04;
+      lfo.connect(lfoG); lfoG.connect(trem.gain);
+      trem.gain.value=0.06;
+      // Envelope
+      env.gain.setValueAtTime(0,now+fi*.08);
+      env.gain.linearRampToValueAtTime(0.06,now+fi*.08+0.4);
+      env.gain.setValueAtTime(0.06,now+dur-0.6);
+      env.gain.exponentialRampToValueAtTime(0.0001,now+dur+0.2);
+      o.connect(trem);trem.connect(env);env.connect(_stringsNode);
+      o.start(now+fi*.08);lfo.start(now+fi*.08);
+      o.stop(now+dur+.3);lfo.stop(now+dur+.3);
+    });
+    setTimeout(loop, 3200+Math.random()*800);
+  })();
+}
+
+// Called when urgency kicks in (last 60s) — ramps strings gain up fast
+function _triggerTensionStrings(){
+  if(!AC||!_stringsNode) return;
+  _stringsNode.gain.setTargetAtTime(0.28, AC.currentTime, 0.8);
+  // Accelerate heartbeat frequency too
+  if(_hbNode) _hbNode.gain.setTargetAtTime(0.44, AC.currentTime, 0.3);
+}
+
+// ── Dynamic music modes — dramatically differentiated ──────────────
+function setMusicMode(mode){
+  if(!AC) return;
+  const t=AC.currentTime;
+  // cfg: [hb_target, hb_tau, mel_target, mel_tau, pad_target, pad_tau, strings_target]
+  const cfg={
+    //            hb     hb_τ  mel   mel_τ  pad   pad_τ  str
+    explore:     [0,     2.0,  1.0,  1.5,   0.55, 1.2,   0],
+    search:      [0.06,  1.2,  1.15, 0.6,   0.42, 0.8,   0],
+    interrogate: [0.18,  0.5,  0.68, 1.8,   0.28, 1.4,   0],
+    accuse:      [0.32,  0.3,  0.50, 2.0,   0.16, 2.0,   0.14],
+  }[mode]||[0,2,1,1.5,0.55,1.2,0];
+  if(_hbNode)       _hbNode.gain.setTargetAtTime(cfg[0], t, cfg[1]);
+  if(_melNode)      _melNode.gain.setTargetAtTime(cfg[2], t, cfg[3]);
+  if(_padGainNode)  _padGainNode.gain.setTargetAtTime(cfg[4], t, cfg[5]);
+  if(_stringsNode)  _stringsNode.gain.setTargetAtTime(cfg[6], t, 1.6);
+}
+
+// ── Subtle kick drum ────────────────────
+function _startKick(){
+  const bar=4*_B;
+  (function sched(){
+    if(!AC) return;
+    const now=AC.currentTime;
+    [0,2*_B].forEach(off=>{
+      const w=now+off+.15,o=AC.createOscillator(),g=AC.createGain(),lp=AC.createBiquadFilter();
+      o.type='sine';o.frequency.setValueAtTime(95,w);o.frequency.exponentialRampToValueAtTime(28,w+.14);
+      lp.type='lowpass';lp.frequency.value=180;
+      g.gain.setValueAtTime(0,w);g.gain.linearRampToValueAtTime(.038,w+.004);
+      g.gain.exponentialRampToValueAtTime(.001,w+.2);
+      o.connect(lp);lp.connect(g);g.connect(_lofi);o.start(w);o.stop(w+.22);
+    });
+    setTimeout(sched,bar*1000);
+  })();
+}
+
+// ── Sound effects ────────────────────────
+function _bell(freq,when,vol,decay){
+  // Crystal bell: fundamental + inharmonic partial = glass/bell timbre
+  [[1,.7],[2.76,.25],[5.4,.08]].forEach(([m,a])=>{
+    const o=AC.createOscillator(),g=AC.createGain();
+    o.type='sine';o.frequency.value=freq*m;
+    g.gain.setValueAtTime(0,when);
+    g.gain.linearRampToValueAtTime(vol*a,when+.005);
+    g.gain.exponentialRampToValueAtTime(.0001,when+decay*a);
+    o.connect(g);g.connect(_mGain);
+    if(_rvbIn){o.connect(g);g.connect(_rvbIn);} // send to reverb
+    o.start(when);o.stop(when+decay+.1);
+  });
+}
+
+function playSfx(type){
+  if(!AC) return;
+  const now=AC.currentTime;
+
+  if(type==='clue'){
+    // Satisfying discovery chime — ascending crystal bells in A major
+    // Each note richer than before, with reverb tail
+    [[440,0,.11,3.2],[554.4,.1,.09,2.8],[659.3,.2,.08,2.4],[880,.32,.06,2.0],[1108.7,.46,.04,1.6]]
+      .forEach(([f,d,v,dec])=>_bell(f,now+d,v,dec));
+    // Soft shimmer layer beneath
+    const shimmer=AC.createOscillator(),sg=AC.createGain();
+    shimmer.type='sine';shimmer.frequency.value=220;
+    sg.gain.setValueAtTime(0,now);sg.gain.linearRampToValueAtTime(.04,now+.3);
+    sg.gain.exponentialRampToValueAtTime(.0001,now+2.8);
+    shimmer.connect(sg);sg.connect(_rvbIn||_mGain);shimmer.start(now);shimmer.stop(now+3);
+
+  } else if(type==='door'){
+    // Heavy wooden door — low thud + creak
+    const sr=AC.sampleRate;
+    // Thud
+    const buf=AC.createBuffer(1,sr*.6,sr),d=buf.getChannelData(0);
+    for(let i=0;i<d.length;i++){const t=i/sr;d[i]=(Math.random()*2-1)*Math.exp(-t*7);}
+    const src=AC.createBufferSource();src.buffer=buf;
+    const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.value=180;
+    const g=AC.createGain();g.gain.value=.32;
+    src.connect(lp);lp.connect(g);g.connect(_mGain);src.start();
+    // Creak — slow frequency sweep
+    const creak=AC.createOscillator(),cg=AC.createGain();
+    creak.type='sawtooth';
+    creak.frequency.setValueAtTime(280,now+.08);
+    creak.frequency.linearRampToValueAtTime(190,now+.55);
+    const clp=AC.createBiquadFilter();clp.type='lowpass';clp.frequency.value=600;
+    cg.gain.setValueAtTime(0,now+.08);cg.gain.linearRampToValueAtTime(.022,now+.14);
+    cg.gain.exponentialRampToValueAtTime(.0001,now+.6);
+    creak.connect(clp);clp.connect(cg);cg.connect(_mGain);creak.start(now+.08);creak.stop(now+.65);
+
+  } else if(type==='tension'){
+    // Stabbing string tension — sawtooth + tremolo
+    const o=AC.createOscillator(),g=AC.createGain(),lp=AC.createBiquadFilter();
+    const trem=AC.createOscillator(),tg=AC.createGain();
+    o.type='sawtooth';o.frequency.setValueAtTime(146,now);o.frequency.linearRampToValueAtTime(220,now+.6);
+    lp.type='lowpass';lp.frequency.value=900;
+    trem.frequency.value=9;tg.gain.value=.018;
+    trem.connect(tg);tg.connect(g.gain);trem.start(now);trem.stop(now+.7);
+    g.gain.setValueAtTime(0,now);g.gain.linearRampToValueAtTime(.05,now+.04);
+    g.gain.exponentialRampToValueAtTime(.001,now+.65);
+    o.connect(lp);lp.connect(g);g.connect(_mGain);o.start(now);o.stop(now+.7);
+
+  } else if(type==='reveal'){
+    // Wrong accusation — dark descending brass stabs
+    [[146.8,0,.16],[110,.18,.13],[87.3,.38,.1],[73.4,.62,.08]].forEach(([f,d,v])=>{
+      const o=AC.createOscillator(),g=AC.createGain(),lp=AC.createBiquadFilter();
+      o.type='sawtooth';o.frequency.value=f;lp.type='lowpass';lp.frequency.value=480;
+      g.gain.setValueAtTime(0,now+d);g.gain.linearRampToValueAtTime(v,now+d+.025);
+      g.gain.exponentialRampToValueAtTime(.001,now+d+2.2);
+      o.connect(lp);lp.connect(g);g.connect(_mGain);
+      g.connect(_rvbIn||_mGain);
+      o.start(now+d);o.stop(now+d+2.4);
+    });
+
+  } else if(type==='footstep') {
+    const now=AC.currentTime;
+    const o=AC.createOscillator(),g=AC.createGain(),lp=AC.createBiquadFilter();
+    o.type='sine';o.frequency.setValueAtTime(110,now);o.frequency.exponentialRampToValueAtTime(30,now+.1);
+    lp.type='lowpass';lp.frequency.value=200;
+    g.gain.setValueAtTime(0,now);g.gain.linearRampToValueAtTime(.15,now+.01);g.gain.exponentialRampToValueAtTime(.001,now+.15);
+    o.connect(lp);lp.connect(g);g.connect(_mGain);o.start(now);o.stop(now+.2);
+  } else if(type==='page') {
+    const now=AC.currentTime, sr=AC.sampleRate;
+    const buf=AC.createBuffer(1,sr*.25,sr),d=buf.getChannelData(0);
+    for(let i=0;i<d.length;i++){const t=i/sr;d[i]=(Math.random()*2-1)*Math.exp(-t*15);}
+    const src=AC.createBufferSource();src.buffer=buf;
+    const bp=AC.createBiquadFilter();bp.type='bandpass';bp.frequency.value=1200;bp.Q.value=0.5;
+    const g=AC.createGain();g.gain.setValueAtTime(0,now);g.gain.linearRampToValueAtTime(.2,now+.02);g.gain.exponentialRampToValueAtTime(.001,now+.25);
+    src.connect(bp);bp.connect(g);g.connect(_mGain);src.start();
+  }
+ else if(type==='victory'){
+    // Case solved ceremony — triumphant ascending bells + resolution chord
+    // Bell cascade first
+    [[330,0,.1,3],[440,.12,.12,3.5],[554.4,.26,.1,3],[659.3,.42,.09,3],
+     [880,.6,.11,4],[1108.7,.8,.08,3.5],[1320,.98,.07,3]]
+      .forEach(([f,d,v,dec])=>_bell(f,now+d,v,dec));
+    // Sustained resolution chord — A major (Picardy third = victory)
+    [[110,1.1,.07],[165,1.1,.06],[220,1.1,.08],[277.2,1.1,.05],[330,1.1,.06]]
+      .forEach(([f,d,v])=>{
+        const o=AC.createOscillator(),g=AC.createGain();
+        o.type='sine';o.frequency.value=f;
+        g.gain.setValueAtTime(0,now+d);g.gain.linearRampToValueAtTime(v,now+d+.4);
+        g.gain.setValueAtTime(v,now+d+2.2);g.gain.exponentialRampToValueAtTime(.0001,now+d+4.5);
+        o.connect(g);g.connect(_mGain);g.connect(_rvbIn||_mGain);
+        o.start(now+d);o.stop(now+d+5);
+      });
+    // Warm shimmer pad underneath
+    const sp=AC.createOscillator(),sg=AC.createGain();
+    sp.type='sine';sp.frequency.value=55;
+    sg.gain.setValueAtTime(0,now+.8);sg.gain.linearRampToValueAtTime(.06,now+1.8);
+    sg.gain.exponentialRampToValueAtTime(.0001,now+5.5);
+    sp.connect(sg);sg.connect(_rvbIn||_mGain);sp.start(now+.8);sp.stop(now+6);
+  }
+}
+
+// ── Room-specific ambiance ───────────────
+function _stopRoomAmb(){
+  if(_roomAmbStop){_roomAmbStop();_roomAmbStop=null;}
+}
+function _startRoomAmb(rid){
+  _stopRoomAmb();
+  if(!AC) return;
+  const nodes=[];
+  const stop=()=>nodes.forEach(n=>{if(n&&typeof n.stop==='function'){try{n.stop();}catch(e){}}else if(n&&n.stop){try{n.stop();}catch(e){}}});
+  _roomAmbStop=stop;
+
+  if(rid==='cellar'){
+    // Water drips — random plonk sounds
+    (function drip(){
+      if(!AC||!nodes.includes('live')) return;
+      const w=AC.currentTime,o=AC.createOscillator(),g=AC.createGain();
+      o.type='sine';o.frequency.setValueAtTime(900+Math.random()*400,w);
+      o.frequency.exponentialRampToValueAtTime(200,w+.18);
+      g.gain.setValueAtTime(0,w);g.gain.linearRampToValueAtTime(.028,w+.004);
+      g.gain.exponentialRampToValueAtTime(.0001,w+.22);
+      o.connect(g);g.connect(_rvbIn||_mGain);o.start(w);o.stop(w+.25);
+      const tid=setTimeout(drip,800+Math.random()*2400);
+      nodes.push({stop:()=>clearTimeout(tid)});
+    })();
+    nodes.push('live');
+  } else if(rid==='garden'){
+    // Wind — low-freq modulated noise
+    const sr=AC.sampleRate,buf=AC.createBuffer(1,sr*4,sr),d=buf.getChannelData(0);
+    for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
+    const src=AC.createBufferSource();src.buffer=buf;src.loop=true;
+    const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.value=320;
+    const lfo=AC.createOscillator(),lg=AC.createGain();
+    lfo.frequency.value=0.18;lg.gain.value=80;
+    lfo.connect(lg);lg.connect(lp.frequency);lfo.start();
+    const g=AC.createGain();g.gain.value=0.018;
+    src.connect(lp);lp.connect(g);g.connect(_aGain);src.start();
+    nodes.push(src,lfo);
+  } else if(rid==='study'){
+    // Fireplace crackle — warm pops, lower frequency than vinyl
+    (function crk(){
+      if(!AC||!nodes.includes('live')) return;
+      const len=Math.floor(AC.sampleRate*.035),b=AC.createBuffer(1,len,AC.sampleRate),dd=b.getChannelData(0);
+      for(let i=0;i<len;i++) dd[i]=(Math.random()*2-1)*Math.exp(-i/(len*.22));
+      const s=AC.createBufferSource(),gp=AC.createGain(),lf=AC.createBiquadFilter();
+      s.buffer=b;gp.gain.value=.016+Math.random()*.028;lf.type='lowpass';lf.frequency.value=900;
+      s.connect(lf);lf.connect(gp);gp.connect(_aGain);s.start();
+      const tid=setTimeout(crk,40+Math.random()*280);
+      nodes.push({stop:()=>clearTimeout(tid)});
+    })();
+    nodes.push('live');
+  } else if(rid==='library'){
+    // Deep silence with occasional settling creak
+    (function creak(){
+      if(!AC||!nodes.includes('live')) return;
+      const w=AC.currentTime,o=AC.createOscillator(),g=AC.createGain();
+      o.type='sawtooth';o.frequency.setValueAtTime(180+Math.random()*60,w);
+      o.frequency.linearRampToValueAtTime(140,w+.4);
+      const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.value=500;
+      g.gain.setValueAtTime(0,w);g.gain.linearRampToValueAtTime(.008,w+.05);
+      g.gain.exponentialRampToValueAtTime(.0001,w+.45);
+      o.connect(lp);lp.connect(g);g.connect(_mGain);o.start(w);o.stop(w+.5);
+      const tid=setTimeout(creak,5000+Math.random()*9000);
+      nodes.push({stop:()=>clearTimeout(tid)});
+    })();
+    nodes.push('live');
+  }
+}
+
+// ── Detective voice (Web Speech API) ────
+// ── Voice selection — prefer neural British voices ──
+let _voiceCache = undefined; // undefined = not yet resolved
+function _getVoice(){
+  if(_voiceCache !== undefined) return _voiceCache;
+  const voices = speechSynthesis.getVoices();
+  if(!voices.length) return null;
+  const pref = [
+    'Daniel',                          // macOS neural British — best
+    'Arthur',                          // macOS British
+    'Google UK English Male',
+    'Microsoft George Online (Natural)',
+    'Microsoft Ryan Online (Natural)',
+    'Microsoft Mark Online (Natural)',
+    'Moira',                           // Irish English
+    'Gordon','Oliver','Thomas',
+    'Microsoft James','Rishi',
+  ];
+  let found;
+  for(const n of pref){
+    found = voices.find(v=>v.name.includes(n) && v.lang.startsWith('en'));
+    if(found) break;
+  }
+  if(!found) found = voices.find(v=>v.lang==='en-GB')
+                  || voices.find(v=>v.lang==='en-US')
+                  || voices.find(v=>v.lang.startsWith('en'))
+                  || null;
+  _voiceCache = found || null;
+  return _voiceCache;
+}
+function _loadVoices(){
+  const v = speechSynthesis.getVoices();
+  if(v.length){ _voices=v; _voiceCache=undefined; }
+  else {
+    speechSynthesis.addEventListener('voiceschanged', ()=>{
+      _voices=speechSynthesis.getVoices(); _voiceCache=undefined;
+    }, {once:true});
+  }
+}
+function _cleanText(t){
+  return t.replace(/[\u{1F000}-\u{1FFFF}]/gu,'')
+           .replace(/["""'']/g,"'").replace(/—/g,', ').replace(/\s{2,}/g,' ').trim();
+}
+
+// ── Sentence-chunk splitter with calibrated pause durations ──
+function _chunks(text){
+  const s = _cleanText(text)
+    .replace(/\.\.\./g,'… ')
+    .replace(/\s*…\s*/g,'… ');
+  const raw = s.split(/(?<=[.!?…])\s+/);
+  const out = [];
+  for(const r of raw){
+    const chunk = r.trim();
+    if(!chunk) continue;
+    const last = chunk[chunk.length-1];
+    const words = chunk.split(/\s+/).length;
+    const base = last==='!' ? 640 : last==='?' ? 700 : last==='…' ? 780 : 560;
+    const pad  = words<=4 ? 300 : words<=7 ? 140 : 0;
+    out.push({t:chunk, p:base+pad});
+  }
+  return out.length ? out : [{t:text.trim(), p:560}];
+}
+
+// ── Chain-speak: sentence by sentence via onend, with real pauses ──
+let _speechAborted = false;
+let _speechGen    = 0;      // generation counter — prevents stale onerror advancing wrong chain
+let _speechChainTimer = null;
+
+function _speakChain(chunks, idx, onDone, gen){
+  if(idx >= chunks.length || _speechAborted || gen !== _speechGen){
+    if(!_speechAborted && gen === _speechGen && onDone) onDone();
+    return;
+  }
+  const {t, p} = chunks[idx];
+  const u = new SpeechSynthesisUtterance(t);
+  u.lang   = 'en-GB';
+  // Natural detective voice — subtle organic variation, not robotic
+  u.rate   = 0.86 - (idx % 3) * 0.008;   // 0.860 / 0.852 / 0.844
+  u.pitch  = 0.92 + (idx % 4) * 0.010;   // 0.920 / 0.930 / 0.940 / 0.950  — authoritative, not robotic
+  u.volume = Math.min(1, _voxVol);
+  const voice = _getVoice();
+  if(voice) u.voice = voice;
+  const advance = ()=>{
+    if(_speechAborted || gen !== _speechGen) return; // stale callback — ignore
+    _speechChainTimer = setTimeout(()=>_speakChain(chunks, idx+1, onDone, gen), p);
+  };
+  u.onend  = advance;
+  u.onerror = (e)=>{
+    // 'interrupted' means WE cancelled it — don't advance the chain
+    if(e.error === 'interrupted' || e.error === 'canceled') return;
+    advance();
+  };
+  speechSynthesis.speak(u);
+}
+
+function speak(text, priority=false, onDone){
+  if(_voxVol<0.01 || !text){ if(onDone) onDone(); return; }
+  if(!_voices.length) _loadVoices();
+  // Non-priority speech: skip if something is already playing (don't interrupt)
+  if(!priority && speechSynthesis.speaking) return;
+  // Priority speech: cancel current chain
+  if(priority){
+    _speechAborted = true;
+    _speechGen++;
+    speechSynthesis.cancel();
+    clearTimeout(_speechChainTimer);
+  }
+  const gen = ++_speechGen;
+  setTimeout(()=>{
+    if(_voxVol<0.01){ if(onDone) onDone(); return; }
+    _speechAborted = false;
+    _speakChain(_chunks(text), 0, onDone, gen);
+  }, 80);
+}
+
+function speakAfter(text, ms, priority=false, onDone){
+  setTimeout(()=>speak(text, priority, onDone), ms);
+}
+
+function stopSpeech(){
+  _speechAborted = true;
+  _speechGen++;
+  speechSynthesis.cancel();
+  clearTimeout(_speechChainTimer);
+}
+
+function speakCinLine(text, slideNum){
+  if(_voxVol<0.01 || !text){
+    _cinTimer = setTimeout(()=>{ if(_cinSlide===slideNum) runCin(slideNum+1); }, 1800);
+    return;
+  }
+  if(!_voices.length) _loadVoices();
+  _speechAborted = true;
+  _speechGen++;
+  speechSynthesis.cancel();
+  clearTimeout(_speechChainTimer);
+  clearTimeout(_cinTimer);
+  // Safety fallback — only fires if TTS never delivers onDone
+  const fallbackMs = (_CIN_DELAYS[slideNum] || 6000) + 9000;
+  _cinTimer = setTimeout(()=>{
+    if(_cinSlide===slideNum){ stopSpeech(); runCin(slideNum+1); }
+  }, fallbackMs);
+  const gen = ++_speechGen;
+  setTimeout(()=>{
+    _speechAborted = false;
+    _speakChain(_chunks(text), 0, ()=>{
+      if(_cinSlide === slideNum){
+        clearTimeout(_cinTimer); // cancel fallback — speech completed cleanly
+        _cinTimer = setTimeout(()=>runCin(slideNum+1), 1000);
+      }
+    }, gen);
+  }, 80);
+}
+
+// ═══════════════════════════════════════
+//  PARTICLES
+// ═══════════════════════════════════════
+(function(){
+  const cv=document.getElementById('bg'),cx=cv.getContext('2d');
+  const resize=()=>{cv.width=window.innerWidth;cv.height=window.innerHeight;};
+  window.addEventListener('resize',resize);resize();
+  const pts=Array.from({length:80},()=>({x:Math.random()*cv.width,y:Math.random()*cv.height,
+    r:Math.random()*1.3+.2,s:Math.random()*.22+.06,d:(Math.random()-.5)*.12,o:Math.random()*.35+.04}));
+  (function draw(){
+    cx.clearRect(0,0,cv.width,cv.height);
+    pts.forEach(p=>{p.y-=p.s;p.x+=p.d;if(p.y<-4){p.y=cv.height+4;p.x=Math.random()*cv.width;}
+      cx.beginPath();cx.arc(p.x,p.y,p.r,0,Math.PI*2);cx.fillStyle=`rgba(201,168,76,${p.o})`;cx.fill();});
+    requestAnimationFrame(draw);
+  })();
+})();
+
+</script>
+
+<div class="ov" id="ov-tutorial" onclick="ovClick(this,'ov-tutorial')">
+  <div onclick="event.stopPropagation()" style="background:#0d0a05;border:2px solid rgba(201,168,76,0.5);border-radius:16px;padding:20px 24px;max-width:820px;width:96%;box-sizing:border-box;position:relative;box-shadow:0 20px 60px rgba(0,0,0,0.95);margin:16px auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div style="font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;font-size:17px;color:#c9a84c;letter-spacing:2px;">&#128218; HOW TO PLAY</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span id="tut-counter" style="color:#888;font-size:13px;">1 / 3</span>
+        <button onclick="closeOv('ov-tutorial')" style="background:rgba(255,255,255,0.08);border:1px solid #554;color:#aaa;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:16px;line-height:1;">&#x2715;</button>
+      </div>
+    </div>
+    <div style="background:#1a1205;border-radius:4px;height:4px;margin-bottom:16px;overflow:hidden;"><div id="tut-progress" style="height:100%;background:linear-gradient(90deg,#c9a84c,#ffd700);width:33%;transition:width 0.3s;"></div></div>
+
+    <div id="ts-0" class="tut-slide" style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;">
+      <img src="./howtoplay_step1_search_1778773476861.png" style="width:46%;min-width:200px;flex:1 1 200px;border-radius:10px;border:1px solid #443;">
+      <div style="flex:1 1 220px;">
+        <div style="background:#c9a84c;color:#0a0702;font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;font-size:10px;font-weight:900;letter-spacing:2px;padding:3px 10px;border-radius:4px;display:inline-block;margin-bottom:10px;">STEP 1 OF 3</div>
+        <h3 style="color:#ffd700;font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;margin:0 0 10px 0;font-size:14px;">&#128269; SEARCH ROOMS FOR CLUES</h3>
+        <ul style="color:#ddd;font-size:13px;margin:0;padding-left:16px;line-height:1.9;">
+          <li>Click any <strong style="color:#ffd700;">room</strong> on the map to enter it</li>
+          <li><b>Some rooms are locked</b> and require a key found elsewhere!</li>
+          <li>Click <strong style="color:#ffd700;">glowing gold circles</strong> on objects</li>
+          <li>Each clue tells you the <strong style="color:#4caf50;">Thief</strong>, <strong style="color:#5dade2;">Tool</strong>, or <strong style="color:#ec407a;">Location</strong></li>
+          <li>Collect <strong>4+ clues</strong> to unlock accusation</li>
+        </ul>
+      </div>
+    </div>
+
+    <div id="ts-1" class="tut-slide" style="display:none;gap:16px;align-items:flex-start;flex-wrap:wrap;">
+      <img src="./howtoplay_step2_interrogate_1778773493100.png" style="width:46%;min-width:200px;flex:1 1 200px;border-radius:10px;border:1px solid #443;">
+      <div style="flex:1 1 220px;">
+        <div style="background:#c9a84c;color:#0a0702;font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;font-size:10px;font-weight:900;letter-spacing:2px;padding:3px 10px;border-radius:4px;display:inline-block;margin-bottom:10px;">STEP 2 OF 3</div>
+        <h3 style="color:#ffd700;font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;margin:0 0 10px 0;font-size:14px;">&#128483; INTERROGATE &#8212; CATCH LIARS!</h3>
+        <ul style="color:#ddd;font-size:13px;margin:0;padding-left:16px;line-height:1.9;">
+          <li>Click a suspect &#8594; ask <strong>all 3 questions</strong></li>
+          <li>Click <strong style="color:#c9a84c;">Present Evidence</strong> to show them clues!</li>
+          <li>Portrait <strong style="color:#ff4444;">glows RED + shakes</strong> = <strong style="color:#ff4444;">LYING!</strong></li>
+          <li>Guilty ones say things like <em style="color:#ff8888;">"I had to act"</em></li>
+          <li>Interview <strong>2+ suspects</strong> to unlock accusation</li>
+        </ul>
+      </div>
+    </div>
+
+    <div id="ts-2" class="tut-slide" style="display:none;gap:16px;align-items:flex-start;flex-wrap:wrap;">
+      <img src="./howtoplay_step3_accuse_1778773512804.png" style="width:46%;min-width:200px;flex:1 1 200px;border-radius:10px;border:1px solid #443;">
+      <div style="flex:1 1 220px;">
+        <div style="background:#c9a84c;color:#0a0702;font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;font-size:10px;font-weight:900;letter-spacing:2px;padding:3px 10px;border-radius:4px;display:inline-block;margin-bottom:10px;">STEP 3 OF 3</div>
+        <h3 style="color:#ffd700;font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;margin:0 0 10px 0;font-size:14px;">&#9878; MAKE YOUR ACCUSATION!</h3>
+        <ul style="color:#ddd;font-size:13px;margin:0;padding-left:16px;line-height:1.9;">
+          <li>Click <strong style="color:#ffd700;">&#9878; Make Accusation</strong> on the map</li>
+          <li>Open <strong style="color:#4caf50;">&#128211; Evidence Journal</strong> to review first</li>
+          <li>Pick <strong style="color:#ff6b6b;">THIEF</strong> &#8212; whose name appears in clues?</li>
+          <li>Pick <strong style="color:#5dade2;">TOOL</strong> &#8212; what object was used?</li>
+          <li>Pick <strong style="color:#ec407a;">LOCATION</strong> &#8212; which room had the evidence?</li>
+          <li>All 3 correct = <strong style="color:#4caf50;">YOU WIN! &#127942;</strong></li>
+        </ul>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:16px;gap:10px;">
+      <button id="tut-prev-btn" onclick="_tutPrev()" style="background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.4);color:#c9a84c;padding:10px 20px;border-radius:8px;font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;font-size:13px;cursor:pointer;min-width:90px;opacity:0.4;">&#8592; BACK</button>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span class="tut-dot active" onclick="_tutGo(0)" style="cursor:pointer;width:12px;height:12px;border-radius:50%;display:inline-block;background:#c9a84c;"></span>
+        <span class="tut-dot" onclick="_tutGo(1)" style="cursor:pointer;width:12px;height:12px;border-radius:50%;display:inline-block;background:#333;border:1px solid #c9a84c55;"></span>
+        <span class="tut-dot" onclick="_tutGo(2)" style="cursor:pointer;width:12px;height:12px;border-radius:50%;display:inline-block;background:#333;border:1px solid #c9a84c55;"></span>
+      </div>
+      <button id="tut-next-btn" onclick="_tutNext()" style="background:linear-gradient(135deg,#b8921e,#f0d060);border:none;color:#0a0702;padding:10px 20px;border-radius:8px;font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;font-size:13px;font-weight:900;cursor:pointer;min-width:90px;">NEXT &#8594;</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

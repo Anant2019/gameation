@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
+<title>Typing Fighter — CalmType</title>
+<meta name="theme-color" content="#07060a">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Text:ital,wght@0,400;1,400&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --gold:#c9a84c;--blood:#8b1a1a;--bg:#07060a;--panel:#0e0c14;
+  --text:#ede0c4;--muted:#7a6a50;--cyan:#4ecdc4;--purple:#9b59b6;
+  --green:#2ecc71;--red:#e74c3c;
+}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);}
+body{font-family:'Crimson Text',Georgia,serif;color:var(--text);display:flex;flex-direction:column;align-items:center;justify-content:center;}
+
+/* ── NAV ── */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;justify-content:space-between;align-items:center;padding:12px 24px;}
+.nav-brand{font-family:'Cinzel',serif;font-size:14px;letter-spacing:4px;color:var(--gold);text-decoration:none;}
+.nav-back{font-size:12px;letter-spacing:2px;color:var(--muted);text-decoration:none;transition:color .2s;}
+.nav-back:hover{color:var(--text);}
+
+/* ── SCREENS ── */
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;z-index:10;}
+.screen.hidden{display:none;}
+
+/* ── TITLE SCREEN ── */
+#screen-title{background:var(--bg);}
+.title-hero{font-family:'Cinzel',serif;font-size:clamp(40px,8vw,80px);font-weight:900;letter-spacing:4px;
+  background:linear-gradient(135deg,#8a6a20,#c9a84c,#f0d080,#c9a84c);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  filter:drop-shadow(0 0 40px #c9a84c44);line-height:1;text-align:center;}
+.title-sub{font-family:'Cinzel',serif;font-size:clamp(11px,2vw,16px);letter-spacing:6px;color:var(--muted);margin:12px 0 36px;text-transform:uppercase;}
+.title-desc{color:#a09070;font-size:clamp(14px,2vw,18px);text-align:center;max-width:500px;margin-bottom:40px;line-height:1.7;}
+.btn{display:inline-block;padding:14px 48px;border:1px solid;border-radius:4px;font-family:'Cinzel',serif;
+  font-size:13px;letter-spacing:3px;cursor:pointer;transition:all .2s;text-align:center;}
+.btn-gold{background:linear-gradient(135deg,#4a3a10,#8a6a20,#4a3a10);border-color:#c9a84c66;color:var(--gold);}
+.btn-gold:hover{box-shadow:0 0 30px #c9a84c66;background:linear-gradient(135deg,#6a5a20,#c9a84c,#6a5a20);}
+.controls-hint{display:flex;flex-direction:column;gap:8px;margin-top:32px;align-items:center;}
+.hint-row{display:flex;gap:24px;align-items:center;}
+.key{background:#1a1624;border:1px solid #3a3050;border-radius:4px;padding:4px 10px;
+  font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--gold);}
+.hint-text{font-size:13px;color:var(--muted);}
+
+/* ── ARENA ── */
+#screen-game{background:var(--bg);flex-direction:column;justify-content:flex-start;padding:0;}
+canvas#arena{display:block;width:100%;height:100%;position:absolute;inset:0;}
+
+/* ── HUD (portrait based) ── */
+#f-hud{width:100%;max-width:900px;margin:0 auto;padding:52px 20px 0;
+  display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-shrink:0;}
+.f-hud-side{display:flex;gap:8px;align-items:flex-start;flex:1;}
+#f-hud-right-side{flex-direction:row-reverse;}
+.f-portrait{width:50px;height:50px;border-radius:10px;border:2px solid #ffffff33;
+  flex-shrink:0;overflow:hidden;position:relative;background:#1a1624;}
+.f-portrait::after{content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,.15) 0%,transparent 55%);}
+.f-portrait img{width:100%;height:100%;object-fit:cover;object-position:center 20%;}
+#f-player-portrait{box-shadow:0 0 16px #2e5fd466;}
+#f-enemy-portrait{box-shadow:0 0 16px #c42e3e66;}
+.f-hud-info{display:flex;flex-direction:column;gap:3px;}
+#f-hud-right-side .f-hud-info{align-items:flex-end;}
+.f-hud-label{font-family:'Cinzel',serif;font-size:9px;font-weight:800;letter-spacing:2px;
+  color:var(--text);text-transform:uppercase;}
+#enemy-title-display{font-size:9px;color:var(--muted);font-style:italic;}
+.f-health-bar{height:14px;width:140px;background:#000000aa;border:1.5px solid #ffffff1f;
+  border-radius:3px;position:relative;overflow:hidden;}
+.f-health-decay{position:absolute;inset:0;width:100%;background:#c0392b;
+  transition:width .6s cubic-bezier(.25,1,.5,1);z-index:1;}
+.f-health-fill{position:absolute;inset:0;width:100%;transition:width .2s cubic-bezier(.25,1,.5,1);
+  z-index:2;box-shadow:inset 0 1px 0 rgba(255,255,255,.25);}
+#p1-health .f-health-fill{background:linear-gradient(90deg,#8a6a20,#c9a84c);}
+#p2-health .f-health-fill{background:linear-gradient(90deg,#6a1a1a,#c03030);}
+.hud-center{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:80px;}
+.wave-label{font-family:'Cinzel',serif;font-size:10px;letter-spacing:2px;color:var(--muted);}
+.wave-num{font-family:'Cinzel',serif;font-size:20px;font-weight:900;color:var(--gold);}
+#combo-badge{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:1px;
+  padding:3px 8px;border-radius:2px;border:1px solid #9b59b644;background:#9b59b622;
+  color:var(--purple);transition:all .2s;min-width:60px;text-align:center;}
+#combo-badge.hot{border-color:#c9a84c88;background:#c9a84c22;color:var(--gold);
+  text-shadow:0 0 8px #c9a84c;}
+
+/* ── ARENA WRAP (canvas bg + real sprites) ── */
+#arena-wrap{position:relative;width:100%;max-width:900px;margin:0 auto;flex-shrink:0;
+  transform-origin:center 60%;overflow:hidden;border-radius:4px;}
+#f-player,#f-enemy-char{position:absolute;bottom:24%;z-index:5;transform-origin:bottom center;}
+#f-player{left:14%;}
+#f-enemy-char{right:14%;}
+.f-sprite{display:block;height:clamp(90px,24vw,190px);width:auto;
+  filter:drop-shadow(0 4px 16px rgba(0,0,0,.6));}
+#f-enemy-char .f-sprite{transform:scaleX(-1);}
+@keyframes spriteIdle{0%,100%{transform:translateY(0);}50%{transform:translateY(-6px);}}
+@keyframes spriteIdleFlip{0%,100%{transform:scaleX(-1) translateY(0);}50%{transform:scaleX(-1) translateY(-6px);}}
+#f-player .f-sprite{animation:spriteIdle 2s ease-in-out infinite;}
+#f-enemy-char .f-sprite{animation:spriteIdleFlip 2.2s ease-in-out infinite;}
+.f-hit-overlay{position:absolute;inset:0;border-radius:8px;
+  background:radial-gradient(ellipse at center,rgba(255,30,30,.5) 0%,transparent 70%);
+  pointer-events:none;opacity:0;z-index:2;}
+
+/* ── SLASH STREAK (sells the sword swing) ── */
+.f-slash{position:absolute;top:44%;height:6px;left:30%;width:38%;
+  border-radius:3px;transform-origin:left center;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.95) 45%,rgba(180,220,255,.85) 75%,transparent);
+  filter:blur(1px);pointer-events:none;z-index:8;
+  animation:slashSweep .22s ease-out forwards;}
+.f-slash.big{height:10px;filter:blur(1.5px) drop-shadow(0 0 8px #fff9);}
+@keyframes slashSweep{
+  0%{opacity:0;transform:scaleX(.15) translateX(-6px);}
+  25%{opacity:1;}
+  100%{opacity:0;transform:scaleX(1) translateX(0);}
+}
+
+/* ── GHOST TRAIL (dash afterimages) ── */
+.f-ghost{position:absolute;pointer-events:none;opacity:.5;z-index:4;
+  filter:saturate(1.7) brightness(1.2);
+  animation:ghostFade .38s ease-out forwards;}
+.f-ghost.flip{animation:ghostFadeFlip .38s ease-out forwards;}
+@keyframes ghostFade{0%{opacity:.5;transform:scale(1);}100%{opacity:0;transform:scale(.94);}}
+@keyframes ghostFadeFlip{0%{opacity:.5;transform:scaleX(-1) scale(1);}100%{opacity:0;transform:scaleX(-1) scale(.94);}}
+
+/* ── SHOCKWAVE RING ── */
+.f-shockwave{position:absolute;width:10px;height:10px;border-radius:50%;
+  border:3px solid #fff;opacity:.8;pointer-events:none;z-index:7;
+  animation:shockOut .4s ease-out forwards;}
+@keyframes shockOut{0%{opacity:.8;transform:translate(-50%,-50%) scale(.2);}100%{opacity:0;transform:translate(-50%,-50%) scale(7);}}
+
+/* ── COMBO CALLOUT ── */
+#f-combo-callout{position:absolute;left:50%;top:30%;transform:translate(-50%,-50%) scale(.5);
+  font-family:'Cinzel',serif;font-weight:900;font-size:clamp(22px,5vw,40px);
+  color:#ff9f43;text-shadow:0 0 16px #ff9f43,0 2px 6px #000;
+  opacity:0;pointer-events:none;z-index:12;letter-spacing:2px;white-space:nowrap;}
+#f-combo-callout.show{animation:comboPop .7s cubic-bezier(.2,1.4,.4,1) forwards;}
+@keyframes comboPop{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(.4) rotate(-6deg);}
+  15%{opacity:1;transform:translate(-50%,-50%) scale(1.15) rotate(2deg);}
+  30%{transform:translate(-50%,-50%) scale(1) rotate(0deg);}
+  75%{opacity:1;}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(1) translateY(-20px);}
+}
+
+/* ── SCREEN FLASH ── */
+#f-screen-flash{position:absolute;inset:0;pointer-events:none;z-index:15;
+  opacity:0;background:#fff;}
+
+#f-mute-btn{position:absolute;top:8px;right:8px;z-index:20;
+  background:#ffffff14;border:1px solid #ffffff26;border-radius:50%;
+  width:32px;height:32px;color:var(--text);font-size:14px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:background .2s;}
+#f-mute-btn:hover{background:#ffffff26;}
+
+/* ── ATTACK TIMER ── */
+#f-attack-timer-wrap{position:absolute;bottom:16%;left:50%;transform:translateX(-50%);
+  width:240px;max-width:60%;z-index:6;}
+#f-attack-timer-label{font-family:'Cinzel',serif;font-size:8px;font-weight:700;letter-spacing:2px;
+  color:var(--muted);text-align:center;margin-bottom:3px;text-transform:uppercase;}
+#f-attack-timer-bar{height:5px;width:100%;background:#ffffff0f;border-radius:4px;overflow:hidden;}
+#f-attack-timer-fill{height:100%;width:100%;
+  background:linear-gradient(90deg,#2ed573,#feca57,#ff4757);border-radius:4px;transition:width .1s linear;}
+
+/* ── WORD INPUT (letter tiles) ── */
+#word-zone{width:100%;max-width:900px;margin:0 auto;padding:10px 20px;flex-shrink:0;}
+#f-word-tiles{display:flex;gap:6px;justify-content:center;align-items:center;flex-wrap:wrap;
+  min-height:56px;padding:10px 16px;background:#08041495cc;
+  backdrop-filter:blur(16px);border-radius:14px;border:1px solid #ffffff0f;
+  box-shadow:0 6px 24px rgba(0,0,0,.5);cursor:pointer;}
+.f-tile{min-width:32px;height:40px;padding:0 6px;background:#f0ebffeb;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Share Tech Mono',monospace;font-size:19px;font-weight:800;color:#1a0a30;
+  text-transform:uppercase;box-shadow:0 3px 0 rgba(0,0,0,.3);
+  transition:transform .08s,background .1s;flex-shrink:0;}
+.f-tile-active{background:#ff8c00!important;color:#fff!important;
+  box-shadow:0 3px 0 #9a4f00,0 0 16px #ff8c0080!important;transform:translateY(-3px) scale(1.1);}
+.f-tile-done{background:#2ed57355!important;color:#ffffff8c!important;box-shadow:0 2px 0 rgba(0,0,0,.2)!important;}
+.f-tile-error{background:#e74c3c!important;color:#fff!important;
+  box-shadow:0 3px 0 #922b21,0 0 14px #e74c3c80!important;animation:tileShake .2s ease;}
+@keyframes tileShake{0%,100%{transform:translateX(0) scale(1.08);}25%{transform:translateX(-4px) scale(1.04);}75%{transform:translateX(4px) scale(1.04);}}
+#power-banner{font-family:'Cinzel',serif;font-size:11px;letter-spacing:2px;
+  color:#f0a020;text-align:center;margin-top:6px;min-height:20px;}
+/* ── END SCREEN ── */
+#screen-end{background:var(--bg);}
+.end-title{font-family:'Cinzel',serif;font-size:clamp(28px,5vw,52px);font-weight:900;margin-bottom:8px;}
+.end-title.win{color:var(--gold);}
+.end-title.lose{color:#c97070;}
+.end-sub{font-size:clamp(14px,2vw,18px);color:var(--muted);margin-bottom:32px;letter-spacing:1px;}
+.end-stats{display:flex;gap:32px;margin-bottom:36px;flex-wrap:wrap;justify-content:center;}
+.end-stat{text-align:center;}
+.end-stat-val{font-family:'Cinzel',serif;font-size:clamp(24px,4vw,40px);font-weight:900;color:var(--gold);}
+.end-stat-label{font-size:11px;letter-spacing:2px;color:var(--muted);margin-top:4px;}
+.grade-badge{font-family:'Cinzel',serif;font-size:clamp(48px,8vw,80px);font-weight:900;
+  background:linear-gradient(135deg,#8a6a20,#f0d080,#8a6a20);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  filter:drop-shadow(0 0 20px #c9a84c88);margin-bottom:8px;}
+.btn-row{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;}
+.btn-ghost{background:transparent;border-color:#3a3050;color:var(--muted);}
+.btn-ghost:hover{border-color:#7a6a50;color:var(--text);}
+
+/* ── WAVE TRANSITION ── */
+#wave-splash{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;background:#07060aee;pointer-events:none;
+  opacity:0;transition:opacity .3s;}
+#wave-splash.show{opacity:1;}
+.splash-wave{font-family:'Cinzel',serif;font-size:clamp(60px,10vw,120px);font-weight:900;
+  background:linear-gradient(135deg,#8a6a20,#f0d080,#8a6a20);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  filter:drop-shadow(0 0 40px #c9a84c88);}
+.splash-enemy{font-family:'Cinzel',serif;font-size:clamp(18px,3vw,28px);letter-spacing:6px;
+  color:#c97070;margin-top:8px;}
+</style>
+</head>
+<body>
+<nav>
+  <a class="nav-brand" href="../index.html">CALMTYPE</a>
+  <a class="nav-back" href="../index.html">← ALL GAMES</a>
+</nav>
+
+<!-- TITLE -->
+<div id="screen-title" class="screen">
+  <div class="title-hero">TYPING<br>FIGHTER</div>
+  <div class="title-sub">Type to Conquer</div>
+  <p class="title-desc">
+    Eight dark lords patrol the manor, ending in a final reckoning with a god. Defeat them by typing words before they drain your life.
+    Build combos for devastating strikes.
+  </p>
+  <button class="btn btn-gold" onclick="startGame()">BEGIN THE DUEL →</button>
+  <div class="controls-hint">
+    <div class="hint-row">
+      <span class="hint-text">Type the word shown</span>
+      <span class="key">ENTER</span>
+      <span class="hint-text">confirm / skip on error</span>
+    </div>
+  </div>
+</div>
+
+<!-- GAME -->
+<div id="screen-game" class="screen hidden">
+  <div id="f-hud">
+    <div class="f-hud-side" id="f-hud-left-side">
+      <div class="f-portrait" id="f-player-portrait"><img src="assets/hero.webp" onerror="this.src='assets/hero.png'" loading="lazy" alt="Hero"></div>
+      <div class="f-hud-info">
+        <div class="f-hud-label">YOU</div>
+        <div id="p1-health" class="f-health-bar"><div class="f-health-decay"></div><div class="f-health-fill"></div></div>
+      </div>
+    </div>
+    <div class="hud-center">
+      <div class="wave-label">WAVE</div>
+      <div class="wave-num" id="wave-num">1</div>
+      <div id="combo-badge">0 COMBO</div>
+    </div>
+    <div class="f-hud-side" id="f-hud-right-side">
+      <div class="f-portrait" id="f-enemy-portrait"><img src="assets/opponent.webp" onerror="this.src='assets/opponent.png'" loading="lazy" alt="Enemy"></div>
+      <div class="f-hud-info">
+        <div class="f-hud-label" id="enemy-name-display"></div>
+        <div id="enemy-title-display"></div>
+        <div id="p2-health" class="f-health-bar"><div class="f-health-decay"></div><div class="f-health-fill"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="arena-wrap">
+    <canvas id="arena"></canvas>
+    <div id="f-player">
+      <img class="f-sprite" src="assets/hero.webp" onerror="this.src='assets/hero.png'" loading="lazy" alt="Hero">
+      <div class="f-hit-overlay"></div>
+    </div>
+    <div id="f-enemy-char">
+      <img class="f-sprite" src="assets/opponent.webp" onerror="this.src='assets/opponent.png'" loading="lazy" alt="Enemy">
+      <div class="f-hit-overlay"></div>
+    </div>
+    <div id="f-attack-timer-wrap">
+      <div id="f-attack-timer-label">ENEMY ATTACKS IN...</div>
+      <div id="f-attack-timer-bar"><div id="f-attack-timer-fill"></div></div>
+    </div>
+    <button id="f-mute-btn" onclick="toggleMute()" title="Mute/Unmute">🔊</button>
+    <div id="f-combo-callout"></div>
+    <div id="f-screen-flash"></div>
+  </div>
+
+  <div id="word-zone">
+    <div id="f-word-tiles" onclick="focusMobileInput()"></div>
+    <div id="power-banner"></div>
+  </div>
+  <input id="m-inp" type="text" inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" style="position:fixed;opacity:0;pointer-events:none;left:0;top:0;width:1px;height:1px;font-size:16px">
+</div>
+
+<!-- END -->
+<div id="screen-end" class="screen hidden">
+  <div class="end-title" id="end-title">VICTORY</div>
+  <div class="end-sub" id="end-sub">The dark lords have fallen</div>
+  <div class="grade-badge" id="end-grade">S</div>
+  <div class="end-stats">
+    <div class="end-stat"><div class="end-stat-val" id="es-words">0</div><div class="end-stat-label">WORDS TYPED</div></div>
+    <div class="end-stat"><div class="end-stat-val" id="es-combo">0</div><div class="end-stat-label">BEST COMBO</div></div>
+    <div class="end-stat"><div class="end-stat-val" id="es-acc">0%</div><div class="end-stat-label">ACCURACY</div></div>
+    <div class="end-stat"><div class="end-stat-val" id="es-dmg">0</div><div class="end-stat-label">TOTAL DAMAGE</div></div>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-gold" onclick="startGame()">FIGHT AGAIN →</button>
+    <a class="btn btn-ghost" href="../index.html">← ALL GAMES</a>
+  </div>
+</div>
+
+<!-- Wave splash -->
+<div id="wave-splash">
+  <div class="splash-wave" id="splash-wave-num">WAVE 1</div>
+  <div class="splash-enemy" id="splash-enemy-name">SHADOW WRAITH</div>
+</div>
+
+<script>
+// ── ENEMIES ──────────────────────────────────────────────────────────────────
+const ENEMIES=[
+  {name:'Crimson Ninja',title:'Vanguard of the Red Clan',hp:120,atkInterval:4.5,atkDmg:12,
+   color:'#7a1010',accent:'#f39c12',
+   words:['slash','dodge','dash','block','flip','swift','blade','shadow','kunai','stealth']},
+  {name:'Void Assassin',title:'Ghost of the Night Wind',hp:160,atkInterval:4.0,atkDmg:15,
+   color:'#3a0b55',accent:'#9b59b6',
+   words:['vanish','poison','silent','shroud','dagger','lurking','phantom','eclipse','cursed','unseen']},
+  {name:'Iron Samurai',title:'Warlord of the Iron Keep',hp:220,atkInterval:3.2,atkDmg:19,
+   color:'#1c2833',accent:'#e74c3c',
+   words:['katana','bushido','warrior','thunder','ronin','shogun','rampage','shuriken','vengeance','fearless']},
+  {name:'Storm Kage',title:'Master of the Thunder Clan',hp:280,atkInterval:2.8,atkDmg:22,
+   color:'#0d2137',accent:'#00bcd4',
+   words:['thunderbolt','cyclone','lightning','hurricane','torrential','electrify','unstoppable','relentless','ferocious','catastrophe']},
+  {name:'Oni Demon Lord',title:'Supreme Master of Darkness',hp:350,atkInterval:2.2,atkDmg:28,
+   color:'#180800',accent:'#c9a84c',
+   words:['obliterate','annihilation','desolation','overwhelming','impenetrable','nightmarish','unfathomable','catastrophic','devastation','malevolence']},
+  {name:'The Overlord',title:'Emperor of the Shattered Realm',hp:450,atkInterval:1.9,atkDmg:33,
+   color:'#1a0030',accent:'#ff2e63',
+   words:['dominate','conquest','tyranny','empire','subjugate','crown','throne','decree','absolute','sovereign']},
+  {name:'Titan of Ash',title:'Colossus of the Ancient Ruins',hp:580,atkInterval:1.6,atkDmg:38,
+   color:'#1a1108',accent:'#ff6b35',
+   words:['colossal','earthquake','avalanche','crushing','monolith','seismic','unbreakable','mountain','titanic','tremor']},
+  {name:'The Godslayer',title:'The Final Reckoning',hp:750,atkInterval:1.3,atkDmg:45,
+   color:'#050505',accent:'#ffd700',
+   words:['divine','apocalypse','omnipotent','eternal','judgment','ascension','godlike','transcend','infinite','almighty']},
+];
+
+// ── WORD POOLS ────────────────────────────────────────────────────────────────
+const POWER_WORDS=['SMITE','CRUSH','BLAST','PIERCE','STRIKE'];
+const IMPACT_WORDS=['POW!','CRACK!','SMASH!','WHAM!','BAM!','STRIKE!'];
+
+// ── AUDIO ─────────────────────────────────────────────────────────────────────
+let ACTX=null, AU_MUTED=false;
+function ensureAudio(){
+  if(!ACTX){ try{ACTX=new (window.AudioContext||window.webkitAudioContext)();}catch(e){} }
+  if(ACTX && ACTX.state==='suspended') ACTX.resume();
+}
+function toggleMute(){
+  AU_MUTED=!AU_MUTED;
+  document.getElementById('f-mute-btn').textContent=AU_MUTED?'🔇':'🔊';
+}
+function tone(freq,dur,type,vol,delay=0){
+  if(!ACTX||AU_MUTED) return;
+  const t=ACTX.currentTime+delay;
+  const o=ACTX.createOscillator(),g=ACTX.createGain();
+  o.type=type||'sine'; o.frequency.setValueAtTime(freq,t);
+  g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+  o.connect(g); g.connect(ACTX.destination);
+  o.start(t); o.stop(t+dur+0.02);
+}
+// pitch-dropping sine "thud" — much rounder/punchier than a square-wave beep
+function thud(freq0,freq1,dur,vol,delay=0){
+  if(!ACTX||AU_MUTED) return;
+  const t=ACTX.currentTime+delay;
+  const o=ACTX.createOscillator(),g=ACTX.createGain();
+  o.type='sine'; o.frequency.setValueAtTime(freq0,t); o.frequency.exponentialRampToValueAtTime(freq1,t+dur);
+  g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+  o.connect(g); g.connect(ACTX.destination);
+  o.start(t); o.stop(t+dur+0.02);
+}
+function noiseBurst(dur,vol,delay=0,freq=1200,Q=1.2){
+  if(!ACTX||AU_MUTED) return;
+  const t=ACTX.currentTime+delay;
+  const sr=ACTX.sampleRate,len=Math.floor(sr*dur);
+  const buf=ACTX.createBuffer(1,len,sr), d=buf.getChannelData(0);
+  for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*(1-i/len);
+  const src=ACTX.createBufferSource(),g=ACTX.createGain(),f=ACTX.createBiquadFilter();
+  src.buffer=buf; f.type='bandpass'; f.frequency.value=freq; f.Q.value=Q;
+  g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+  src.connect(f); f.connect(g); g.connect(ACTX.destination);
+  src.start(t); src.stop(t+dur+0.02);
+}
+function playHit(){ thud(220,90,0.09,0.11); noiseBurst(0.05,0.05,0,900,2); }
+function playFinish(){ thud(160,55,0.22,0.17); tone(660,0.12,'triangle',0.05,0.03); noiseBurst(0.13,0.09,0,1400,1.6); }
+function playKO(){ thud(140,35,0.5,0.2); tone(320,0.35,'triangle',0.06,0.08); noiseBurst(0.3,0.13,0.04,1000,1.4); }
+function playEnemyAtk(){ noiseBurst(0.14,0.07,0,2200,1.1); thud(260,70,0.22,0.14,0.06); }
+function playErr(){ thud(180,120,0.08,0.05); }
+function playVictory(){ [262,330,392,523].forEach((f,i)=>tone(f,0.5,'triangle',0.09,i*0.08)); }
+function playDefeat(){ tone(220,0.4,'sawtooth',0.1); tone(110,0.6,'sine',0.15,0.1); }
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let G={};
+let raf=null;
+let lastT=0;
+
+function freshState(){
+  return {
+    wave:0, running:false,
+    playerHp:100, playerMaxHp:100,
+    enemyHp:0, enemyMaxHp:0,
+    combo:0, bestCombo:0,
+    totalWords:0, totalCorrect:0,
+    totalDamage:0,
+    typed:'', currentWord:'', isPower:false,
+    atkTimer:0,
+    particles:[], dmgNums:[], shakeT:0, zoomPunch:0, slowMoT:0,
+    playerAnim:{state:'idle',t:0}, enemyAnim:{state:'idle',t:0},
+    enemy:null,
+  };
+}
+
+// ── CANVAS SETUP ──────────────────────────────────────────────────────────────
+const CV=document.getElementById('arena');
+const CTX=CV.getContext('2d');
+const ARENA_WRAP=document.getElementById('arena-wrap');
+let CW=800,CH=416;
+
+function resizeCanvas(){
+  const maxW=Math.min(window.innerWidth, 900);
+  CW=maxW; CH=Math.round(maxW*0.52);
+  CV.width=CW; CV.height=CH;
+  ARENA_WRAP.style.height=CH+'px';
+}
+window.addEventListener('resize',()=>{resizeCanvas();if(G.running)drawArena();});
+resizeCanvas();
+
+// ── START GAME ────────────────────────────────────────────────────────────────
+function startGame(){
+  ensureAudio();
+  G=freshState();
+  show('screen-game');
+  mInp.value='';setTimeout(()=>mInp.focus(),200);
+  nextWave();
+}
+
+function nextWave(){
+  if(G.wave>=ENEMIES.length){endGame(true);return;}
+  const e=ENEMIES[G.wave];
+  G.enemy=e;
+  G.enemyHp=e.hp; G.enemyMaxHp=e.hp;
+  G.atkTimer=e.atkInterval;
+  G.typed=''; G.isPower=false;
+  pickWord();
+  updateHUD();
+  showSplash(()=>{
+    G.running=true;
+    lastT=performance.now();
+    if(raf) cancelAnimationFrame(raf);
+    raf=requestAnimationFrame(loop);
+  });
+}
+
+function pickWord(){
+  const e=G.enemy;
+  // 10% chance power word after combo 3+
+  if(G.combo>=3 && Math.random()<0.12){
+    G.currentWord=POWER_WORDS[Math.floor(Math.random()*POWER_WORDS.length)];
+    G.isPower=true;
+    document.getElementById('power-banner').textContent='⚡ POWER WORD — 3× DAMAGE!';
+  } else {
+    const pool=e.words;
+    G.currentWord=pool[Math.floor(Math.random()*pool.length)];
+    G.isPower=false;
+    document.getElementById('power-banner').textContent='';
+  }
+  G.typed='';
+  renderWord();
+}
+
+// ── MAIN LOOP ─────────────────────────────────────────────────────────────────
+function loop(ts){
+  const rawDt=Math.min((ts-lastT)/1000,0.1);
+  lastT=ts;
+  if(!G.running){return;}
+  const dt=G.slowMoT>0?rawDt*0.22:rawDt;
+  if(G.slowMoT>0) G.slowMoT=Math.max(0,G.slowMoT-rawDt);
+
+  // enemy attack timer
+  G.atkTimer-=dt;
+  if(G.atkTimer<=0){
+    enemyAttack();
+    G.atkTimer=G.enemy.atkInterval;
+  }
+
+  // shake / camera punch-zoom
+  if(G.shakeT>0) G.shakeT-=dt;
+  if(G.zoomPunch>0.001) G.zoomPunch-=G.zoomPunch*dt*9; else G.zoomPunch=0;
+  const shx=G.shakeT>0?(Math.random()-.5)*G.shakeT*22:0;
+  const shy=G.shakeT>0?(Math.random()-.5)*G.shakeT*22:0;
+  ARENA_WRAP.style.transform=`translate(${shx}px,${shy}px) scale(${1+G.zoomPunch})`;
+
+  // particles
+  G.particles.forEach(p=>{
+    p.x+=p.vx*dt; p.y+=p.vy*dt;
+    p.vy+=120*dt; p.life-=dt;
+    p.alpha=Math.max(0,p.life/p.maxLife);
+  });
+  G.particles=G.particles.filter(p=>p.life>0);
+
+  // damage numbers
+  G.dmgNums.forEach(n=>{n.y-=40*dt;n.life-=dt;n.alpha=Math.max(0,n.life/n.maxLife);});
+  G.dmgNums=G.dmgNums.filter(n=>n.life>0);
+
+  // anims
+  G.playerAnim.t+=dt;
+  G.enemyAnim.t+=dt;
+
+  drawArena();
+  raf=requestAnimationFrame(loop);
+}
+
+function enemyAttack(){
+  const dmg=G.enemy.atkDmg;
+  G.playerHp=Math.max(0,G.playerHp-dmg);
+  G.shakeT=0.25;
+  G.zoomPunch=Math.max(G.zoomPunch,0.05);
+  G.playerAnim={state:'hurt',t:0,power:'heavy'};
+  G.enemyAnim={state:'attack',t:0,power:'heavy'};
+  spawnParticles(CW*0.16,CH*0.42,'#e74c3c',8);
+  spawnDmgNum(CW*0.16,CH*0.28,'-'+dmg,'#e74c3c');
+  spawnSlash(true);
+  spawnGhostTrail('f-enemy-char',true);
+  playEnemyAtk();
+  updateHUD();
+  if(G.playerHp<=0){G.running=false;setTimeout(()=>endGame(false),600);}
+}
+
+// ── DRAWING ───────────────────────────────────────────────────────────────────
+function drawArena(){
+  // background
+  CTX.fillStyle='#07060a';
+  CTX.fillRect(0,0,CW,CH);
+
+  // gothic floor line
+  CTX.strokeStyle='#1a1624';
+  CTX.lineWidth=1;
+  const floorY=CH*0.72;
+  CTX.beginPath();CTX.moveTo(0,floorY);CTX.lineTo(CW,floorY);CTX.stroke();
+
+  // floor gradient
+  const fg=CTX.createLinearGradient(0,floorY,0,CH);
+  fg.addColorStop(0,'#0e0c1466');fg.addColorStop(1,'#07060a');
+  CTX.fillStyle=fg;
+  CTX.fillRect(0,floorY,CW,CH-floorY);
+
+  // bg candles / arch hint
+  drawBgDecor();
+
+  // particles
+  G.particles.forEach(p=>{
+    CTX.save();CTX.globalAlpha=p.alpha;
+    CTX.fillStyle=p.color;
+    CTX.beginPath();CTX.arc(p.x,p.y,p.r,0,Math.PI*2);CTX.fill();
+    CTX.restore();
+  });
+
+  // dmg numbers
+  G.dmgNums.forEach(n=>{
+    CTX.save();CTX.globalAlpha=n.alpha;
+    CTX.fillStyle=n.color;
+    CTX.font=`bold ${n.size}px 'Cinzel',serif`;
+    CTX.textAlign='center';CTX.fillText(n.text,n.x,n.y);
+    CTX.restore();
+  });
+
+  // real sprites + attack timer (DOM, not canvas)
+  updateSprites();
+  if(G.enemy){
+    const atkPct=1-(G.atkTimer/G.enemy.atkInterval);
+    document.getElementById('f-attack-timer-fill').style.width=Math.max(0,Math.min(1,atkPct))*100+'%';
+  }
+}
+
+// ── SPRITE ANIMATION (real character art, DOM-driven) ─────────────────────────
+function updateSprites(){
+  applySpriteTransform('f-player',G.playerAnim,false);
+  applySpriteTransform('f-enemy-char',G.enemyAnim,true);
+}
+function applySpriteTransform(id,anim,flipped){
+  const el=document.getElementById(id);
+  const overlay=el.querySelector('.f-hit-overlay');
+  const isAtk=anim.state==='attack', isHurt=anim.state==='hurt';
+  const heavy=anim.power!=='light';
+  const dur=heavy?0.4:0.18;
+  const dir=flipped?-1:1;
+  const dashGap=CW*(heavy?0.42:0.2);
+  const inFrac=0.4; // fraction of duration spent dashing IN before returning
+  let dashT=0, rotT=0;
+  if(isAtk){
+    const p=Math.min(anim.t/dur,1);
+    if(p<inFrac){ dashT=easeOutQuad(p/inFrac); }
+    else{ dashT=1-easeInQuad((p-inFrac)/(1-inFrac)); }
+    rotT=Math.sin(p*Math.PI);
+  }
+  const lunge=dashT*dashGap*dir;
+  const rot=rotT*(heavy?-18:-8)*dir;
+  const scale=1+rotT*(heavy?0.12:0.05);
+  const hurtDur=heavy?0.3:0.14;
+  const shkAmp=heavy?10:4;
+  const shk=isHurt&&anim.t<hurtDur?(Math.random()-.5)*shkAmp:0;
+  el.style.transform=`translateX(${lunge+shk}px) rotate(${rot}deg) scale(${scale})`;
+  overlay.style.opacity=(isHurt&&anim.t<hurtDur)?String((heavy?0.6:0.28)*(1-anim.t/hurtDur)):'0';
+}
+function easeOutQuad(t){return 1-(1-t)*(1-t);}
+function easeInQuad(t){return t*t;}
+
+function spawnSlash(big){
+  const s=document.createElement('div');
+  s.className='f-slash'+(big?' big':'');
+  ARENA_WRAP.appendChild(s);
+  setTimeout(()=>s.remove(),260);
+}
+// Naruto-style speed-trail: sample the sprite's position mid-dash and leave fading afterimages
+function spawnGhost(elId,flipped){
+  const el=document.getElementById(elId);
+  const img=el.querySelector('.f-sprite');
+  if(!img) return;
+  const wrapRect=ARENA_WRAP.getBoundingClientRect();
+  const rect=img.getBoundingClientRect();
+  const g=document.createElement('img');
+  g.src=img.src;
+  g.className='f-ghost'+(flipped?' flip':'');
+  g.style.left=(rect.left-wrapRect.left)+'px';
+  g.style.top=(rect.top-wrapRect.top)+'px';
+  g.style.width=rect.width+'px';
+  g.style.height=rect.height+'px';
+  ARENA_WRAP.appendChild(g);
+  setTimeout(()=>g.remove(),380);
+}
+function spawnGhostTrail(elId,flipped){
+  [30,90,160].forEach(delay=>setTimeout(()=>spawnGhost(elId,flipped),delay));
+}
+function spawnShockwave(x,y,color){
+  const s=document.createElement('div');
+  s.className='f-shockwave';
+  s.style.left=x+'px'; s.style.top=y+'px'; s.style.borderColor=color;
+  ARENA_WRAP.appendChild(s);
+  setTimeout(()=>s.remove(),400);
+}
+function screenFlash(){
+  const f=document.getElementById('f-screen-flash');
+  f.style.transition='none';
+  f.style.opacity='.55';
+  requestAnimationFrame(()=>{f.style.transition='opacity .4s ease-out';f.style.opacity='0';});
+}
+function comboCallout(n){
+  const el=document.getElementById('f-combo-callout');
+  el.textContent=n+'X COMBO!';
+  el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+}
+
+function drawBgDecor(){
+  const floorY=CH*0.72;
+  // Wall
+  const wg=CTX.createLinearGradient(0,0,0,floorY);
+  wg.addColorStop(0,'#0c0a1a');wg.addColorStop(1,'#08060e');
+  CTX.fillStyle=wg;CTX.fillRect(0,0,CW,floorY);
+  // Wooden floor
+  const fg=CTX.createLinearGradient(0,floorY,0,CH);
+  fg.addColorStop(0,'#1e1408');fg.addColorStop(1,'#100c04');
+  CTX.fillStyle=fg;CTX.fillRect(0,floorY,CW,CH-floorY);
+  const ph=(CH-floorY)/4;
+  for(let i=0;i<=4;i++){CTX.strokeStyle='rgba(60,40,8,0.45)';CTX.lineWidth=1;CTX.beginPath();CTX.moveTo(0,floorY+i*ph);CTX.lineTo(CW,floorY+i*ph);CTX.stroke();}
+  for(let j=0;j<8;j++){CTX.strokeStyle='rgba(60,40,8,0.2)';CTX.lineWidth=0.5;const px=CW*j/8;CTX.beginPath();CTX.moveTo(px,floorY);CTX.lineTo(px,CH);CTX.stroke();}
+  // Wall pillars
+  [0.14,0.5,0.86].forEach(fx=>{
+    const px=CW*fx;
+    CTX.strokeStyle='#141126';CTX.lineWidth=7;CTX.beginPath();CTX.moveTo(px,0);CTX.lineTo(px,floorY);CTX.stroke();
+    CTX.strokeStyle='#1c1838';CTX.lineWidth=1;
+    CTX.beginPath();CTX.moveTo(px-18,0);CTX.lineTo(px-18,floorY);CTX.stroke();
+    CTX.beginPath();CTX.moveTo(px+18,0);CTX.lineTo(px+18,floorY);CTX.stroke();
+  });
+  // Wall-floor shadow
+  const tg=CTX.createLinearGradient(0,floorY-18,0,floorY+8);
+  tg.addColorStop(0,'rgba(0,0,0,0)');tg.addColorStop(0.6,'rgba(0,0,0,0.5)');tg.addColorStop(1,'rgba(0,0,0,0)');
+  CTX.fillStyle=tg;CTX.fillRect(0,floorY-18,CW,26);
+  // Candles
+  [[CW*0.07,floorY-32],[CW*0.93,floorY-32]].forEach(([cx,cy])=>{
+    CTX.fillStyle='#2a2040';CTX.fillRect(cx-3.5,cy,7,20);
+    const cg=CTX.createRadialGradient(cx,cy-5,0,cx,cy-5,20);
+    cg.addColorStop(0,'#f0d08077');cg.addColorStop(1,'transparent');
+    CTX.fillStyle=cg;CTX.beginPath();CTX.arc(cx,cy-5,20,0,Math.PI*2);CTX.fill();
+    CTX.fillStyle='#f0d080';CTX.beginPath();CTX.arc(cx,cy-4,2.5,0,Math.PI*2);CTX.fill();
+    CTX.fillStyle='#ffffffaa';CTX.beginPath();CTX.arc(cx-0.5,cy-5.5,1,0,Math.PI*2);CTX.fill();
+  });
+}
+
+function spawnParticles(x,y,color,n){
+  for(let i=0;i<n;i++){
+    const angle=Math.random()*Math.PI*2;
+    const speed=60+Math.random()*120;
+    G.particles.push({x,y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed-80,
+      r:2+Math.random()*3,color,life:0.6+Math.random()*0.4,maxLife:1,alpha:1});
+  }
+}
+
+function spawnDmgNum(x,y,text,color,big=false){
+  G.dmgNums.push({x,y,text,color,life:1.0,maxLife:1.0,alpha:1,size:big?28:20});
+}
+
+// ── MOBILE INPUT ─────────────────────────────────────────────────────────────
+const mInp=document.getElementById('m-inp');
+function focusMobileInput(){mInp.value='';mInp.focus();}
+mInp.addEventListener('input',()=>{
+  if(!G.running)return;
+  const val=mInp.value;if(!val)return;
+  const chars=[...val];mInp.value='';
+  for(const ch of chars){
+    const next=G.currentWord[G.typed.length];
+    if(!next)break;
+    G.totalWords++;
+    if(ch===next){
+      G.typed+=ch;G.totalCorrect++;
+      hitLetter();
+      if(!G.running)break;
+      if(G.typed===G.currentWord){confirmWord();break;}
+      else renderWord();
+    }
+    else{flashErr();playErr();break;}
+  }
+});
+
+// ── TYPING LOGIC ──────────────────────────────────────────────────────────────
+document.addEventListener('keydown',e=>{
+  if(!G.running) return;
+  if(e.key==='Escape'){G.running=false;show('screen-title');return;}
+  if(e.key==='Enter'){
+    // on Enter: if word fully typed = confirm, else reset typed
+    if(G.typed===G.currentWord){confirmWord();}
+    else{G.typed='';G.totalWords++;G.totalWords--;// count miss
+    G.combo=0;updateCombo();renderWord();}
+    return;
+  }
+  if(e.key.length===1){
+    const ch=e.key;
+    const next=G.currentWord[G.typed.length];
+    if(!next) return;
+    G.totalWords++;
+    if(ch===next){
+      G.typed+=ch;
+      G.totalCorrect++;
+      hitLetter();
+      if(!G.running) return;
+      if(G.typed===G.currentWord) confirmWord();
+      else renderWord();
+    } else {
+      flashErr();
+      playErr();
+    }
+  }
+});
+
+// ── COMBAT ────────────────────────────────────────────────────────────────────
+// Every correct letter lands a small chip hit; completing the word lands a
+// heavier, combo-scaled finishing blow — mirrors the old fighter's feel.
+function hitLetter(){
+  if(!G.enemy||G.enemyHp<=0) return;
+  const dmg=2+Math.floor(Math.random()*3);
+  G.enemyHp=Math.max(0,G.enemyHp-dmg);
+  G.totalDamage+=dmg;
+  G.playerAnim={state:'attack',t:0,power:'light'};
+  G.enemyAnim={state:'hurt',t:0,power:'light'};
+  G.shakeT=Math.max(G.shakeT,0.05);
+
+  const ex=CW*0.84,ey=CH*0.42;
+  spawnParticles(ex,ey,G.enemy.color,4);
+  spawnDmgNum(ex,ey-8,'-'+dmg,'#e0d0a0');
+  spawnSlash(false);
+  G.zoomPunch=Math.max(G.zoomPunch,0.02);
+  playHit();
+  updateHUD();
+
+  if(G.enemyHp<=0) triggerVictoryOverEnemy();
+}
+
+function confirmWord(){
+  // calc finishing-blow damage
+  const comboMult=G.combo>=8?3:G.combo>=5?2:G.combo>=3?1.5:1;
+  const baseDmg=G.isPower?30:12+G.currentWord.length*2;
+  const dmg=Math.round(baseDmg*comboMult*(G.isPower?3:1));
+  G.combo++;
+  if(G.combo>G.bestCombo) G.bestCombo=G.combo;
+  G.totalDamage+=dmg;
+  G.totalWords++;
+
+  // deal damage to enemy
+  G.enemyHp=Math.max(0,G.enemyHp-dmg);
+  G.playerAnim={state:'attack',t:0,power:'heavy'};
+  G.enemyAnim={state:'hurt',t:0,power:'heavy'};
+  G.shakeT=0.2;
+  G.zoomPunch=Math.max(G.zoomPunch,0.07);
+
+  const ex=CW*0.84,ey=CH*0.42;
+  spawnParticles(ex,ey,G.enemy.color,14);
+  spawnDmgNum(ex,ey-20,'+'+dmg,G.isPower?'#f0d080':'#c9a84c',true);
+  spawnDmgNum(ex,ey-46,IMPACT_WORDS[Math.floor(Math.random()*IMPACT_WORDS.length)],G.enemy.accent,true);
+  spawnSlash(true);
+  spawnShockwave(ex,ey,G.enemy.accent);
+  spawnGhostTrail('f-player',false);
+  if(G.combo>=2) comboCallout(G.combo);
+  playFinish();
+
+  updateHUD();
+  updateCombo();
+
+  if(G.enemyHp<=0) triggerVictoryOverEnemy();
+  else pickWord();
+}
+
+function triggerVictoryOverEnemy(){
+  G.running=false;
+  const ex=CW*0.84,ey=CH*0.3;
+  spawnDmgNum(ex,ey,'DEFEATED!','#ff4757',true);
+  spawnShockwave(CW*0.84,CH*0.42,'#ff4757');
+  G.zoomPunch=0.16;
+  G.slowMoT=0.5;
+  screenFlash();
+  playKO();
+  updateCombo();
+  G.wave++;
+  setTimeout(()=>nextWave(),800);
+}
+
+function flashErr(){
+  const active=document.querySelector('#f-word-tiles .f-tile-active');
+  if(!active) return;
+  active.classList.add('f-tile-error');
+  setTimeout(()=>active.classList.remove('f-tile-error'),200);
+}
+
+function renderWord(){
+  const w=G.currentWord, t=G.typed;
+  let html='';
+  for(let i=0;i<w.length;i++){
+    if(i<t.length) html+=`<div class="f-tile f-tile-done">${w[i]}</div>`;
+    else if(i===t.length) html+=`<div class="f-tile f-tile-active">${w[i]}</div>`;
+    else html+=`<div class="f-tile">${w[i]}</div>`;
+  }
+  document.getElementById('f-word-tiles').innerHTML=html;
+}
+
+// ── HUD UPDATES ───────────────────────────────────────────────────────────────
+function updateHUD(){
+  const pp=G.playerHp/G.playerMaxHp*100;
+  const ep=G.enemyHp/G.enemyMaxHp*100;
+  document.querySelector('#p1-health .f-health-fill').style.width=pp+'%';
+  document.querySelector('#p1-health .f-health-decay').style.width=pp+'%';
+  document.querySelector('#p2-health .f-health-fill').style.width=ep+'%';
+  document.querySelector('#p2-health .f-health-decay').style.width=ep+'%';
+  document.getElementById('wave-num').textContent=G.wave+1;
+  document.getElementById('enemy-name-display').textContent=G.enemy?.name||'';
+  document.getElementById('enemy-title-display').textContent=G.enemy?G.enemy.title:'';
+}
+
+function updateCombo(){
+  const el=document.getElementById('combo-badge');
+  el.textContent=G.combo+' COMBO'+(G.combo>=5?' 🔥':'');
+  el.className='combo-badge'+(G.combo>=5?' hot':'');
+  if(G.combo>=5){el.id='combo-badge';el.classList.add('hot');}
+  else{el.id='combo-badge';el.classList.remove('hot');}
+}
+
+// ── WAVE SPLASH ───────────────────────────────────────────────────────────────
+function showSplash(cb){
+  const sp=document.getElementById('wave-splash');
+  document.getElementById('splash-wave-num').textContent=`WAVE ${G.wave+1}`;
+  document.getElementById('splash-enemy-name').textContent=(ENEMIES[G.wave]?.name||'').toUpperCase();
+  sp.classList.add('show');
+  setTimeout(()=>{
+    sp.classList.remove('show');
+    setTimeout(cb,300);
+  },1800);
+}
+
+// ── END GAME ──────────────────────────────────────────────────────────────────
+function endGame(win){
+  G.running=false;
+  if(raf){cancelAnimationFrame(raf);raf=null;}
+  if(win) playVictory(); else playDefeat();
+  const acc=G.totalWords>0?Math.round(G.totalCorrect/G.totalWords*100):0;
+  const wavesCleared=G.wave;
+  let grade='C';
+  if(win){grade=G.bestCombo>=8&&acc>=90?'S+':G.bestCombo>=5&&acc>=80?'S':G.bestCombo>=3?'A':'B';}
+  else{grade=wavesCleared>=3?'B':wavesCleared>=2?'C':'D';}
+
+  document.getElementById('end-title').textContent=win?'VICTORY':'DEFEATED';
+  document.getElementById('end-title').className='end-title '+(win?'win':'lose');
+  document.getElementById('end-sub').textContent=win?`All ${ENEMIES.length} dark lords vanquished`:`Fell on Wave ${wavesCleared+1}`;
+  document.getElementById('end-grade').textContent=grade;
+  document.getElementById('es-words').textContent=G.totalWords;
+  document.getElementById('es-combo').textContent=G.bestCombo;
+  document.getElementById('es-acc').textContent=acc+'%';
+  document.getElementById('es-dmg').textContent=G.totalDamage;
+  show('screen-end');
+}
+
+// ── UTILS ─────────────────────────────────────────────────────────────────────
+function show(id){
+  ['screen-title','screen-game','screen-end'].forEach(s=>{
+    document.getElementById(s).classList.toggle('hidden',s!==id);
+  });
+}
+</script>
+</body>
+</html>
