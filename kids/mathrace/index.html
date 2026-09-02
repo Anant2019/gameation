@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
+<title>Math Race — CalmType Kids</title>
+<meta name="description" content="Answer quick addition and subtraction questions before time runs out. A free math game for kids.">
+<meta name="theme-color" content="#fff6e5">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --sky:#3aa8ff;--sun:#ffb703;--grass:#4cb944;--coral:#ff6b6b;
+  --bg:#fff6e5;--panel:#ffffff;--text:#2b2440;--muted:#7a7390;
+}
+body{
+  background:
+    radial-gradient(circle at 10% 10%, #dcefff 0%, transparent 40%),
+    radial-gradient(circle at 90% 20%, #ffe9b8 0%, transparent 40%),
+    var(--bg);
+  color:var(--text);font-family:'Nunito',sans-serif;
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;
+  padding:20px 14px 50px;
+}
+.back-link{
+  align-self:flex-start;font-weight:800;font-size:13px;color:var(--muted);
+  text-decoration:none;margin-bottom:14px;max-width:440px;width:100%;
+}
+h1{font-family:'Baloo 2',cursive;font-size:clamp(28px,7vw,40px);color:var(--sky);text-align:center}
+.sub{color:var(--muted);margin:8px 0 20px;text-align:center;font-size:14.5px}
+
+.hud{display:flex;gap:14px;margin-bottom:20px;flex-wrap:wrap;justify-content:center}
+.pill{
+  background:var(--panel);border-radius:16px;padding:10px 18px;
+  box-shadow:0 6px 0 rgba(0,0,0,.06);font-weight:800;font-size:14px;
+  display:flex;gap:8px;align-items:center;
+}
+.pill span.n{font-family:'Baloo 2',cursive;font-size:18px;color:var(--sky)}
+.pill.timer span.n{color:var(--coral)}
+
+.stage{
+  width:100%;max-width:420px;background:var(--panel);border-radius:26px;
+  padding:36px 24px;text-align:center;box-shadow:0 12px 0 rgba(0,0,0,.06);
+}
+.question{font-family:'Baloo 2',cursive;font-size:clamp(38px,10vw,56px);color:var(--text);margin-bottom:26px}
+.answers{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.opt{
+  font-family:'Nunito',sans-serif;font-weight:800;font-size:22px;
+  padding:18px 10px;border-radius:16px;border:none;cursor:pointer;
+  background:#eef3ff;color:var(--sky);box-shadow:0 6px 0 #c9dcff;
+}
+.opt:active{transform:translateY(3px);box-shadow:0 3px 0 #c9dcff}
+.opt.correct{background:#e0f7e0;color:var(--grass);box-shadow:0 6px 0 #b8ebb8}
+.opt.wrong{background:#ffe3e3;color:var(--coral);box-shadow:0 6px 0 #ffc4c4}
+
+.over{
+  display:none;margin-top:22px;background:var(--panel);border-radius:18px;
+  padding:22px 26px;text-align:center;box-shadow:0 10px 0 rgba(0,0,0,.06);
+  max-width:340px;
+}
+.over.show{display:block}
+.over .big{font-family:'Baloo 2',cursive;font-size:24px;color:var(--coral);margin-bottom:6px}
+.btn{
+  margin-top:14px;border:none;background:var(--sky);color:#fff;font-weight:800;
+  font-family:'Nunito',sans-serif;font-size:15px;padding:12px 26px;border-radius:16px;
+  cursor:pointer;box-shadow:0 6px 0 #1a7fd6;
+}
+.btn:active{transform:translateY(3px);box-shadow:0 3px 0 #1a7fd6}
+</style>
+</head>
+<body>
+
+<a class="back-link" href="../index.html">&larr; BACK TO KIDS ZONE</a>
+<h1>🔢 Math Race</h1>
+<p class="sub">Pick the right answer before time runs out!</p>
+
+<div class="hud">
+  <div class="pill">SCORE <span class="n" id="score">0</span></div>
+  <div class="pill timer">TIME <span class="n" id="time">60</span></div>
+</div>
+
+<div class="stage" id="stage">
+  <div class="question" id="question">?</div>
+  <div class="answers" id="answers"></div>
+</div>
+
+<div class="over" id="over">
+  <div class="big">⏰ Time's up!</div>
+  <div id="overStats" style="color:var(--muted);font-weight:700"></div>
+  <button class="btn" id="again">PLAY AGAIN</button>
+</div>
+
+<script>
+const scoreEl = document.getElementById('score');
+const timeEl = document.getElementById('time');
+const questionEl = document.getElementById('question');
+const answersEl = document.getElementById('answers');
+const stageEl = document.getElementById('stage');
+const overEl = document.getElementById('over');
+const overStats = document.getElementById('overStats');
+
+let score = 0;
+let timeLeft = 60;
+let timerId = null;
+let answering = false;
+let a, b, op, correct;
+
+function rand(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+
+function newQuestion(){
+  answering = true;
+  const ops = ['+','-'];
+  op = ops[rand(0,1)];
+  if(op === '+'){
+    a = rand(1,20); b = rand(1,20);
+    correct = a+b;
+  } else {
+    a = rand(5,20); b = rand(1,a);
+    correct = a-b;
+  }
+  questionEl.textContent = a+' '+op+' '+b+' = ?';
+
+  const opts = new Set([correct]);
+  while(opts.size < 4){
+    const delta = rand(-6,6);
+    const val = correct + delta;
+    if(val >= 0 && val !== correct) opts.add(val);
+  }
+  const arr = shuffle([...opts]);
+
+  answersEl.innerHTML = '';
+  arr.forEach(val=>{
+    const btn = document.createElement('button');
+    btn.className = 'opt';
+    btn.textContent = val;
+    btn.addEventListener('click', ()=>onAnswer(btn, val));
+    answersEl.appendChild(btn);
+  });
+}
+
+function shuffle(arr){
+  for(let i=arr.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]] = [arr[j],arr[i]];
+  }
+  return arr;
+}
+
+function onAnswer(btn, val){
+  if(!answering || timeLeft <= 0) return;
+  answering = false;
+  const allBtns = answersEl.querySelectorAll('.opt');
+  allBtns.forEach(b=>b.disabled = true);
+  if(val === correct){
+    btn.classList.add('correct');
+    score++;
+    scoreEl.textContent = score;
+  } else {
+    btn.classList.add('wrong');
+    allBtns.forEach(b=>{ if(Number(b.textContent) === correct) b.classList.add('correct'); });
+  }
+  setTimeout(()=>{
+    if(timeLeft > 0) newQuestion();
+  }, 500);
+}
+
+function startTimer(){
+  timerId = setInterval(()=>{
+    timeLeft--;
+    timeEl.textContent = timeLeft;
+    if(timeLeft <= 0){
+      clearInterval(timerId);
+      answering = false;
+      stageEl.style.display = 'none';
+      overStats.textContent = 'You scored '+score+' point'+(score===1?'':'s');
+      overEl.classList.add('show');
+    }
+  },1000);
+}
+
+function startGame(){
+  score = 0; timeLeft = 60; answering = false;
+  scoreEl.textContent = '0'; timeEl.textContent = '60';
+  stageEl.style.display = 'block';
+  overEl.classList.remove('show');
+  if(timerId) clearInterval(timerId);
+  newQuestion();
+  startTimer();
+}
+
+document.getElementById('again').addEventListener('click', startGame);
+startGame();
+</script>
+</body>
+</html>

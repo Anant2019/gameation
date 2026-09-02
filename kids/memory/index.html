@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
+<title>Memory Match — CalmType Kids</title>
+<meta name="description" content="Flip the cards and find every matching pair in this free memory game for kids.">
+<meta name="theme-color" content="#fff6e5">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --sky:#3aa8ff;--sun:#ffb703;--grass:#4cb944;--coral:#ff6b6b;
+  --bg:#fff6e5;--panel:#ffffff;--text:#2b2440;--muted:#7a7390;
+}
+body{
+  background:
+    radial-gradient(circle at 10% 10%, #ffe9b8 0%, transparent 40%),
+    radial-gradient(circle at 90% 20%, #c9f0ff 0%, transparent 40%),
+    var(--bg);
+  color:var(--text);font-family:'Nunito',sans-serif;
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;
+  padding:20px 14px 50px;
+}
+.back-link{
+  align-self:flex-start;font-weight:800;font-size:13px;color:var(--muted);
+  text-decoration:none;margin-bottom:14px;max-width:520px;width:100%;
+}
+h1{font-family:'Baloo 2',cursive;font-size:clamp(28px,7vw,40px);color:var(--coral);text-align:center}
+.sub{color:var(--muted);margin:8px 0 20px;text-align:center;font-size:14.5px}
+
+.hud{
+  display:flex;gap:14px;margin-bottom:18px;flex-wrap:wrap;justify-content:center;
+}
+.pill{
+  background:var(--panel);border-radius:16px;padding:10px 18px;
+  box-shadow:0 6px 0 rgba(0,0,0,.06);font-weight:800;font-size:14px;
+  display:flex;gap:8px;align-items:center;
+}
+.pill span.n{font-family:'Baloo 2',cursive;font-size:18px;color:var(--sky)}
+
+.board{
+  display:grid;gap:10px;
+  grid-template-columns:repeat(4,minmax(60px,80px));
+  margin:0 auto;
+}
+.card{
+  aspect-ratio:1/1;border-radius:14px;cursor:pointer;position:relative;
+  background:var(--sky);box-shadow:0 6px 0 rgba(0,0,0,.12);
+  transform-style:preserve-3d;transition:transform .35s ease;
+}
+.card.flipped,.card.matched{transform:rotateY(180deg)}
+.card .face{
+  position:absolute;inset:0;border-radius:14px;
+  display:flex;align-items:center;justify-content:center;
+  backface-visibility:hidden;font-size:34px;
+}
+.face.back{background:linear-gradient(135deg,var(--sky),#1a7fd6);color:#fff;font-family:'Baloo 2',cursive;font-size:26px}
+.face.front{background:var(--panel);transform:rotateY(180deg)}
+.card.matched .face.front{background:#eafaea}
+.card.matched{cursor:default}
+
+.win-banner{
+  display:none;margin-top:22px;background:var(--panel);border-radius:18px;
+  padding:20px 26px;text-align:center;box-shadow:0 10px 0 rgba(0,0,0,.06);
+  max-width:340px;
+}
+.win-banner.show{display:block}
+.win-banner .big{font-family:'Baloo 2',cursive;font-size:24px;color:var(--grass);margin-bottom:6px}
+.btn{
+  margin-top:14px;border:none;background:var(--coral);color:#fff;font-weight:800;
+  font-family:'Nunito',sans-serif;font-size:15px;padding:12px 26px;border-radius:16px;
+  cursor:pointer;box-shadow:0 6px 0 #c94848;
+}
+.btn:active{transform:translateY(3px);box-shadow:0 3px 0 #c94848}
+
+@media (min-width:420px){
+  .board{grid-template-columns:repeat(4,86px)}
+}
+</style>
+</head>
+<body>
+
+<a class="back-link" href="../index.html">&larr; BACK TO KIDS ZONE</a>
+<h1>🧠 Memory Match</h1>
+<p class="sub">Flip two cards. Find the pair. Match them all!</p>
+
+<div class="hud">
+  <div class="pill">MOVES <span class="n" id="moves">0</span></div>
+  <div class="pill">MATCHES <span class="n" id="matches">0</span>/8</div>
+  <div class="pill">TIME <span class="n" id="time">0:00</span></div>
+</div>
+
+<div class="board" id="board"></div>
+
+<div class="win-banner" id="win">
+  <div class="big">🎉 You matched them all!</div>
+  <div id="winStats" style="color:var(--muted);font-weight:700"></div>
+  <button class="btn" id="again">PLAY AGAIN</button>
+</div>
+
+<script>
+const EMOJI = ['🐶','🐱','🦊','🐼','🦁','🐸','🐵','🐷'];
+const boardEl = document.getElementById('board');
+const movesEl = document.getElementById('moves');
+const matchesEl = document.getElementById('matches');
+const timeEl = document.getElementById('time');
+const winEl = document.getElementById('win');
+const winStats = document.getElementById('winStats');
+
+let cards = [];
+let flipped = [];
+let lock = false;
+let moves = 0;
+let matches = 0;
+let seconds = 0;
+let timerId = null;
+let started = false;
+
+function shuffle(arr){
+  for(let i=arr.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]] = [arr[j],arr[i]];
+  }
+  return arr;
+}
+
+function startTimer(){
+  if(started) return;
+  started = true;
+  timerId = setInterval(()=>{
+    seconds++;
+    const m = Math.floor(seconds/60);
+    const s = seconds%60;
+    timeEl.textContent = m+':'+String(s).padStart(2,'0');
+  },1000);
+}
+
+function buildBoard(){
+  boardEl.innerHTML = '';
+  cards = shuffle([...EMOJI,...EMOJI]);
+  moves = 0; matches = 0; seconds = 0; started = false; flipped = []; lock = false;
+  movesEl.textContent = '0';
+  matchesEl.textContent = '0';
+  timeEl.textContent = '0:00';
+  winEl.classList.remove('show');
+  if(timerId) clearInterval(timerId);
+
+  cards.forEach((emoji,i)=>{
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.dataset.emoji = emoji;
+    card.dataset.index = i;
+    card.innerHTML = '<div class="face back">?</div><div class="face front">'+emoji+'</div>';
+    card.addEventListener('click', ()=>onCardClick(card));
+    boardEl.appendChild(card);
+  });
+}
+
+function onCardClick(card){
+  if(lock) return;
+  if(card.classList.contains('flipped') || card.classList.contains('matched')) return;
+  startTimer();
+  card.classList.add('flipped');
+  flipped.push(card);
+  if(flipped.length === 2){
+    moves++;
+    movesEl.textContent = moves;
+    lock = true;
+    const [a,b] = flipped;
+    if(a.dataset.emoji === b.dataset.emoji){
+      a.classList.add('matched');
+      b.classList.add('matched');
+      matches++;
+      matchesEl.textContent = matches;
+      flipped = [];
+      lock = false;
+      if(matches === EMOJI.length){
+        clearInterval(timerId);
+        winStats.textContent = moves+' moves · '+timeEl.textContent;
+        setTimeout(()=>winEl.classList.add('show'),400);
+      }
+    } else {
+      setTimeout(()=>{
+        a.classList.remove('flipped');
+        b.classList.remove('flipped');
+        flipped = [];
+        lock = false;
+      },800);
+    }
+  }
+}
+
+document.getElementById('again').addEventListener('click', buildBoard);
+buildBoard();
+</script>
+</body>
+</html>

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
+<title>CalmType Kids — Fun Learning Games</title>
+<meta name="description" content="Free, safe browser games for kids — memory match, math race, and word hunt. No downloads, no accounts, no ads chasing them around.">
+<meta name="theme-color" content="#fff6e5">
+<meta property="og:title" content="CalmType Kids — Fun Learning Games">
+<meta property="og:description" content="Memory Match, Math Race, and Word Hunt — free browser games that help kids learn while they play.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --sky:#3aa8ff;--sun:#ffb703;--grass:#4cb944;--coral:#ff6b6b;--grape:#9b59b6;
+  --bg:#fff6e5;--panel:#ffffff;--text:#2b2440;--muted:#7a7390;
+}
+body{
+  background:
+    radial-gradient(circle at 10% 10%, #ffe9b8 0%, transparent 40%),
+    radial-gradient(circle at 90% 20%, #c9f0ff 0%, transparent 40%),
+    radial-gradient(circle at 50% 90%, #dcffd6 0%, transparent 45%),
+    var(--bg);
+  color:var(--text);
+  font-family:'Nunito',sans-serif;
+  min-height:100vh;
+}
+a{color:inherit}
+
+header{text-align:center;padding:44px 20px 20px}
+.back-link{
+  display:inline-block;margin-bottom:18px;font-weight:800;font-size:14px;
+  color:var(--muted);text-decoration:none;letter-spacing:.5px;
+}
+.back-link:hover{color:var(--coral)}
+.brand{
+  font-family:'Baloo 2',cursive;
+  font-size:clamp(36px,8vw,64px);
+  font-weight:800;line-height:1;
+  color:var(--sky);
+  text-shadow:3px 3px 0 var(--sun);
+}
+.brand-sub{
+  font-family:'Baloo 2',cursive;font-size:clamp(14px,2.4vw,20px);
+  color:var(--grass);margin-top:14px;font-weight:700;
+}
+.tagline{
+  color:var(--muted);font-size:15px;max-width:460px;margin:16px auto 0;line-height:1.6;
+}
+
+.grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:24px;max-width:960px;margin:36px auto 60px;padding:0 20px;
+}
+.card{
+  background:var(--panel);border-radius:22px;padding:26px 22px;
+  text-decoration:none;display:flex;flex-direction:column;gap:10px;
+  border:3px solid transparent;
+  box-shadow:0 10px 0 rgba(0,0,0,.06);
+  transition:transform .2s ease, box-shadow .2s ease;
+}
+.card:hover{transform:translateY(-6px);box-shadow:0 16px 0 rgba(0,0,0,.08)}
+.card-emoji{font-size:52px;line-height:1}
+.card h2{font-family:'Baloo 2',cursive;font-size:24px;color:var(--text)}
+.card p{color:var(--muted);font-size:14.5px;line-height:1.5;flex:1}
+.card .tags{display:flex;gap:8px;flex-wrap:wrap}
+.tag{
+  font-size:11.5px;font-weight:800;padding:4px 10px;border-radius:20px;
+  text-transform:uppercase;letter-spacing:.4px;
+}
+.card .go{
+  align-self:flex-start;font-weight:800;font-size:14px;
+  padding:8px 18px;border-radius:20px;color:#fff;margin-top:6px;
+}
+.c-memory{border-color:#ffe0e0}
+.c-memory .tag{background:#ffe0e0;color:#c73a3a}
+.c-memory .go{background:var(--coral)}
+.c-math{border-color:#dcefff}
+.c-math .tag{background:#dcefff;color:#1a6fb0}
+.c-math .go{background:var(--sky)}
+.c-word{border-color:#e3f8dc}
+.c-word .tag{background:#e3f8dc;color:#2f7d2b}
+.c-word .go{background:var(--grass)}
+
+.safe-strip{
+  max-width:720px;margin:0 auto 60px;padding:18px 26px;
+  background:var(--panel);border-radius:18px;text-align:center;
+  color:var(--muted);font-size:14px;line-height:1.7;
+  box-shadow:0 8px 0 rgba(0,0,0,.05);
+}
+.safe-strip b{color:var(--grass)}
+
+footer{text-align:center;padding:24px;color:var(--muted);font-size:13px}
+footer a{color:var(--sky);font-weight:800;text-decoration:none}
+</style>
+</head>
+<body>
+
+<header>
+  <a class="back-link" href="../index.html">&larr; BACK TO CALMTYPE GAMING HUB</a>
+  <div class="brand">CalmType Kids</div>
+  <div class="brand-sub">Play &amp; Learn</div>
+  <p class="tagline">Three free games that make practicing memory, math, and words actually fun. No downloads, no sign-ups, no ads.</p>
+</header>
+
+<div class="grid">
+  <a class="card c-memory" href="memory/index.html">
+    <div class="card-emoji">🧠</div>
+    <h2>Memory Match</h2>
+    <p>Flip the cards and find every matching pair. Trains focus and memory — gets trickier as you go.</p>
+    <div class="tags"><span class="tag">Memory</span><span class="tag">Ages 4+</span></div>
+    <span class="go">PLAY NOW →</span>
+  </a>
+
+  <a class="card c-math" href="mathrace/index.html">
+    <div class="card-emoji">🔢</div>
+    <h2>Math Race</h2>
+    <p>Answer quick addition and subtraction questions before the timer runs out. Speed and accuracy both count.</p>
+    <div class="tags"><span class="tag">Math</span><span class="tag">Ages 6+</span></div>
+    <span class="go">PLAY NOW →</span>
+  </a>
+
+  <a class="card c-word" href="wordhunt/index.html">
+    <div class="card-emoji">🔤</div>
+    <h2>Word Hunt</h2>
+    <p>Unscramble letters to spell the word before time runs out. Builds vocabulary and spelling.</p>
+    <div class="tags"><span class="tag">Spelling</span><span class="tag">Ages 6+</span></div>
+    <span class="go">PLAY NOW →</span>
+  </a>
+</div>
+
+<div class="safe-strip">
+  <b>Built to be safe:</b> no accounts, no chat, no ads, no data collected. Everything runs right in the browser and nothing is saved except best scores on this device.
+</div>
+
+<footer>
+  Part of <a href="../index.html">CalmType</a> · © 2026
+</footer>
+
+</body>
+</html>

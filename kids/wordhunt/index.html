@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
+<title>Word Hunt — CalmType Kids</title>
+<meta name="description" content="Unscramble the letters to spell the word before time runs out. A free spelling game for kids.">
+<meta name="theme-color" content="#fff6e5">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --sky:#3aa8ff;--sun:#ffb703;--grass:#4cb944;--coral:#ff6b6b;
+  --bg:#fff6e5;--panel:#ffffff;--text:#2b2440;--muted:#7a7390;
+}
+body{
+  background:
+    radial-gradient(circle at 10% 10%, #e3f8dc 0%, transparent 40%),
+    radial-gradient(circle at 90% 20%, #ffe9b8 0%, transparent 40%),
+    var(--bg);
+  color:var(--text);font-family:'Nunito',sans-serif;
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;
+  padding:20px 14px 50px;
+}
+.back-link{
+  align-self:flex-start;font-weight:800;font-size:13px;color:var(--muted);
+  text-decoration:none;margin-bottom:14px;max-width:440px;width:100%;
+}
+h1{font-family:'Baloo 2',cursive;font-size:clamp(28px,7vw,40px);color:var(--grass);text-align:center}
+.sub{color:var(--muted);margin:8px 0 20px;text-align:center;font-size:14.5px}
+
+.hud{display:flex;gap:14px;margin-bottom:20px;flex-wrap:wrap;justify-content:center}
+.pill{
+  background:var(--panel);border-radius:16px;padding:10px 18px;
+  box-shadow:0 6px 0 rgba(0,0,0,.06);font-weight:800;font-size:14px;
+  display:flex;gap:8px;align-items:center;
+}
+.pill span.n{font-family:'Baloo 2',cursive;font-size:18px;color:var(--grass)}
+.pill.timer span.n{color:var(--coral)}
+
+.stage{
+  width:100%;max-width:440px;background:var(--panel);border-radius:26px;
+  padding:32px 24px;text-align:center;box-shadow:0 12px 0 rgba(0,0,0,.06);
+}
+.hint{color:var(--muted);font-size:14px;margin-bottom:18px;font-weight:700}
+.scramble{
+  display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:22px;
+}
+.letter-tile{
+  width:44px;height:44px;border-radius:12px;background:#eafaea;color:var(--grass);
+  font-family:'Baloo 2',cursive;font-size:24px;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 5px 0 #c5ebc5;cursor:pointer;user-select:none;
+}
+.letter-tile.used{opacity:0;pointer-events:none}
+.answer-slots{
+  display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:20px;min-height:52px;
+}
+.slot{
+  width:44px;height:44px;border-radius:12px;border:3px dashed #d8d3e6;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Baloo 2',cursive;font-size:24px;color:var(--text);cursor:pointer;
+}
+.slot.filled{border-style:solid;border-color:var(--sky);background:#eef3ff}
+.feedback{font-weight:800;font-size:14px;min-height:20px;margin-bottom:10px}
+.feedback.correct{color:var(--grass)}
+.feedback.wrong{color:var(--coral)}
+.btn{
+  border:none;background:var(--grass);color:#fff;font-weight:800;
+  font-family:'Nunito',sans-serif;font-size:15px;padding:12px 26px;border-radius:16px;
+  cursor:pointer;box-shadow:0 6px 0 #379635;margin:4px;
+}
+.btn:active{transform:translateY(3px);box-shadow:0 3px 0 #379635}
+.btn.secondary{background:#eef3ff;color:var(--sky);box-shadow:0 6px 0 #c9dcff}
+
+.over{
+  display:none;margin-top:22px;background:var(--panel);border-radius:18px;
+  padding:22px 26px;text-align:center;box-shadow:0 10px 0 rgba(0,0,0,.06);
+  max-width:340px;
+}
+.over.show{display:block}
+.over .big{font-family:'Baloo 2',cursive;font-size:24px;color:var(--coral);margin-bottom:6px}
+</style>
+</head>
+<body>
+
+<a class="back-link" href="../index.html">&larr; BACK TO KIDS ZONE</a>
+<h1>🔤 Word Hunt</h1>
+<p class="sub">Tap the letters in order to spell the word!</p>
+
+<div class="hud">
+  <div class="pill">SCORE <span class="n" id="score">0</span></div>
+  <div class="pill timer">TIME <span class="n" id="time">90</span></div>
+</div>
+
+<div class="stage" id="stage">
+  <div class="hint" id="hint">Hint: a fruit</div>
+  <div class="answer-slots" id="slots"></div>
+  <div class="feedback" id="feedback"></div>
+  <div class="scramble" id="scramble"></div>
+  <div>
+    <button class="btn secondary" id="clear">CLEAR</button>
+  </div>
+</div>
+
+<div class="over" id="over">
+  <div class="big">⏰ Time's up!</div>
+  <div id="overStats" style="color:var(--muted);font-weight:700"></div>
+  <button class="btn" id="again">PLAY AGAIN</button>
+</div>
+
+<script>
+const WORDS = [
+  ['apple','a fruit that keeps the doctor away'],
+  ['tiger','a big striped cat'],
+  ['ocean','a huge body of salt water'],
+  ['pencil','you write with this'],
+  ['rocket','flies to space'],
+  ['guitar','a musical instrument with strings'],
+  ['garden','plants grow here'],
+  ['rainbow','colorful arc in the sky'],
+  ['castle','a king or queen lives here'],
+  ['planet','Earth is one of these'],
+  ['bridge','crosses a river'],
+  ['forest','lots of trees together'],
+  ['dragon','a mythical fire-breathing creature'],
+  ['candle','gives light and melts'],
+  ['puzzle','a game with pieces that fit together']
+];
+
+const scoreEl = document.getElementById('score');
+const timeEl = document.getElementById('time');
+const hintEl = document.getElementById('hint');
+const slotsEl = document.getElementById('slots');
+const scrambleEl = document.getElementById('scramble');
+const feedbackEl = document.getElementById('feedback');
+const stageEl = document.getElementById('stage');
+const overEl = document.getElementById('over');
+const overStats = document.getElementById('overStats');
+
+let score = 0;
+let timeLeft = 90;
+let timerId = null;
+let currentWord = '';
+let filled = [];
+let usedIndices = new Set();
+let usedWords = new Set();
+
+function shuffle(arr){
+  const a = [...arr];
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+function pickWord(){
+  const avail = WORDS.filter(w=>!usedWords.has(w[0]));
+  const pool = avail.length ? avail : WORDS;
+  if(!avail.length) usedWords.clear();
+  const [word, hint] = pool[Math.floor(Math.random()*pool.length)];
+  usedWords.add(word);
+  return [word, hint];
+}
+
+function newRound(){
+  const [word, hint] = pickWord();
+  currentWord = word;
+  hintEl.textContent = 'Hint: '+hint;
+  filled = new Array(word.length).fill(null);
+  usedIndices = new Set();
+  feedbackEl.textContent = '';
+  feedbackEl.className = 'feedback';
+
+  slotsEl.innerHTML = '';
+  for(let i=0;i<word.length;i++){
+    const slot = document.createElement('div');
+    slot.className = 'slot';
+    slot.dataset.pos = i;
+    slot.addEventListener('click', ()=>onSlotClick(i));
+    slotsEl.appendChild(slot);
+  }
+
+  const scrambled = shuffle(word.split(''));
+  scrambleEl.innerHTML = '';
+  scrambled.forEach((ch, idx)=>{
+    const tile = document.createElement('div');
+    tile.className = 'letter-tile';
+    tile.textContent = ch;
+    tile.dataset.idx = idx;
+    tile.addEventListener('click', ()=>onTileClick(tile, ch, idx));
+    scrambleEl.appendChild(tile);
+  });
+}
+
+function onTileClick(tile, ch, idx){
+  if(timeLeft <= 0) return;
+  if(usedIndices.has(idx)) return;
+  const nextSlot = filled.findIndex(f=>f===null);
+  if(nextSlot === -1) return;
+  filled[nextSlot] = {ch, idx};
+  usedIndices.add(idx);
+  tile.classList.add('used');
+  renderSlots();
+  checkComplete();
+}
+
+function onSlotClick(pos){
+  const entry = filled[pos];
+  if(!entry) return;
+  filled[pos] = null;
+  usedIndices.delete(entry.idx);
+  const tile = scrambleEl.querySelector('[data-idx="'+entry.idx+'"]');
+  if(tile) tile.classList.remove('used');
+  renderSlots();
+}
+
+function renderSlots(){
+  const slotEls = slotsEl.querySelectorAll('.slot');
+  slotEls.forEach((el,i)=>{
+    const entry = filled[i];
+    el.textContent = entry ? entry.ch : '';
+    el.classList.toggle('filled', !!entry);
+  });
+}
+
+function checkComplete(){
+  if(filled.every(f=>f !== null)){
+    const attempt = filled.map(f=>f.ch).join('');
+    if(attempt === currentWord){
+      score++;
+      scoreEl.textContent = score;
+      feedbackEl.textContent = 'Correct! 🎉';
+      feedbackEl.className = 'feedback correct';
+      setTimeout(()=>{ if(timeLeft > 0) newRound(); }, 700);
+    } else {
+      feedbackEl.textContent = 'Not quite — try again!';
+      feedbackEl.className = 'feedback wrong';
+      setTimeout(()=>{
+        filled = new Array(currentWord.length).fill(null);
+        usedIndices = new Set();
+        scrambleEl.querySelectorAll('.letter-tile').forEach(t=>t.classList.remove('used'));
+        renderSlots();
+        feedbackEl.textContent = '';
+      }, 800);
+    }
+  }
+}
+
+document.getElementById('clear').addEventListener('click', ()=>{
+  filled = new Array(currentWord.length).fill(null);
+  usedIndices = new Set();
+  scrambleEl.querySelectorAll('.letter-tile').forEach(t=>t.classList.remove('used'));
+  renderSlots();
+  feedbackEl.textContent = '';
+});
+
+function startTimer(){
+  timerId = setInterval(()=>{
+    timeLeft--;
+    timeEl.textContent = timeLeft;
+    if(timeLeft <= 0){
+      clearInterval(timerId);
+      stageEl.style.display = 'none';
+      overStats.textContent = 'You spelled '+score+' word'+(score===1?'':'s');
+      overEl.classList.add('show');
+    }
+  },1000);
+}
+
+function startGame(){
+  score = 0; timeLeft = 90;
+  scoreEl.textContent = '0'; timeEl.textContent = '90';
+  stageEl.style.display = 'block';
+  overEl.classList.remove('show');
+  usedWords.clear();
+  if(timerId) clearInterval(timerId);
+  newRound();
+  startTimer();
+}
+
+document.getElementById('again').addEventListener('click', startGame);
+startGame();
+</script>
+</body>
+</html>
