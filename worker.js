@@ -1,0 +1,15 @@
+// Serves the site's static files. The Google Search Console verification file
+// is answered directly, because the static handler would redirect "/x.html" to "/x"
+// and Google needs the file at its exact URL.
+const VERIFY = '/google925d2939e209b3bd.html';
+
+export default {
+  async fetch(request, env) {
+    if (new URL(request.url).pathname === VERIFY) {
+      return new Response('google-site-verification: google925d2939e209b3bd.html', {
+        headers: { 'content-type': 'text/html; charset=utf-8' },
+      });
+    }
+    return env.ASSETS.fetch(request);
+  },
+};

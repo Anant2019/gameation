@@ -7,3 +7,4 @@
 wrangler.jsonc
 _dashboard_preview.html
 *.md
+worker.js
