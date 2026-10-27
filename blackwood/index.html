@@ -939,7 +939,7 @@ body.urgency-mode::after {
 // ═══════════════════════════════════════
 const SUSPECTS=[
   {id:'victoria',name:'Lady Victoria',full:'Lady Victoria Blackwood',title:"The Lord's Ex-Wife",
-   img:'./suspect_victoria_1778755761205.png',em:'👩‍🦳',color:'#c39bd3',dim:'#9b59b622',badge:'❄️  GLAMOROUS',
+   img:'./suspect_victoria_1778755761205.webp',em:'👩‍🦳',color:'#c39bd3',dim:'#9b59b622',badge:'❄️  GLAMOROUS',
    sig:'💎',sigTxt:'Known for her extravagant taste in jewels',
    quote:'"The Star of Blackwood belongs on my neck, Inspector."',
    exprs:['👩‍🦳','😤','😰','😱'],baseStress:12,
@@ -967,7 +967,7 @@ const SUSPECTS=[
      idet:'Calm, certain. No hesitation. She means it.'},
    ]},
   {id:'harlow',name:'Dr. Harlow',full:'Dr. James Harlow',title:'Antiques Appraiser',
-   img:'./suspect_harlow_1778755782654.png',em:'🧑‍⚕️',color:'#1abc9c',dim:'#1abc9c22',badge:'🩺  NERVOUS',
+   img:'./suspect_harlow_1778755782654.webp',em:'🧑‍⚕️',color:'#1abc9c',dim:'#1abc9c22',badge:'🩺  NERVOUS',
    sig:'💼',sigTxt:'Appraisal kit — never leaves his side',
    quote:'"The diamond is gone. Case closed. Why are you still here?"',
    exprs:['🧑‍⚕️','😟','😨','🤯'],baseStress:20,
@@ -995,7 +995,7 @@ const SUSPECTS=[
      idet:'He opens it himself before you ask. Nothing there.'},
    ]},
   {id:'crane',name:'Mr. Crane',full:'Sebastian Crane',title:'Shrewd Businessman',
-   img:'./suspect_crane_1778755798631.png',em:'🧔',color:'#5dade2',dim:'#5dade222',badge:'🗝️  SLY',
+   img:'./suspect_crane_1778755798631.webp',em:'🧔',color:'#5dade2',dim:'#5dade222',badge:'🗝️  SLY',
    sig:'🎩',sigTxt:'Pinstripe suit — always impeccably dressed',
    quote:'"I always get what I want, Inspector."',
    exprs:['🧔','😬','😓','😫'],baseStress:8,
@@ -1023,7 +1023,7 @@ const SUSPECTS=[
      idet:'Calm, cooperative, and specific. Crane notices everything.'},
    ]},
   {id:'clara',name:'Miss Clara',full:'Miss Clara Monroe',title:"The Governess",
-   img:'./suspect_clara_1778755812107.png',em:'👩‍🦰',color:'#ec407a',dim:'#ec407a22',badge:'🧹  QUIET',
+   img:'./suspect_clara_1778755812107.webp',em:'👩‍🦰',color:'#ec407a',dim:'#ec407a22',badge:'🧹  QUIET',
    sig:'🧹',sigTxt:'Feather duster — access to all rooms',
    quote:'"I just clean the rooms! I swear on everything — I didn\'t take it!"',
    exprs:['👩‍🦰','😢','😭','😩'],baseStress:22,
@@ -1051,7 +1051,7 @@ const SUSPECTS=[
      idet:'The logic is sound and immediate. An innocent person\'s calculation.'},
    ]},
   {id:'webb',name:'Prof. Webb',full:'Professor Arthur Webb',title:'Eccentric Archaeologist',
-   img:'./suspect_webb_1778755832400.png',em:'👴',color:'#f39c12',dim:'#f39c1222',badge:'🔍  FRANTIC',
+   img:'./suspect_webb_1778755832400.webp',em:'👴',color:'#f39c12',dim:'#f39c1222',badge:'🔍  FRANTIC',
    sig:'🔍',sigTxt:'Magnifying glass — studying ancient texts',
    quote:'"That diamond belongs in a museum! Not in a private vault!"',
    exprs:['👴','😠','😤','🤬'],baseStress:14,
@@ -1739,10 +1739,10 @@ function enterRoom(id){
   if(_mapAnimId){cancelAnimationFrame(_mapAnimId);_mapAnimId=null;}
   G.currentRoom=id;
   const imgMap = {
-    'study': 'room_study_1778769151445.png',
-    'library': 'room_library_1778769167289.png',
-    'cellar': 'room_cellar_1778769187864.png',
-    'garden': 'room_garden_1778769202763.png'
+    'study': 'room_study_1778769151445.webp',
+    'library': 'room_library_1778769167289.webp',
+    'cellar': 'room_cellar_1778769187864.webp',
+    'garden': 'room_garden_1778769202763.webp'
   };
   document.getElementById('room-bg-container').style.backgroundImage = 'url(./' + imgMap[id] + ')';
 
@@ -3387,7 +3387,7 @@ function speakCinLine(text, slideNum){
     <div style="background:#1a1205;border-radius:4px;height:4px;margin-bottom:16px;overflow:hidden;"><div id="tut-progress" style="height:100%;background:linear-gradient(90deg,#c9a84c,#ffd700);width:33%;transition:width 0.3s;"></div></div>
 
     <div id="ts-0" class="tut-slide" style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;">
-      <img src="./howtoplay_step1_search_1778773476861.png" style="width:46%;min-width:200px;flex:1 1 200px;border-radius:10px;border:1px solid #443;">
+      <img src="./howtoplay_step1_search_1778773476861.webp" style="width:46%;min-width:200px;flex:1 1 200px;border-radius:10px;border:1px solid #443;">
       <div style="flex:1 1 220px;">
         <div style="background:#c9a84c;color:#0a0702;font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;font-size:10px;font-weight:900;letter-spacing:2px;padding:3px 10px;border-radius:4px;display:inline-block;margin-bottom:10px;">STEP 1 OF 3</div>
         <h3 style="color:#ffd700;font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;margin:0 0 10px 0;font-size:14px;">&#128269; SEARCH ROOMS FOR CLUES</h3>
@@ -3402,7 +3402,7 @@ function speakCinLine(text, slideNum){
     </div>
 
     <div id="ts-1" class="tut-slide" style="display:none;gap:16px;align-items:flex-start;flex-wrap:wrap;">
-      <img src="./howtoplay_step2_interrogate_1778773493100.png" style="width:46%;min-width:200px;flex:1 1 200px;border-radius:10px;border:1px solid #443;">
+      <img src="./howtoplay_step2_interrogate_1778773493100.webp" style="width:46%;min-width:200px;flex:1 1 200px;border-radius:10px;border:1px solid #443;">
       <div style="flex:1 1 220px;">
         <div style="background:#c9a84c;color:#0a0702;font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;font-size:10px;font-weight:900;letter-spacing:2px;padding:3px 10px;border-radius:4px;display:inline-block;margin-bottom:10px;">STEP 2 OF 3</div>
         <h3 style="color:#ffd700;font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;margin:0 0 10px 0;font-size:14px;">&#128483; INTERROGATE &#8212; CATCH LIARS!</h3>
@@ -3417,7 +3417,7 @@ function speakCinLine(text, slideNum){
     </div>
 
     <div id="ts-2" class="tut-slide" style="display:none;gap:16px;align-items:flex-start;flex-wrap:wrap;">
-      <img src="./howtoplay_step3_accuse_1778773512804.png" style="width:46%;min-width:200px;flex:1 1 200px;border-radius:10px;border:1px solid #443;">
+      <img src="./howtoplay_step3_accuse_1778773512804.webp" style="width:46%;min-width:200px;flex:1 1 200px;border-radius:10px;border:1px solid #443;">
       <div style="flex:1 1 220px;">
         <div style="background:#c9a84c;color:#0a0702;font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;font-size:10px;font-weight:900;letter-spacing:2px;padding:3px 10px;border-radius:4px;display:inline-block;margin-bottom:10px;">STEP 3 OF 3</div>
         <h3 style="color:#ffd700;font-family:'Cinzel','Trajan Pro','Palatino Linotype',Palatino,'Times New Roman',serif;margin:0 0 10px 0;font-size:14px;">&#9878; MAKE YOUR ACCUSATION!</h3>
