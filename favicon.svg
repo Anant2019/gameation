@@ -1,28 +1,43 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#211830"/>
+      <stop offset="0" stop-color="#241a36"/>
       <stop offset="1" stop-color="#07060a"/>
     </linearGradient>
-    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#fbe9ad"/>
-      <stop offset=".5" stop-color="#d8b45a"/>
-      <stop offset="1" stop-color="#9a6f22"/>
+    <linearGradient id="hood" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f3d488"/>
+      <stop offset="1" stop-color="#b8892f"/>
     </linearGradient>
-    <radialGradient id="halo" cx=".5" cy=".5" r=".5">
-      <stop offset="0" stop-color="#c9a84c" stop-opacity=".32"/>
-      <stop offset="1" stop-color="#c9a84c" stop-opacity="0"/>
-    </radialGradient>
-    <radialGradient id="cyan" cx=".5" cy=".5" r=".5">
-      <stop offset="0" stop-color="#4ecdc4" stop-opacity=".75"/>
+    <linearGradient id="lid" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#eef2f5"/>
+      <stop offset="1" stop-color="#8d96a0"/>
+    </linearGradient>
+    <radialGradient id="glow" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#4ecdc4" stop-opacity=".7"/>
       <stop offset="1" stop-color="#4ecdc4" stop-opacity="0"/>
     </radialGradient>
   </defs>
   <rect width="64" height="64" rx="14" fill="url(#bg)"/>
   <rect x="1.25" y="1.25" width="61.5" height="61.5" rx="12.75" fill="none" stroke="#c9a84c" stroke-opacity=".45" stroke-width="1.5"/>
-  <circle cx="30" cy="32" r="26" fill="url(#halo)"/>
-  <path d="M46 19.2A18.5 18.5 0 1 0 46 44.8" fill="none" stroke="url(#gold)" stroke-width="9" stroke-linecap="round"/>
-  <path d="M43.8 21.6A15 15 0 0 0 18.3 26" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="2" stroke-linecap="round"/>
-  <ellipse cx="33" cy="32" rx="9" ry="14" fill="url(#cyan)"/>
-  <rect x="30.5" y="22" width="5" height="20" rx="2" fill="#7ff3ea"/>
+  <path d="M10.5 12l1.2 2.8 2.8 1.2-2.8 1.2-1.2 2.8-1.2-2.8-2.8-1.2 2.8-1.2z" fill="#f3d488" opacity=".9"/>
+  <circle cx="53.5" cy="11.5" r="1.6" fill="#f3d488" opacity=".7"/>
+  <!-- body -->
+  <path d="M11 55C11 39.5 20 32 32 32S53 39.5 53 55Z" fill="url(#hood)"/>
+  <!-- head -->
+  <circle cx="32" cy="20.5" r="9.5" fill="#f1c9a0"/>
+  <path d="M22.4 20C22 12.8 26.6 9.6 32.2 9.6 38 9.6 42.2 13.2 41.5 19.4 39.2 16.2 35.6 15.1 31.5 15.3 27.8 15.5 24.8 17.2 22.4 20Z" fill="#2a1a12"/>
+  <circle cx="28.6" cy="21.6" r="1.25" fill="#2a1a12"/>
+  <circle cx="35.4" cy="21.6" r="1.25" fill="#2a1a12"/>
+  <path d="M29.6 25.4q2.4 1.6 4.8 0" stroke="#a0603a" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+  <!-- headphones -->
+  <path d="M21.6 21.5C21 12.5 26 8 32 8S43 12.5 42.4 21.5" fill="none" stroke="#3a3f46" stroke-width="2.6" stroke-linecap="round"/>
+  <rect x="19" y="18.5" width="5.2" height="8.5" rx="2.4" fill="#4ecdc4"/>
+  <rect x="39.8" y="18.5" width="5.2" height="8.5" rx="2.4" fill="#4ecdc4"/>
+  <!-- screen light spilling over the lid -->
+  <ellipse cx="32" cy="37" rx="17" ry="6" fill="url(#glow)"/>
+  <!-- laptop -->
+  <rect x="16" y="37" width="32" height="18" rx="2.5" fill="url(#lid)"/>
+  <rect x="16" y="37" width="32" height="1.6" rx=".8" fill="#7ff3ea" opacity=".9"/>
+  <circle cx="32" cy="46.5" r="3.2" fill="none" stroke="#c9a84c" stroke-width="1.8"/>
+  <rect x="9" y="54.5" width="46" height="3.6" rx="1.8" fill="#b5bec6"/>
 </svg>
