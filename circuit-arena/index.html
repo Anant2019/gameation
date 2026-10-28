@@ -3054,7 +3054,7 @@ let aiPending=null;
 const AI_IDEAS=['Smart dustbin that opens when a hand comes near','Traffic light with three LEDs','Night lamp that turns on in the dark','Fire alarm with a flame sensor','Clap switch for a light','Robot car with obstacle sensor'];
 // The AI runs on the player's own key (Gemini is free; Claude needs billing). The key is saved only on this
 // device and requests go straight from the device to Google or Anthropic, never through calmtype.life.
-const AI_MODELS={gemini:'gemini-flash-latest',claude:'claude-haiku-5-5'};
+const AI_MODELS={gemini:['gemini-flash-latest','gemini-2.5-flash','gemini-flash-lite-latest'],claude:'claude-haiku-5-5'};
 const AI_KEY_LINKS={gemini:'https://aistudio.google.com/apikey',claude:'https://console.anthropic.com/settings/keys'};
 const aiKey=()=>{try{const v=JSON.parse(store.get('circuitArena.aiKey')||'null');return v&&v.key?v:null}catch(e){return null}};
 const aiSetKey=v=>{try{store.set('circuitArena.aiKey',v?JSON.stringify(v):'')}catch(e){}};
@@ -3120,20 +3120,34 @@ first one line on the cause, then numbered fixes that name the parts and pins ex
 Facts: an LED needs a series resistor (about 330 ohm on 9 V, 220 ohm on 5 V) and burns above 50 mA; a 1/4 W resistor burns above 1 W; modules need VCC, GND and their signal pin wired; boards are powered over USB.`;
 const aiJSON=t=>{t=String(t||'');try{return JSON.parse(t)}catch(e){}const a=t.indexOf('{'),b=t.lastIndexOf('}');if(a<0||b<=a)throw new Error('ai_failed');try{return JSON.parse(t.slice(a,b+1))}catch(e){throw new Error('ai_failed')}};
 async function aiFetch(url,init){let r;try{r=await fetch(url,init)}catch(e){throw new Error('offline')}
-  if(!r.ok){let t='';try{t=await r.text()}catch(e){}throw new Error(r.status===401||r.status===403||/API_KEY_INVALID|invalid.{0,20}key|authentication/i.test(t)?'badkey':r.status===429?'limit':'ai_failed')}
+  if(!r.ok){let t='';try{t=await r.text()}catch(e){}let m=t;try{const j=JSON.parse(t);m=(j.error&&(j.error.message||j.error.type))||t}catch(e){}
+    const er=new Error(r.status===401||r.status===403||/API_KEY_INVALID|invalid.{0,20}key|authentication/i.test(t)?'badkey':r.status===429||/RESOURCE_EXHAUSTED/.test(t)?'limit':'ai_failed');
+    er.status=r.status;er.detail=String(m||'').replace(/\s+/g,' ').slice(0,160);throw er}
   return r.json()}
 // One call to the player's chosen AI. kind 'build' returns the circuit object, 'doctor' returns text.
 async function aiLLM(kind,messages){const k=aiKey();if(!k)throw new Error('nokey');if(NB)throw new Error('app');
   const system=kind==='build'?aiBuildSystem():AI_DOCTOR;
   if(k.provider==='claude'){
     const j=await aiFetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'x-api-key':k.key,'anthropic-version':'2023-06-01','content-type':'application/json','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:AI_MODELS.claude,max_tokens:kind==='build'?3000:700,system,messages})});
-    const text=(j.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('\n');return kind==='build'?aiJSON(text):text.trim()}
-  const j=await aiFetch(`https://generativelanguage.googleapis.com/v1beta/models/${AI_MODELS.gemini}:generateContent`,{method:'POST',headers:{'content-type':'application/json','x-goog-api-key':k.key},
-    body:JSON.stringify({systemInstruction:{parts:[{text:system}]},contents:messages.map(m=>({role:m.role==='assistant'?'model':'user',parts:[{text:m.content}]})),
-      generationConfig:{temperature:.3,maxOutputTokens:kind==='build'?8192:1024,...(kind==='build'?{responseMimeType:'application/json'}:{})}})});
-  const text=((j.candidates&&j.candidates[0]&&j.candidates[0].content&&j.candidates[0].content.parts)||[]).map(p=>p.text||'').join('');
-  if(!text)throw new Error('ai_failed');return kind==='build'?aiJSON(text):text.trim()}
+      body:JSON.stringify({model:AI_MODELS.claude,max_tokens:kind==='build'?8000:1000,system,messages})});
+    const text=(j.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('\n');
+    if(kind!=='build')return text.trim();try{return aiJSON(text)}catch(e){e.detail=j.stop_reason==='max_tokens'?'The answer was too long and got cut off':'The answer was not valid JSON';throw e}}
+  // Newer Flash models "think" first and that counts against the output limit, so ask for little thinking and leave plenty of room.
+  // A busy (5xx) or unknown (404) model moves on to the next one in the list.
+  const contents=messages.map(m=>({role:m.role==='assistant'?'model':'user',parts:[{text:m.content}]}));let last=null;
+  for(const model of AI_MODELS.gemini){for(let think=1;think>=0;think--){
+    const generationConfig={temperature:.3,maxOutputTokens:kind==='build'?32768:4096,...(kind==='build'?{responseMimeType:'application/json'}:{}),...(think?{thinkingConfig:{thinkingLevel:'low'}}:{})};
+    let j;try{j=await aiFetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,{method:'POST',headers:{'content-type':'application/json','x-goog-api-key':k.key},
+      body:JSON.stringify({systemInstruction:{parts:[{text:system}]},contents,generationConfig})})}
+    catch(e){last=e;if(e.message!=='ai_failed')throw e;
+      if(e.status===400&&think&&/think/i.test(e.detail||''))continue;   // this model has no thinking level setting: ask again without it
+      if(e.status===404||e.status>=500){await new Promise(r=>setTimeout(r,800));break}
+      throw e}
+    const c=(j.candidates||[])[0]||{};const text=((c.content&&c.content.parts)||[]).filter(p=>!p.thought).map(p=>p.text||'').join('');
+    if(!text){const er=new Error('ai_failed');er.detail=c.finishReason?'Gemini stopped: '+c.finishReason:(j.promptFeedback&&j.promptFeedback.blockReason?'Blocked: '+j.promptFeedback.blockReason:'Gemini sent an empty answer');last=er;break}
+    if(kind!=='build')return text.trim();
+    try{return aiJSON(text)}catch(e){e.detail=c.finishReason==='MAX_TOKENS'?'The answer was too long and got cut off':'The answer was not valid JSON';last=e;break}}}
+  throw last||new Error('ai_failed')}
 // Same shape the build and doctor flows already use.
 async function aiPost(path,body){
   if(path.endsWith('/build')){const msgs=[{role:'user',content:String(body.prompt||'').slice(0,400)}];
@@ -3143,7 +3157,7 @@ async function aiPost(path,body){
 const aiErrText=e=>({nokey:'Add your AI key first (Gemini is free).',badkey:'Your AI key was not accepted. Check it, or create a new one.',
   app:'AI needs the internet, so it works in the web version at calmtype.life/circuit-arena for now. It is coming to the app soon.',
   offline:'Could not reach the AI. Check your internet and try again.',limit:'Your AI key has hit its limit for now (Gemini free keys allow a set number of requests per minute and per day). Wait a bit and try again.',
-  ai_failed:'The AI had a problem. Please try again.',empty:'Type what you want to build first.'}[e.message]||'Something went wrong. Please try again.');
+  ai_failed:'The AI had a problem. Please try again.',empty:'Type what you want to build first.'}[e.message]||'Something went wrong. Please try again.')+(e.message==='ai_failed'&&e.detail?` (${e.detail})`:'');
 // Turn the AI's answer into a build the simulator accepts, listing every problem it finds.
 function aiToDef(b){const errs=[],parts=[],map=[];
   (Array.isArray(b.parts)?b.parts:[]).slice(0,16).forEach((p,i)=>{const d=p&&PD[p.type];if(!d){errs.push(`Part ${i}: unknown type "${p&&p.type}"`);map.push(-1);return}
