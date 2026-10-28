@@ -8,6 +8,6 @@
   "assets": {
     "directory": ".",
     "binding": "ASSETS",
-    "run_worker_first": ["/google925d2939e209b3bd.html"]
+    "run_worker_first": ["/google925d2939e209b3bd.html", "/api/*"]
   }
 }

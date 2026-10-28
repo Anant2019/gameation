@@ -468,6 +468,11 @@ table.conn td{padding:6px;border-bottom:1px solid var(--line);vertical-align:top
 .demoring{fill:none;stroke:var(--copper);stroke-width:3;stroke-dasharray:8 6;pointer-events:none;animation:demoring 1.1s linear infinite}
 @keyframes demoring{to{stroke-dashoffset:-28}}
 @media (prefers-reduced-motion:reduce){.demoring{animation:none}}
+.btn.ai{border-color:var(--copper);color:var(--copper);font-weight:700}
+.pro{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;background:var(--copper);color:var(--copper-ink);font-size:10px;letter-spacing:.08em;vertical-align:middle}
+.aians{margin-top:12px;padding:10px 12px;border:1px solid var(--line);border-left:4px solid var(--copper);border-radius:8px;background:var(--bench);font-size:14px;line-height:1.55;white-space:pre-wrap}
+.aibusy::after{content:'';display:inline-block;width:12px;height:12px;margin-left:8px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;vertical-align:-2px;animation:aispin .8s linear infinite}
+@keyframes aispin{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
 </style>
 
@@ -536,6 +541,7 @@ table.conn td{padding:6px;border-bottom:1px solid var(--line);vertical-align:top
       <button class="btn" id="bClearW">Clear wires</button>
       <button class="btn" id="bRepair">Repair</button>
       <button class="btn" id="bReset">Reset</button>
+      <button class="btn ai" id="bAI">✨ AI</button>
       <button class="btn" id="bShare">Share</button>
       <button class="btn" id="bReport">Report</button>
       <button class="btn" id="bCreator" aria-label="Creator mode: hide the controls for recording">🎬 Creator</button>
@@ -686,6 +692,27 @@ table.conn td{padding:6px;border-bottom:1px solid var(--line);vertical-align:top
   </div>
 </div>
 <button class="btn sm cexit" id="bCreatorExit" hidden aria-label="Exit creator mode">✕ Exit</button><div class="cwm" id="creatorWm" hidden>Made with Circuit<span>Arena</span></div>
+<div class="modal" id="aiModal" hidden>
+  <div class="card wide" role="dialog" aria-labelledby="aiT">
+    <p class="eyebrow">Circuit Arena AI <span class="pro">PREMIUM</span></p><h3 id="aiT" style="font-size:22px">Build anything with AI</h3>
+    <div class="chips" role="tablist" style="margin:8px 0 12px"><button class="chip" data-aitab="build" aria-pressed="true">✨ Build with AI</button><button class="chip" data-aitab="doctor" aria-pressed="false">🔍 Circuit Doctor</button></div>
+    <div id="aiBuild">
+      <p class="bnote">Say what you want to make. The AI picks the parts, wires them and writes the code. Hindi or English both work.</p>
+      <textarea class="sharecode" id="aiPrompt" maxlength="400" placeholder="e.g. A smart dustbin that opens when a hand comes near"></textarea>
+      <div class="chips" id="aiIdeas" style="margin:6px 0 0"></div>
+      <div class="row"><button class="btn primary" id="aiGo">✨ Build it</button></div>
+    </div>
+    <div id="aiDoctor" hidden>
+      <p class="bnote">Ask about the circuit on your bench. The doctor reads every part, wire and reading and tells you what to fix.</p>
+      <textarea class="sharecode" id="aiQ" maxlength="400" placeholder="e.g. Why is my LED not lighting up?"></textarea>
+      <div class="row"><button class="btn primary" id="aiAsk">🔍 Check my circuit</button></div>
+      <div class="aians" id="aiAns" hidden></div>
+    </div>
+    <p class="extra" id="aiMsg" role="status" style="margin-top:10px"></p>
+    <p class="bnote" id="aiQuota"></p>
+    <div class="row"><button class="btn" id="aiClose">Close</button></div>
+  </div>
+</div>
 <div class="modal" id="shareModal" hidden>
   <div class="card wide" role="dialog" aria-labelledby="shT">
     <p class="eyebrow">Share builds</p><h3 id="shT" style="font-size:22px">Share this build</h3>
@@ -1647,7 +1674,8 @@ function renderMission(){const l=L();const b=best[l.id];
   $('#mTitle').textContent=l.name;$('#mGoal').textContent=l.goal;$('#mHint').textContent=l.hint;
   $('#mPar').textContent=l.par?'Par time: '+fmt(l.par):'';$('#mBestL').textContent=b?'Best: '+b.score+' pts':'';
   $('#sBest').textContent=b?b.score:'—';$('#testPanel').hidden=!l.tests.length;renderGuide();
-  const dm=$('#mDemo');if(dm){dm.hidden=!S.demo;const hd=$('#mHint');const det=hd&&hd.closest?hd.closest('details'):null;if(det)det.hidden=!!S.demo;if(S.demo){const t=S.demo.t;$('#mEyebrow').textContent='Part demo';$('#mTitle').textContent='Demo: '+PD[t].name;$('#mGoal').textContent=PARTINFO[t].d;$('#mPar').textContent='';dm.innerHTML=demoGuide()}}}
+  const dm=$('#mDemo');if(dm){dm.hidden=!S.demo;const hd=$('#mHint');const det=hd&&hd.closest?hd.closest('details'):null;if(det)det.hidden=!!S.demo;if(S.demo&&S.demo.ai){$('#mEyebrow').textContent='AI build ✨';$('#mTitle').textContent=S.demo.def.title;$('#mGoal').textContent=S.demo.def.summary;$('#mPar').textContent='';dm.innerHTML=aiGuide()}
+  else if(S.demo){const t=S.demo.t;$('#mEyebrow').textContent='Part demo';$('#mTitle').textContent='Demo: '+PD[t].name;$('#mGoal').textContent=PARTINFO[t].d;$('#mPar').textContent='';dm.innerHTML=demoGuide()}}}
 const BOOLENV=new Set(['motion','flame','ir']);
 const ENVDEF={gas:['Gas / smoke',200,10000,'ppm'],soil:['Soil moisture',0,100,'%'],rain:['Rain on the sensor',0,100,'%'],water:['Water level',0,100,'%'],pressure:['Air pressure',950,1050,'hPa'],card:['RFID card held (0 = none)',0,5,''],flame:['Flame in view'],sound:['Sound level',30,110,'dB'],ir:['Obstacle in front (IR)'],tilt:['Tilt angle',-90,90,'°'],muscle:['Muscle flex (EMG)',0,100,'%'],focus:['Focus / attention (EEG)',0,100,'%'],drowsy:['Drowsiness (EEG theta)',0,100,'%'],stress:['Skin conductance (GSR)',1,20,'µS'],spo2:['Blood oxygen SpO2',80,100,'%'],distance:['Hand / object distance',2,200,'cm'],light:['Light level (LDR, solar)',0,100,'%'],temp:['Temperature',10,50,'°C'],crank:['Dynamo crank speed',0,100,'%'],
   throttle:['Remote throttle',-100,100,'%'],steer:['Remote steering (− left, + right)',-100,100,'%'],pulse:['Heart rate',40,190,'bpm']};
@@ -1763,7 +1791,7 @@ document.addEventListener('keydown',e=>{const typing=/INPUT|SELECT|TEXTAREA/.tes
 $('#bUndo').onclick=undo;$('#bRemove').onclick=removeSel;
 $('#bClearW').onclick=()=>{pushHist();S.wires=[];sel=null;pending=null;onStructure()};
 $('#bRepair').onclick=()=>{const n=S.parts.filter(p=>p.burnt).length;S.parts.forEach(p=>{p.burnt=false;p.st.don={}});flash(n?n+' part(s) replaced.':'Nothing is burnt.');insFor=-1};
-$('#bReset').onclick=()=>{if(S.demo)openDemo(S.demo.t);else if(S.inv)loadInvention(S.inv);else if(S.proj)loadProject(S.proj);else loadLevel(S.lvl)};
+$('#bReset').onclick=()=>{if(S.demo&&S.demo.ai)loadAIBuild(S.demo.def);else if(S.demo)openDemo(S.demo.t);else if(S.inv)loadInvention(S.inv);else if(S.proj)loadProject(S.proj);else loadLevel(S.lvl)};
 $('#bEmpty').onclick=()=>{pushHist();S.demo=null;renderMission();S.parts=[];S.wires=[];S.rules=[];S.outVals={};sel=null;pending=null;onStructure();fitCam()};
 $('#bSave').onclick=()=>{try{store.set('circuitArena.build',JSON.stringify({...JSON.parse(snap()),env:S.env,sbWorld:S.sbWorld}));flash('Build saved in this browser.')}catch(e){flash('Could not save in this browser.')}};
 $('#bLoad').onclick=()=>{let b=null;try{b=JSON.parse(store.get('circuitArena.build')||'null')}catch(e){}
@@ -2994,9 +3022,93 @@ function openDemo(t){const def=demoFor(t);if(!def){flash('No demo for this part 
   S.env={...ENV0,...(def.envVals||{})};S.sbWorld='auto';S.cloud={send:{},ctl:{}};S.personKey=null;resetWorld();S.wType=undefined;
   S.demo={t,def,focus:def.parts.map((q,i)=>q[0]===t?ids[i]:null).filter(x=>x!=null)};
   hist.length=0;portraitLayout();onStructure();renderEnv();renderMission();if(isPhone())showSec('mission');requestAnimationFrame(fitCam);flash('Demo: '+PD[t].name)}
-$('#mDemo').addEventListener('click',e=>{const b=e.target.closest('[data-demoback]');if(b){setView('parts');openPart(b.dataset.demoback);return}
+$('#mDemo').addEventListener('click',e=>{if(e.target.closest('[data-aidoctor]')){openAI('doctor');return}if(e.target.closest('[data-aiagain]')){openAI('build');return}
+  const b=e.target.closest('[data-demoback]');if(b){setView('parts');openPart(b.dataset.demoback);return}
   const a=e.target.closest('[data-demoagain]');if(a)openDemo(a.dataset.demoagain)});
 $('#insProps').addEventListener('click',e=>{if(!e.target.closest('[data-act=demo]'))return;const p=sel&&sel.kind==='part'?part(sel.id):null;if(p)openDemo(p.type)});
+
+/* ---------- AI: build with AI and the Circuit Doctor (premium, with free tries) ---------- */
+const AI_FREE=3;
+const AI_IDEAS=['Smart dustbin that opens when a hand comes near','Traffic light with three LEDs','Night lamp that turns on in the dark','Fire alarm with a flame sensor','Clap switch for a light','Robot car with obstacle sensor'];
+// The AI runs on calmtype.life. Pages served from there call it directly; other copies call the public site.
+const aiBase=()=>/(^|\.)calmtype\.life$|workers\.dev$|^localhost$|^127\./.test(location.hostname)?'':'https://calmtype.life';
+const aiUsed=()=>{try{return +(store.get('circuitArena.aiUsed')||0)}catch(e){return 0}};
+const isPremium=()=>{try{return store.get('circuitArena.premium')==='1'}catch(e){return false}};
+const aiLeft=()=>isPremium()?Infinity:Math.max(0,AI_FREE-aiUsed());
+const aiSpend=()=>{if(!isPremium())try{store.set('circuitArena.aiUsed',String(aiUsed()+1))}catch(e){}};
+function aiQuota(){const n=aiLeft();const out=n<=0;$('#aiGo').disabled=out;$('#aiAsk').disabled=out;$('#aiGo').textContent=out?'🔒 Premium':'✨ Build it';$('#aiAsk').textContent=out?'🔒 Premium':'🔍 Check my circuit';$('#aiQuota').innerHTML=isPremium()?'💎 Premium: AI is unlocked.':n>0?`🎁 <b>${n} free AI ${n===1?'try':'tries'} left.</b> Premium gives you unlimited AI builds, the Circuit Doctor and advanced coding.`:
+  '🔒 <b>Your free AI tries are used up.</b> Premium (₹79/month) unlocks unlimited AI builds, the Circuit Doctor and advanced coding — <b>coming very soon</b>.'}
+async function aiPost(path,body){
+  if(NB)throw new Error('app');
+  let r;try{r=await fetch(aiBase()+path,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)})}catch(e){throw new Error('offline')}
+  let j={};try{j=await r.json()}catch(e){}
+  if(!r.ok)throw new Error(j.error||'http');return j}
+const aiErrText=e=>({app:'AI needs the internet, so it works in the web version at calmtype.life/circuit-arena for now. It is coming to the app soon.',
+  offline:'Could not reach the AI. Check your internet and try again.',limit:'You have used today\'s AI limit. Try again tomorrow.',not_configured:'AI is being set up. Please try again a little later.',
+  ai_failed:'The AI had a problem. Please try again.',empty:'Type what you want to build first.'}[e.message]||'Something went wrong. Please try again.');
+// Turn the AI's answer into a build the simulator accepts, listing every problem it finds.
+function aiToDef(b){const errs=[],parts=[],map=[];
+  (Array.isArray(b.parts)?b.parts:[]).slice(0,16).forEach((p,i)=>{const d=p&&PD[p.type];if(!d){errs.push(`Part ${i}: unknown type "${p&&p.type}"`);map.push(-1);return}
+    const props={};Object.entries(p.props&&typeof p.props==='object'?p.props:{}).forEach(([k,v])=>{if(d.props&&k in d.props&&k!=='code'&&typeof v===typeof d.props[k])props[k]=v});
+    if(p.type==='led'&&props.color&&!LEDC[props.color])delete props.color;if(p.type==='battery'&&props.preset&&!BATT[props.preset])delete props.preset;
+    map.push(parts.length);parts.push([p.type,clamp(+p.x||100,20,920),clamp(+p.y||100,40,540),props])});
+  const conns=[],seen=new Set();
+  (Array.isArray(b.wires)?b.wires:[]).forEach((w,k)=>{const ia=map[w&&w.a],ib=map[w&&w.b];
+    if(ia==null||ib==null||ia<0||ib<0){errs.push(`Wire ${k}: part index out of range`);return}
+    const pa=PD[parts[ia][0]].ports.map(q=>q[0]),pb=PD[parts[ib][0]].ports.map(q=>q[0]);
+    if(!pa.includes(w.pa)){errs.push(`Wire ${k}: ${parts[ia][0]} has no pin "${w.pa}" (it has ${pa.join(', ')})`);return}
+    if(!pb.includes(w.pb)){errs.push(`Wire ${k}: ${parts[ib][0]} has no pin "${w.pb}" (it has ${pb.join(', ')})`);return}
+    if(ia===ib&&w.pa===w.pb)return;const key=[ia+w.pa,ib+w.pb].sort().join('|');if(seen.has(key))return;seen.add(key);conns.push([ia,w.pa,ib,w.pb])});
+  parts.forEach((p,i)=>{if(!conns.some(c=>c[0]===i||c[2]===i))errs.push(`Part ${i} (${p[0]}) has no wires`)});
+  const board=parts.find(p=>PD[p[0]].board);const bpins=board?PD[board[0]].ports.map(q=>q[0]):[];
+  const rules=[];(Array.isArray(b.rules)?b.rules:[]).forEach((r,k)=>{if(!board){errs.push('Rules need an Arduino, Raspberry Pi or Pico board');return}
+    if(r.in!=='*'&&!bpins.includes(r.in)){errs.push(`Rule ${k}: the ${board[0]} has no pin "${r.in}"`);return}
+    if(!bpins.includes(r.out)){errs.push(`Rule ${k}: the ${board[0]} has no output pin "${r.out}"`);return}
+    rules.push(RU(r.in,['<','>','=','!=','<=','>='].includes(r.op)?r.op:'<',isFinite(r.value)?+r.value:0,r.out,String(r.then??'1').slice(0,80),String(r.else??'0').slice(0,80)))});
+  (Array.isArray(b.code)?b.code:[]).forEach(c=>{const i=map[c&&c.part];if(i==null||i<0||!['mcu','esp32'].includes(parts[i][0])){errs.push('Code was given for a part that is not mcu or esp32');return}
+    const src=String(c.source||'').slice(0,6000);try{icCompile(src);parts[i][3].code=src}catch(e){errs.push(`Code for part ${c.part}: line ${e.line||'?'}: ${e.msg||e.message}`)}});
+  parts.forEach((p,i)=>{if(['mcu','esp32'].includes(p[0])&&!p[3].code)errs.push(`Part ${i} (${p[0]}) needs code`)});
+  if(!parts.length)errs.push('No parts');
+  const envVals={};Object.entries(b.env&&typeof b.env==='object'?b.env:{}).forEach(([k,v])=>{if(k in ENV0&&isFinite(v))envVals[k]=+v});
+  return {def:{parts,conns,rules,envVals,title:String(b.title||'AI build').slice(0,60),summary:String(b.summary||'').slice(0,300),try:String(b.try||'').slice(0,300),learn:String(b.how||'').slice(0,600),prompt:''},errors:errs}}
+function loadAIBuild(def){setView('play');loadLevel(SB);buildFrom(def,true,true);
+  S.env={...ENV0,...(def.envVals||{})};S.sbWorld='auto';S.cloud={send:{},ctl:{}};S.personKey=null;resetWorld();S.wType=undefined;
+  S.demo={ai:true,def,t:null,focus:[]};hist.length=0;portraitLayout();onStructure();renderEnv();renderMission();if(isPhone())showSec('mission');requestAnimationFrame(fitCam)}
+function aiGuide(){const def=S.demo.def,nm=i=>pnm(def.parts[i][0]);const code=(def.rules||[]).filter(r=>r.out).map(ruleText);
+  return `${def.try?`<p class="eyebrow" style="margin-top:10px">Try this</p><p class="dtry">👉 ${esc(def.try)}</p>`:''}
+    ${def.learn?`<p class="eyebrow" style="margin-top:10px">How it works</p><p>${esc(def.learn)}</p>`:''}
+    ${code.length?`<p class="eyebrow">Code on the board</p><div class="dcode">${esc(code.join('\n'))}</div>`:''}
+    <details class="hint"><summary>All connections (${def.conns.length})</summary><ol class="dlist">${def.conns.map(([i,pi,j,pj])=>`<li>${esc(nm(i))} <b>${esc(pi)}</b> → ${esc(nm(j))} <b>${esc(pj)}</b></li>`).join('')}</ol></details>
+    <p class="extra">Built by AI from: "${esc(def.prompt)}". Check it, change it, make it yours.</p>
+    <div class="row"><button class="btn sm" data-aidoctor>🔍 Ask the Doctor</button><button class="btn sm" data-aiagain>✨ Build something else</button></div>`}
+function aiCircuit(){const des=designators();
+  return {parts:S.parts.map(p=>{const st=p.st||{},o={id:des[p.id],type:p.type,name:pname(p)};const v={};['r','v','preset','color','pos'].forEach(k=>{if(p.props&&p.props[k]!=null)v[k]=p.props[k]});
+      if(Object.keys(v).length)o.values=v;if(typeof st.v==='number')o.volts=+st.v.toFixed(2);if(typeof st.i==='number')o.mA=+(st.i*1000).toFixed(1);
+      if(st.on!=null)o.on=!!st.on;if(p.burnt)o.burnt=true;if(st.msg)o.warning=st.msg;if(p.props&&p.props.code)o.code=String(p.props.code).slice(0,1500);return o}),
+    wires:S.wires.map(([a,b])=>[a,b].map(k=>{const i=k.indexOf(':');return des[+k.slice(0,i)]+':'+k.slice(i+1)}).join(' - ')),
+    rules:S.rules.filter(r=>r.out).map(ruleText),inputs:Object.fromEntries(envKeys().map(k=>[k,S.env[k]]))}}
+function aiTab(t){document.querySelectorAll('[data-aitab]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.aitab===t)));$('#aiBuild').hidden=t!=='build';$('#aiDoctor').hidden=t!=='doctor'}
+function openAI(tab){$('#aiIdeas').innerHTML=AI_IDEAS.map(x=>`<button class="chip" data-aiidea="${esc(x)}">${esc(x)}</button>`).join('');
+  $('#aiMsg').textContent='';aiQuota();aiTab(tab||'build');$('#aiModal').hidden=false}
+function aiBusy(btn,on){btn.disabled=on;btn.classList.toggle('aibusy',on)}
+$('#bAI').onclick=()=>openAI('build');$('#aiClose').onclick=()=>{$('#aiModal').hidden=true};
+document.querySelector('#aiModal').addEventListener('click',e=>{const t=e.target.closest('[data-aitab]');if(t){aiTab(t.dataset.aitab);return}
+  const i=e.target.closest('[data-aiidea]');if(i){$('#aiPrompt').value=i.dataset.aiidea;$('#aiPrompt').focus()}if(e.target.id==='aiModal')$('#aiModal').hidden=true});
+$('#aiGo').onclick=async()=>{const prompt=$('#aiPrompt').value.trim();if(prompt.length<3){$('#aiMsg').textContent=aiErrText({message:'empty'});return}
+  if(aiLeft()<=0){aiQuota();$('#aiMsg').textContent='';return}
+  const btn=$('#aiGo');aiBusy(btn,true);$('#aiMsg').textContent='The AI is designing your circuit… (about 10 seconds)';
+  try{let r=await aiPost('/api/ai/build',{prompt});let res=aiToDef(r.build||{});
+    if(!(r.build&&Array.isArray(r.build.parts)&&r.build.parts.length)){$('#aiMsg').textContent=(r.build&&r.build.summary)||'The AI could not build that. Try describing an electronics project.';return}
+    if(res.errors.length){$('#aiMsg').textContent='Fixing a few wires…';r=await aiPost('/api/ai/build',{prompt,repair:{previous:r.build,errors:res.errors}});res=aiToDef(r.build||{})}
+    if(!res.def.parts.length||!res.def.conns.length){$('#aiMsg').textContent='The AI made a circuit the simulator cannot use. Try saying it another way.';return}
+    res.def.prompt=prompt;aiSpend();$('#aiModal').hidden=true;loadAIBuild(res.def);
+    flash(res.errors.length?'AI build loaded. A few connections were skipped, so check the wiring.':'AI build ready: '+res.def.title)}
+  catch(e){$('#aiMsg').textContent=aiErrText(e)}finally{aiBusy(btn,false);aiQuota()}};
+$('#aiAsk').onclick=async()=>{if(!S.parts.length){$('#aiMsg').textContent='Put a circuit on the bench first.';return}if(aiLeft()<=0){aiQuota();return}
+  const btn=$('#aiAsk');aiBusy(btn,true);$('#aiAns').hidden=true;$('#aiMsg').textContent='The doctor is checking your circuit…';
+  try{const r=await aiPost('/api/ai/doctor',{question:$('#aiQ').value.trim()||'What is wrong with my circuit, and how do I fix it?',circuit:aiCircuit()});
+    aiSpend();$('#aiAns').textContent=r.answer;$('#aiAns').hidden=false;$('#aiMsg').textContent=''}
+  catch(e){$('#aiMsg').textContent=aiErrText(e)}finally{aiBusy(btn,false);aiQuota()}};
 
 /* ---------- Native helpers (Android app) with browser fallbacks ---------- */
 const NB=(()=>{try{return window.NativeBridge||null}catch(e){return null}})();
@@ -3227,7 +3339,7 @@ $('#setTips').onclick=()=>{try{store.set('circuitArena.tips','1');store.set('cir
 let resetArm=0;$('#setReset').onclick=()=>{if(Date.now()-resetArm>3000){resetArm=Date.now();$('#setReset').textContent='Tap again to reset';setTimeout(()=>{$('#setReset').textContent='Reset'},3000);return}
   best={};saveBest();resetArm=0;$('#setReset').textContent='Reset';renderLevels();renderHome();flash('Progress reset.')};
 // Android back button (called by the native app): close the top layer, then go Home, then let the app exit
-window.CA={back(){if(document.body.classList.contains('creator')){setCreator(false);return true}for(const id of ['#palette','#icModal','#codeModal','#shareModal','#reportModal','#bioModal','#modal']){if(!$(id).hidden){$(id).hidden=true;return true}}
+window.CA={back(){if(document.body.classList.contains('creator')){setCreator(false);return true}for(const id of ['#palette','#icModal','#codeModal','#aiModal','#shareModal','#reportModal','#bioModal','#modal']){if(!$(id).hidden){$(id).hidden=true;return true}}
   if(view==='projects'&&!$('#pDetail').hidden){$('#pDetail').hidden=true;$('#pList').hidden=false;return true}
   if(view==='parts'&&!$('#cDetail').hidden){$('#cDetail').hidden=true;$('#cList').hidden=false;return true}
   if(pending||sel){pending=null;sel=null;return true}
