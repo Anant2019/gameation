@@ -3050,7 +3050,7 @@ async function aiPost(path,body){
   let r;try{r=await fetch(aiBase()+path,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)})}catch(e){throw new Error('offline')}
   let j={};try{j=await r.json()}catch(e){}
   if(!r.ok)throw new Error(j.error||'http');return j}
-const aiErrText=e=>({app:'AI needs the internet, so it works in the web version at calmtype.life/circuit-arena for now. It is coming to the app soon.',
+const aiErrText=e=>e.message==='offline'&&aiBase()?'The AI works on the website: open calmtype.life/circuit-arena to build with AI.':({app:'AI needs the internet, so it works in the web version at calmtype.life/circuit-arena for now. It is coming to the app soon.',
   offline:'Could not reach the AI. Check your internet and try again.',limit:'You have used today\'s AI limit. Try again tomorrow.',not_configured:'AI is being set up. Please try again a little later.',
   ai_failed:'The AI had a problem. Please try again.',empty:'Type what you want to build first.'}[e.message]||'Something went wrong. Please try again.');
 // Turn the AI's answer into a build the simulator accepts, listing every problem it finds.

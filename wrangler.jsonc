@@ -5,6 +5,9 @@
   "compatibility_date": "2026-10-23",
   "workers_dev": true,
   "preview_urls": false,
+  "ai": {
+    "binding": "AI"
+  },
   "assets": {
     "directory": ".",
     "binding": "ASSETS",

@@ -1,10 +1,12 @@
 // AI features for Circuit Arena: "build with AI" and the "Circuit Doctor".
-// The API key stays here on the server (Cloudflare secret ANTHROPIC_API_KEY).
+// Uses Claude when the Cloudflare secret ANTHROPIC_API_KEY is set, otherwise Cloudflare Workers AI (no key needed).
 // Clients only send a short request; the prompts are fixed here, so the key
 // cannot be used as a general chatbot.
 import CATALOG from './catalog.json';
 
 const MODEL = 'claude-haiku-5-5';
+// Used when no Anthropic key is set: Cloudflare Workers AI, no key needed (free daily allowance).
+const CF_MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
 const API = 'https://api.anthropic.com/v1/messages';
 const ORIGINS = ['https://calmtype.life', 'https://www.calmtype.life', 'https://gameation.anant-21920010.workers.dev'];
 // Requests per IP per day, counted in each Cloudflare location (good enough to stop abuse).
@@ -69,8 +71,7 @@ const DOCTOR_SYSTEM = `You are the Circuit Doctor in Circuit Arena, an electroni
 You get the player's circuit as JSON (parts with id, type, values, live readings and warnings; wires between "id:pin"; board rules; chip code) and their question.
 Find what is wrong or answer the question. Reply in the player's language (Hindi or Hinglish if they write that way), under 130 words, friendly and concrete:
 first one line on the cause, then numbered fixes that name the parts and pins exactly. Mention safe current limits when something burnt.
-Part reference:
-${CATALOG.parts}`;
+Facts: an LED needs a series resistor (about 330 ohm on 9 V, 220 ohm on 5 V) and burns above 50 mA; a 1/4 W resistor burns above 1 W; modules need VCC, GND and their signal pin wired; boards are powered over USB.`;
 
 const json = (body, status = 200, origin) => new Response(JSON.stringify(body), {
   status, headers: { 'content-type': 'application/json; charset=utf-8', ...cors(origin) },
@@ -102,6 +103,20 @@ async function callClaude(env, body) {
   return r.json();
 }
 
+// Workers AI: same prompts, JSON mode instead of a tool call.
+async function cfRun(env, messages, opts) {
+  const out = await env.AI.run(env.AI_MODEL || CF_MODEL, { messages, max_tokens: opts.max_tokens, ...(opts.schema ? { response_format: { type: 'json_schema', json_schema: opts.schema } } : {}) });
+  const r = out && out.response;
+  if (opts.schema) {
+    if (r && typeof r === 'object') return r;
+    const t = String(r || '');
+    const a = t.indexOf('{'), b = t.lastIndexOf('}');
+    if (a < 0 || b <= a) throw new Error('no json');
+    return JSON.parse(t.slice(a, b + 1));
+  }
+  return String(r || '').trim();
+}
+
 async function build(request, env, origin, input) {
   const prompt = String(input.prompt || '').trim().slice(0, 400);
   if (prompt.length < 3) return json({ error: 'empty' }, 400, origin);
@@ -113,6 +128,19 @@ async function build(request, env, origin, input) {
     if (hit) return json({ ...(await hit.json()), cached: true }, 200, origin);
   }
   if (await overLimit(request, 'build')) return json({ error: 'limit' }, 429, origin);
+  if (!env.ANTHROPIC_API_KEY) {
+    const msgs = [{ role: 'system', content: BUILD_SYSTEM + '\nReply with only the JSON object.' }, { role: 'user', content: prompt }];
+    if (repair) {
+      msgs.push({ role: 'assistant', content: JSON.stringify(repair.previous || {}) });
+      msgs.push({ role: 'user', content: 'The simulator rejected this circuit:\n' + (repair.errors || []).slice(0, 12).join('\n') + '\nFix every problem and reply with the whole corrected JSON.' });
+    }
+    const b = await cfRun(env, msgs, { max_tokens: 2500, schema: BUILD_TOOL.input_schema });
+    const result = { build: b };
+    if (!repair && Array.isArray(b.parts) && b.parts.length) {
+      await caches.default.put(cacheKey, new Response(JSON.stringify(result), { headers: { 'cache-control': 'max-age=604800' } }));
+    }
+    return json(result, 200, origin);
+  }
   const messages = [{ role: 'user', content: prompt }];
   if (repair) {
     messages.push({ role: 'assistant', content: [{ type: 'tool_use', id: 'prev', name: 'build_circuit', input: repair.previous || {} }] });
@@ -138,6 +166,10 @@ async function doctor(request, env, origin, input) {
   const question = String(input.question || 'What is wrong with my circuit?').trim().slice(0, 400);
   const circuit = JSON.stringify(input.circuit || {}).slice(0, 12000);
   if (await overLimit(request, 'doctor')) return json({ error: 'limit' }, 429, origin);
+  if (!env.ANTHROPIC_API_KEY) {
+    const text = await cfRun(env, [{ role: 'system', content: DOCTOR_SYSTEM }, { role: 'user', content: `Circuit:\n${circuit}\n\nQuestion: ${question}` }], { max_tokens: 700 });
+    return json({ answer: text || 'Sorry, I could not read this circuit. Try again.' }, 200, origin);
+  }
   const out = await callClaude(env, {
     model: MODEL, max_tokens: 700,
     system: [{ type: 'text', text: DOCTOR_SYSTEM, cache_control: { type: 'ephemeral' } }],
@@ -151,7 +183,7 @@ export async function handleAI(request, env) {
   const origin = request.headers.get('origin');
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors(origin) });
   if (request.method !== 'POST') return json({ error: 'method' }, 405, origin);
-  if (!env.ANTHROPIC_API_KEY) return json({ error: 'not_configured' }, 503, origin);
+  if (!env.ANTHROPIC_API_KEY && !env.AI) return json({ error: 'not_configured' }, 503, origin);
   let input;
   try { input = await request.json(); } catch (e) { return json({ error: 'bad_json' }, 400, origin); }
   const path = new URL(request.url).pathname;
