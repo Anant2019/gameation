@@ -3075,9 +3075,30 @@ function aiToDef(b){const errs=[],parts=[],map=[];
   (Array.isArray(b.code)?b.code:[]).forEach(c=>{const i=map[c&&c.part];if(i==null||i<0||!['mcu','esp32'].includes(parts[i][0])){errs.push('Code was given for a part that is not mcu or esp32');return}
     const src=String(c.source||'').slice(0,6000);try{icCompile(src);parts[i][3].code=src}catch(e){errs.push(`Code for part ${c.part}: line ${e.line||'?'}: ${e.msg||e.message}`)}});
   parts.forEach((p,i)=>{if(['mcu','esp32'].includes(p[0])&&!p[3].code)errs.push(`Part ${i} (${p[0]}) needs code`)});
+  // Each rule must read a pin that is wired to a sensor, use a value in that sensor's range, and drive a wired pin.
+  if(board){const bi=parts.indexOf(board);const peer=pin=>{const c=conns.find(c=>(c[0]===bi&&c[1]===pin)||(c[2]===bi&&c[3]===pin));if(!c)return null;return c[0]===bi?{i:c[2],pin:c[3]}:{i:c[0],pin:c[1]}};
+    rules.forEach((r,k)=>{if(r.in1!=='*'){const pr=peer(r.in1);if(!pr){errs.push(`Rule ${k}: board pin ${r.in1} is not wired to any sensor`);}
+        else{const t=parts[pr.i][0],key=PD[t].sensor,d=key&&ENVDEF[key];
+          if(d&&d[1]!=null&&(r.v1<d[1]||r.v1>d[2]))errs.push(`Rule ${k}: ${r.in1} reads the ${t} as ${d[0].toLowerCase()} in ${d[3]||'units'} from ${d[1]} to ${d[2]}, so ${r.v1} is out of range`);
+          if(d&&d[1]==null&&![0,1].includes(r.v1))errs.push(`Rule ${k}: the ${t} on ${r.in1} gives only 0 or 1, so compare with = 1`)}}
+      const po=peer(r.out);if(!po){errs.push(`Rule ${k}: output pin ${r.out} is not wired to anything`);return}
+      if(parts[po.i][0]==='servo'){[r.then,r.else].forEach(v=>{if(isFinite(v)&&(+v<0||+v>180))errs.push(`Rule ${k}: a servo angle must be 0-180, not ${v}`)})}})}
   if(!parts.length)errs.push('No parts');
   const envVals={};Object.entries(b.env&&typeof b.env==='object'?b.env:{}).forEach(([k,v])=>{if(k in ENV0&&isFinite(v))envVals[k]=+v});
   return {def:{parts,conns,rules,envVals,title:String(b.title||'AI build').slice(0,60),summary:String(b.summary||'').slice(0,300),try:String(b.try||'').slice(0,300),learn:String(b.how||'').slice(0,600),prompt:''},errors:errs}}
+// Runs the loaded circuit for a moment at each sensor's low and high value and reports
+// whether any output (light, motor, servo, sound...) changes. Returns a problem message or null.
+function aiSelfTest(){const keys=envKeys().filter(k=>ENVDEF[k]);if(!keys.length)return null;
+  const outs=S.parts.filter(p=>['led','lamp','bulb','alarm','buzzer','fan','relay','pump','lock','servo','motor','vib','driver'].includes(p.type));if(!outs.length)return null;
+  const sig=()=>outs.map(p=>p.type==='servo'?Math.round((p.st.target||0)/10):p.type==='motor'?Math.sign(Math.round((p.st.speed||0)*10)):p.type==='driver'?Math.round((p.st.vbat||0)):p.st.on?1:0).join(',');
+  const step=n=>{for(let i=0;i<n;i++){const aw=activeWorld();worldPre(aw);runICs(1/30);simulate();runChips(1/30);runNeurons(1/30);worldStep(aw,1/30)}};
+  const saved={...S.env};let changed=false;
+  for(const k of keys){const d=ENVDEF[k];const lo=d[1]!=null?d[1]:0,hi=d[1]!=null?d[2]:1;
+    S.env[k]=lo;step(20);const a=sig();S.env[k]=hi;step(20);const b=sig();S.env[k]=saved[k];if(a!==b){changed=true;break}}
+  S.env={...saved};step(5);const burnt=S.parts.filter(p=>p.burnt).map(p=>p.type);
+  if(burnt.length)return `These parts burn out when the circuit runs: ${burnt.join(', ')}. Add the right resistors or power.`;
+  if(!changed)return `Nothing reacts: when ${keys.map(k=>ENVDEF[k][0].toLowerCase()).join(' / ')} goes from low to high, no output (${[...new Set(outs.map(p=>p.type))].join(', ')}) changes. Check that each rule reads the pin wired to the sensor and drives the pin wired to the output, with values in the sensor's range.`;
+  return null}
 function loadAIBuild(def){setView('play');loadLevel(SB);buildFrom(def,true,true);
   S.env={...ENV0,...(def.envVals||{})};S.sbWorld='auto';S.cloud={send:{},ctl:{}};S.personKey=null;resetWorld();S.wType=undefined;
   S.demo={ai:true,def,t:null,focus:[]};hist.length=0;portraitLayout();onStructure();renderEnv();renderMission();if(isPhone())showSec('mission');requestAnimationFrame(fitCam)}
@@ -3108,8 +3129,12 @@ $('#aiGo').onclick=async()=>{const prompt=$('#aiPrompt').value.trim();if(prompt.
     if(!(r.build&&Array.isArray(r.build.parts)&&r.build.parts.length)){$('#aiMsg').textContent=(r.build&&r.build.summary)||'The AI could not build that. Try describing an electronics project.';return}
     if(res.errors.length){$('#aiMsg').textContent='Fixing a few wires…';r=await aiPost('/api/ai/build',{prompt,repair:{previous:r.build,errors:res.errors}});res=aiToDef(r.build||{})}
     if(!res.def.parts.length||!res.def.conns.length){$('#aiMsg').textContent='The AI made a circuit the simulator cannot use. Try saying it another way.';return}
-    res.def.prompt=prompt;aiSpend();$('#aiModal').hidden=true;loadAIBuild(res.def);
-    flash(res.errors.length?'AI build loaded. A few connections were skipped, so check the wiring.':'AI build ready: '+res.def.title)}
+    res.def.prompt=prompt;loadAIBuild(res.def);
+    let problem=aiSelfTest();
+    if(problem){$('#aiMsg').textContent='Testing it… making it actually work.';const r2=await aiPost('/api/ai/build',{prompt,repair:{previous:r.build,errors:[...res.errors,problem]}});const res2=aiToDef(r2.build||{});
+      if(res2.def.parts.length&&res2.def.conns.length){res2.def.prompt=prompt;loadAIBuild(res2.def);const p2=aiSelfTest();if(!p2||res2.errors.length<=res.errors.length){res=res2;problem=p2}else loadAIBuild(res.def)}}
+    aiSpend();$('#aiModal').hidden=true;
+    flash(problem?'AI build loaded, but it may need a fix: tap 🔍 Ask the Doctor.':res.errors.length?'AI build loaded. A few connections were skipped, so check the wiring.':'AI build ready and tested: '+res.def.title)}
   catch(e){$('#aiMsg').textContent=aiErrText(e)}finally{aiBusy(btn,false);aiQuota()}};
 $('#aiAsk').onclick=async()=>{if(!S.parts.length){$('#aiMsg').textContent='Put a circuit on the bench first.';return}if(aiLeft()<=0){aiQuota();return}
   const btn=$('#aiAsk');aiBusy(btn,true);$('#aiAns').hidden=true;$('#aiMsg').textContent='The doctor is checking your circuit…';

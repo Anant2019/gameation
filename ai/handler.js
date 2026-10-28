@@ -10,7 +10,7 @@ const CF_MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
 const API = 'https://api.anthropic.com/v1/messages';
 const ORIGINS = ['https://calmtype.life', 'https://www.calmtype.life', 'https://gameation.anant-21920010.workers.dev'];
 // Requests per IP per day, counted in each Cloudflare location (good enough to stop abuse).
-const DAILY = { build: 8, doctor: 15 };
+const DAILY = { build: 15, doctor: 15 };
 
 const BUILD_TOOL = {
   name: 'build_circuit',
@@ -65,7 +65,13 @@ ${CATALOG.icExample}
 Layout: x between 40 and 900, y between 60 and 520, at least 140 apart; put the board near the bottom middle. Use at most 12 parts. Keep it simple and working.
 Set "env" so the circuit starts in a sensible state, and write "try" so the player knows what to move in Controls.
 Only build low-voltage hobby electronics. If the request is unsafe (mains wiring, weapons) or not an electronics build, return an empty parts list and explain in "summary" what you can build instead.
-Reply in the player's language for title, summary, try and how (Hindi or Hinglish if they write that way).`;
+Reply in the player's language for title, summary, try and how (Hindi or Hinglish if they write that way).
+
+Two correct examples (note: each rule reads the exact board pin the sensor OUT is wired to, writes the exact pin the output SIG is wired to, and compares in the sensor's own units):
+Request: smart dustbin
+{"title": "Smart Dustbin", "summary": "The lid opens by itself when a hand comes close.", "parts": [{"type": "arduino", "x": 360, "y": 330}, {"type": "ultrasonic", "x": 150, "y": 110}, {"type": "servo", "x": 660, "y": 130}], "wires": [{"a": 1, "pa": "VCC", "b": 0, "pb": "5V"}, {"a": 1, "pa": "GND", "b": 0, "pb": "GND"}, {"a": 1, "pa": "OUT", "b": 0, "pb": "D2"}, {"a": 2, "pa": "VCC", "b": 0, "pb": "5V"}, {"a": 2, "pa": "GND", "b": 0, "pb": "GND"}, {"a": 2, "pa": "SIG", "b": 0, "pb": "D3"}], "rules": [{"in": "D2", "op": "<", "value": 20, "out": "D3", "then": "90", "else": "0"}], "env": {"distance": 100}, "try": "In Controls, bring the hand distance below 20 cm: the lid opens.", "how": "The ultrasonic sensor measures distance in cm on D2. When it is under 20 cm the Arduino turns the servo on D3 to 90 degrees."}
+Request: night lamp
+{"title": "Night Lamp", "summary": "A bulb switches on by itself when it gets dark.", "parts": [{"type": "arduino", "x": 380, "y": 340}, {"type": "ldr", "x": 150, "y": 120}, {"type": "bulb", "x": 650, "y": 110}], "wires": [{"a": 1, "pa": "VCC", "b": 0, "pb": "5V"}, {"a": 1, "pa": "GND", "b": 0, "pb": "GND"}, {"a": 1, "pa": "OUT", "b": 0, "pb": "A0"}, {"a": 2, "pa": "VCC", "b": 0, "pb": "5V"}, {"a": 2, "pa": "GND", "b": 0, "pb": "GND"}, {"a": 2, "pa": "SIG", "b": 0, "pb": "D5"}], "rules": [{"in": "A0", "op": "<", "value": 40, "out": "D5", "then": "1", "else": "0"}], "env": {"light": 80}, "try": "In Controls, drag the light level below 40%: the bulb turns on.", "how": "The LDR module reports light from 0 to 100% on A0. Below 40% the Arduino switches the bulb on D5."}`;
 
 const DOCTOR_SYSTEM = `You are the Circuit Doctor in Circuit Arena, an electronics simulator game for students.
 You get the player's circuit as JSON (parts with id, type, values, live readings and warnings; wires between "id:pin"; board rules; chip code) and their question.
@@ -122,7 +128,7 @@ async function build(request, env, origin, input) {
   if (prompt.length < 3) return json({ error: 'empty' }, 400, origin);
   const repair = input.repair && typeof input.repair === 'object' ? input.repair : null;
   // Popular requests are cached for a week so they are free and instant the second time.
-  const cacheKey = new Request('https://ai-cache.local/build/' + encodeURIComponent(prompt.toLowerCase().replace(/\s+/g, ' ')));
+  const cacheKey = new Request('https://ai-cache.local/build-v2/' + encodeURIComponent(prompt.toLowerCase().replace(/\s+/g, ' ')));
   if (!repair) {
     const hit = await caches.default.match(cacheKey);
     if (hit) return json({ ...(await hit.json()), cached: true }, 200, origin);
