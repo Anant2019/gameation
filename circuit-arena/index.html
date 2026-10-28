@@ -473,6 +473,12 @@ table.conn td{padding:6px;border-bottom:1px solid var(--line);vertical-align:top
 .aians{margin-top:12px;padding:10px 12px;border:1px solid var(--line);border-left:4px solid var(--copper);border-radius:8px;background:var(--bench);font-size:14px;line-height:1.55;white-space:pre-wrap}
 .aibusy::after{content:'';display:inline-block;width:12px;height:12px;margin-left:8px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;vertical-align:-2px;animation:aispin .8s linear infinite}
 @keyframes aispin{to{transform:rotate(360deg)}}
+.btn.aitop,.btn.aihero{background:linear-gradient(135deg,#f3d488,#e3884b);color:#1a0f07;border:none;font-weight:800;box-shadow:0 0 0 0 rgba(227,136,75,.6);animation:aipulse 2.4s ease-out infinite}
+.btn.aitop{min-height:36px;padding:5px 12px;border-radius:999px}
+.btn.aihero{order:-1}
+@keyframes aipulse{0%{box-shadow:0 0 0 0 rgba(227,136,75,.55)}70%{box-shadow:0 0 0 10px rgba(227,136,75,0)}100%{box-shadow:0 0 0 0 rgba(227,136,75,0)}}
+.htile[data-go="ai"]{border-color:var(--copper);background:linear-gradient(135deg,rgba(243,212,136,.18),rgba(227,136,75,.12))}
+@media (prefers-reduced-motion:reduce){.btn.aitop,.btn.aihero{animation:none}}
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
 </style>
 
@@ -497,6 +503,7 @@ table.conn td{padding:6px;border-bottom:1px solid var(--line);vertical-align:top
     <button class="tab" data-view="parts" aria-label="Parts" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h10v10H7zM10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"/></svg><span>Parts</span></button>
   </nav>
   <div class="hdr-actions">
+    <button class="btn aitop" id="bAITop" aria-label="Build with AI">✨ <span>AI</span></button>
     <select id="lvlSel" class="lvlsel" aria-label="Choose a level"></select>
     <button class="searchbtn" id="bSearch" aria-label="Search everything"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l5 5"/></svg><span>Search</span><kbd>/</kbd></button>
     <button class="btn ic sound" id="bSound" aria-label="Sound" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="sw" d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11"/><path class="mx" d="M16 9l6 6M22 9l-6 6"/></svg></button>
@@ -530,6 +537,7 @@ table.conn td{padding:6px;border-bottom:1px solid var(--line);vertical-align:top
       <button class="btn primary" id="bTipsOk">Got it</button>
     </div>
     <div class="toolbar">
+      <button class="btn ai" id="bAI">✨ AI</button>
       <span id="sbTools" hidden style="display:contents">
         <select id="exSel" aria-label="Load an example"></select>
         <button class="btn" id="bEmpty">Empty</button>
@@ -541,7 +549,6 @@ table.conn td{padding:6px;border-bottom:1px solid var(--line);vertical-align:top
       <button class="btn" id="bClearW">Clear wires</button>
       <button class="btn" id="bRepair">Repair</button>
       <button class="btn" id="bReset">Reset</button>
-      <button class="btn ai" id="bAI">✨ AI</button>
       <button class="btn" id="bShare">Share</button>
       <button class="btn" id="bReport">Report</button>
       <button class="btn" id="bCreator" aria-label="Creator mode: hide the controls for recording">🎬 Creator</button>
@@ -615,7 +622,7 @@ table.conn td{padding:6px;border-bottom:1px solid var(--line);vertical-align:top
       <p class="eyebrow">Electronics · IoT · Neuroscience</p>
       <h2>Circuit Arena</h2>
       <p>Wire real parts, write code for chips, and watch robots, drones, phones and brain-controlled gadgets come alive.</p>
-      <div class="row"><button class="btn primary" data-go="continue">Continue</button><button class="btn" data-go="sandbox">Open Sandbox</button><button class="btn" data-go="search">Search</button></div>
+      <div class="row"><button class="btn aihero" data-go="ai">✨ Build with AI</button><button class="btn primary" data-go="continue">Continue</button><button class="btn" data-go="sandbox">Open Sandbox</button><button class="btn" data-go="search">Search</button></div>
       <p class="hstats" id="hStats"></p>
     </div>
     <svg class="heroart" viewBox="0 0 220 140" aria-hidden="true"><rect x="0" y="0" width="220" height="140" rx="12" fill="#0E1613"/>
@@ -3091,7 +3098,7 @@ function aiTab(t){document.querySelectorAll('[data-aitab]').forEach(b=>b.setAttr
 function openAI(tab){$('#aiIdeas').innerHTML=AI_IDEAS.map(x=>`<button class="chip" data-aiidea="${esc(x)}">${esc(x)}</button>`).join('');
   $('#aiMsg').textContent='';aiQuota();aiTab(tab||'build');$('#aiModal').hidden=false}
 function aiBusy(btn,on){btn.disabled=on;btn.classList.toggle('aibusy',on)}
-$('#bAI').onclick=()=>openAI('build');$('#aiClose').onclick=()=>{$('#aiModal').hidden=true};
+$('#bAI').onclick=()=>openAI('build');$('#bAITop').onclick=()=>openAI('build');$('#aiClose').onclick=()=>{$('#aiModal').hidden=true};
 document.querySelector('#aiModal').addEventListener('click',e=>{const t=e.target.closest('[data-aitab]');if(t){aiTab(t.dataset.aitab);return}
   const i=e.target.closest('[data-aiidea]');if(i){$('#aiPrompt').value=i.dataset.aiidea;$('#aiPrompt').focus()}if(e.target.id==='aiModal')$('#aiModal').hidden=true});
 $('#aiGo').onclick=async()=>{const prompt=$('#aiPrompt').value.trim();if(prompt.length<3){$('#aiMsg').textContent=aiErrText({message:'empty'});return}
@@ -3310,7 +3317,7 @@ function gfxTick(ts){if(GFX.mode!=='auto'||GFX.low>=2)return;if(!GFX.t0||ts-GFX.
 let vibOn=true;try{vibOn=store.get('circuitArena.vib')!=='0'}catch(e){}
 const haptic=ms=>{if(vibOn&&typeof navigator!=='undefined'&&navigator.vibrate)try{navigator.vibrate(ms)}catch(e){}};
 ['wire','add','pop','goal','win'].forEach(k=>{const f=SFX[k];const ms={wire:8,add:12,pop:[40,30,60],goal:[15,40,15],win:[30,50,30,50,60]}[k];SFX[k]=(...a)=>{haptic(ms);return f(...a)}});
-const HOME_TILES=[
+const HOME_TILES=[['ai','M12 3l1.8 4.6L18.5 9l-4.7 1.6L12 15l-1.8-4.4L5.5 9l4.7-1.4zM18 15l.9 2.1L21 18l-2.1.9L18 21l-.9-2.1L15 18l2.1-.9zM6 15l.6 1.4L8 17l-1.4.6L6 19l-.6-1.4L4 17l1.4-.6z','Build with AI','Describe it, the AI builds it'],
   ['levels','M5 19V9l7-5l7 5v10M9 19v-6h6v6','Levels','Seven challenges with stars'],
   ['sandbox','M4 6h16v12H4zM8 10h3M13 10h3M8 14h8','Sandbox','Every part, build anything'],
   ['build','M4 15l3-6h10l3 6v4H4zM7 19v2M17 19v2','Build','Car, drone, phone, watch and more'],
@@ -3324,6 +3331,7 @@ function renderHome(){const done=LEVELS.filter(l=>best[l.id]).length,starsN=LEVE
   $('#hGrid').innerHTML=HOME_TILES.map(([k,d,t,sub])=>`<button class="htile" data-go="${k}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg><b>${t}</b><span>${sub}</span></button>`).join('');
   $('#setSound').setAttribute('aria-pressed',String(!muted));$('#setVib').setAttribute('aria-pressed',String(vibOn))}
 function goHome(k){const exByTitle=t=>EXAMPLES.findIndex(x=>x.id===t);
+  if(k==='ai'){openAI('build');return}
   if(k==='continue'){setView('play');return}
   if(k==='search'){openPal();return}
   if(k==='levels'){setView('play');const i=LEVELS.findIndex((l,j)=>j<SB&&!best[l.id]);loadLevel(i<0?0:i);return}
