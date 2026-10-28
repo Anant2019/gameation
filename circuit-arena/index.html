@@ -3099,6 +3099,7 @@ Wiring rules:
 Logic:
 - For arduino/nano/mega/rpi/pi5/pizero/pico use rules: {in, op, value, out, then, else}. "in" is a board pin (or "*" for always). Sensor modules report real units (cm, °C, %, ppm, 0/1); raw analog parts (pot wiper, LM35) read 0-1023 on Arduino analog pins.
 - then/else accept numbers or formulas: map(x,a,b,c,d), constrain(x,a,b), blink(ms). 1 = ON, servo 0-180, PWM 0-255, motor driver -255 to 255.
+- Prefer an arduino with rules for anything that reacts to sensors: rules always work. Use mcu or esp32 code ONLY when you need a keypad, an LCD, Wi-Fi or counting/memory. Then keep the code short (under 40 lines), declare every variable, and use only the functions shown.
 - For mcu (pins P0-P5) and esp32 (pins G2...G34) write Arduino-style C in "code" [{part, source}] instead of rules. Extra functions: lcdPrint(row, text) for an lcd wired by DATA, getKey(pin) returns the keypad key pressed ("0"-"9", "+", "-", "*", "/", "=", "C") or "", isDigit(k), toInt(k). Example:
 ${c.ic}
 
@@ -3119,7 +3120,8 @@ Find what is wrong or answer the question. Reply in the player's language (Hindi
 first one line on the cause, then numbered fixes that name the parts and pins exactly. Mention safe current limits when something burnt.
 Facts: an LED needs a series resistor (about 330 ohm on 9 V, 220 ohm on 5 V) and burns above 50 mA; a 1/4 W resistor burns above 1 W; modules need VCC, GND and their signal pin wired; boards are powered over USB.`;
 const aiJSON=t=>{t=String(t||'');try{return JSON.parse(t)}catch(e){}const a=t.indexOf('{'),b=t.lastIndexOf('}');if(a<0||b<=a)throw new Error('ai_failed');try{return JSON.parse(t.slice(a,b+1))}catch(e){throw new Error('ai_failed')}};
-async function aiFetch(url,init){let r;try{r=await fetch(url,init)}catch(e){throw new Error('offline')}
+async function aiFetch(url,init){let r;const ac=typeof AbortController!=='undefined'?new AbortController():null,tm=ac&&setTimeout(()=>ac.abort(),45000);
+  try{r=await fetch(url,ac?{...init,signal:ac.signal}:init)}catch(e){throw new Error(e&&e.name==='AbortError'?'slow':'offline')}finally{if(tm)clearTimeout(tm)}
   if(!r.ok){let t='';try{t=await r.text()}catch(e){}let m=t;try{const j=JSON.parse(t);m=(j.error&&(j.error.message||j.error.type))||t}catch(e){}
     const er=new Error(r.status===401||r.status===403||/API_KEY_INVALID|invalid.{0,20}key|authentication/i.test(t)?'badkey':r.status===429||/RESOURCE_EXHAUSTED/.test(t)?'limit':'ai_failed');
     er.status=r.status;er.detail=String(m||'').replace(/\s+/g,' ').slice(0,160);throw er}
@@ -3136,7 +3138,7 @@ async function aiLLM(kind,messages){const k=aiKey();if(!k)throw new Error('nokey
   // A busy (5xx) or unknown (404) model moves on to the next one in the list.
   const contents=messages.map(m=>({role:m.role==='assistant'?'model':'user',parts:[{text:m.content}]}));let last=null;
   for(const model of AI_MODELS.gemini){for(let think=1;think>=0;think--){
-    const generationConfig={temperature:.3,maxOutputTokens:kind==='build'?32768:4096,...(kind==='build'?{responseMimeType:'application/json'}:{}),...(think?{thinkingConfig:{thinkingLevel:'low'}}:{})};
+    const generationConfig={temperature:.3,maxOutputTokens:kind==='build'?32768:4096,...(kind==='build'?{responseMimeType:'application/json'}:{}),...(think?{thinkingConfig:{thinkingLevel:'minimal'}}:{})};
     let j;try{j=await aiFetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,{method:'POST',headers:{'content-type':'application/json','x-goog-api-key':k.key},
       body:JSON.stringify({systemInstruction:{parts:[{text:system}]},contents,generationConfig})})}
     catch(e){last=e;if(e.message!=='ai_failed')throw e;
@@ -3157,7 +3159,7 @@ async function aiPost(path,body){
 const aiErrText=e=>({nokey:'Add your AI key first (Gemini is free).',badkey:'Your AI key was not accepted. Check it, or create a new one.',
   app:'AI needs the internet, so it works in the web version at calmtype.life/circuit-arena for now. It is coming to the app soon.',
   offline:'Could not reach the AI. Check your internet and try again.',limit:'Your AI key has hit its limit for now (Gemini free keys allow a set number of requests per minute and per day). Wait a bit and try again.',
-  ai_failed:'The AI had a problem. Please try again.',empty:'Type what you want to build first.'}[e.message]||'Something went wrong. Please try again.')+(e.message==='ai_failed'&&e.detail?` (${e.detail})`:'');
+  ai_failed:'The AI had a problem. Please try again.',slow:'The AI took too long to answer. Try again, or ask for something simpler.',empty:'Type what you want to build first.'}[e.message]||'Something went wrong. Please try again.')+(e.message==='ai_failed'&&e.detail?` (${e.detail})`:'');
 // Turn the AI's answer into a build the simulator accepts, listing every problem it finds.
 function aiToDef(b){const errs=[],parts=[],map=[];
   (Array.isArray(b.parts)?b.parts:[]).slice(0,16).forEach((p,i)=>{const d=p&&PD[p.type];if(!d){errs.push(`Part ${i}: unknown type "${p&&p.type}"`);map.push(-1);return}
@@ -3240,26 +3242,60 @@ document.querySelector('#aiModal').addEventListener('click',e=>{
     else if(a==='remove'){aiSetKey(null);aiEditing=false;aiQuota();$('#aiMsg').textContent='Key removed from this device.'}
     else if(a==='save'){const v=($('#aiKeyIn').value||'').trim();if(v.length<20){$('#aiMsg').textContent='That does not look like an API key. Copy the whole key and paste it.';return}
       aiSetKey({provider:aiProv,key:v});aiEditing=false;aiQuota();$('#aiMsg').textContent='Key saved on this device. Now type what you want to build.'}
-    return}if(e.target.id==='aiAnyway'&&aiPending){loadAIBuild(aiPending.def);aiPending=null;$('#aiModal').hidden=true;flash('Loaded with problems: tap 🔍 Ask the Doctor for fixes.');return}
+    return}if(e.target.id==='aiUseReady'&&aiReadyHit){aiLoadReady(aiReadyHit);aiReadyHit=null;return}
+    if(e.target.id==='aiCustom'){aiReadyHit=null;aiForce=true;$('#aiGo').onclick();return}
+    if(e.target.id==='aiAnyway'&&aiPending){loadAIBuild(aiPending.def);aiPending=null;$('#aiModal').hidden=true;flash('Loaded with problems: tap 🔍 Ask the Doctor for fixes.');return}
   const t=e.target.closest('[data-aitab]');if(t){aiTab(t.dataset.aitab);return}
   const i=e.target.closest('[data-aiidea]');if(i){$('#aiPrompt').value=i.dataset.aiidea;$('#aiPrompt').focus()}if(e.target.id==='aiModal')$('#aiModal').hidden=true});
+// Tested circuits from the game itself: common requests load one of these straight away, no AI call, always works.
+const AI_READY=[
+  ['ex','calculator',/calculat|hisab|keypad.{0,20}(lcd|display)/],
+  ['ex','555-4017',/chaser|4017|running\s*light/],
+  ['ex','555-blink',/\b555\b|astable/],
+  ['proj','night-lamp',/night\s*lamp|street\s*light|auto(matic)?\s*(light|lamp|batti)|(light|lamp|bulb|led|batti).{0,30}(dark|night|andher|raat)|(dark|andher|raat).{0,30}(light|lamp|bulb|led|batti|jal)/],
+  ['ex','dustbin',/dust\s*bin|kachr|trash|garbage|smart\s*bin/],
+  ['ex','traffic',/traffic/],
+  ['proj','parking',/parking|reverse\s*sensor/],
+  ['proj','burglar',/burglar|thief|\bchor|intruder|motion\s*(alarm|detect|sensor)|security\s*alarm|\bpir\b/],
+  ['proj','fan-alarm',/fire\s*alarm|\baag\b|(fan|pankha).{0,25}(temp|garmi|hot|heat)|(temp|garmi|hot|heat).{0,25}(fan|pankha)|auto(matic)?\s*(fan|pankha)/],
+  ['ex','mosfet-motor',/motor\s*speed|speed\s*control|fan\s*speed/],
+  ['proj','knob-servo',/servo.{0,20}(knob|pot)|(knob|pot).{0,20}servo/],
+  ['proj','dimmer',/dimmer|brightness|led.{0,15}(knob|pot)/],
+  ['proj','blink',/^\s*(an?\s+|ek\s+)?(led\s+)?blink(ing)?(\s+(an?\s+)?led)?\s*$|blink(ing)?\s+(an?\s+)?led|led\s+blink/],
+  ['proj','solar',/solar/],['proj','dynamo-torch',/torch|dynamo|hand.?crank/],['ex','regulator',/regulator|9\s*v.{0,12}5\s*v/],
+  ['ex','robot',/obstacle|robot\s*car|self.?driving/],['ex','car',/\brc\s*car|remote\s*(control\s*)?car|toy\s*car/],
+  ['ex','drone',/drone|quadcopter/],['ex','watch',/smart\s*watch/],['ex','phone',/mobile\s*phone|smart\s*phone|\bphone\b/],
+  ['ex','weather',/weather/],['ex','plant',/plant|watering|soil|paudh/],['ex','hand',/robot(ic)?\s*hand|\bemg\b|prosthetic/],
+  ['ex','bci',/brain|\beeg\b|mind\s*control/],['ex','neurons',/neuron/]];
+function aiReady(prompt){const t=prompt.toLowerCase();const m=AI_READY.find(r=>r[2].test(t));if(!m)return null;
+  const src=m[0]==='ex'?EXAMPLES.find(e=>e.id===m[1]):PROJECTS.find(p=>p.id===m[1]);if(!src)return null;
+  // Longer requests or ones that add something extra ("and", "aur", "with") may want more than the tested circuit: offer both instead of loading.
+  const extra=t.split(/\s+/).length>9||/\b(and|aur|plus|with|also|bhi|sath|saath)\b/.test(t);return {kind:m[0],src,extra}}
+function aiLoadReady(r){if(r.kind==='ex'){setView('play');if(!L().sandbox)loadLevel(SB);const sEl=$('#exSel');sEl.value=String(EXAMPLES.indexOf(r.src));sEl.dispatchEvent(new Event('change'))}
+  else{setView('play');loadProject(r.src);$('#bAutoWire').click();$('#bFillRules').click()}
+  $('#aiModal').hidden=true;flash('Tested circuit loaded: '+r.src.title+'. Open ✨ AI for a custom version.')}
+let aiForce=false,aiReadyHit=null;
 $('#aiGo').onclick=async()=>{const prompt=$('#aiPrompt').value.trim();if(prompt.length<3){$('#aiMsg').textContent=aiErrText({message:'empty'});return}
+  const force=aiForce;aiForce=false;const rd=force?null:aiReady(prompt);
+  if(rd&&!rd.extra){aiLoadReady(rd);return}
+  if(rd){aiReadyHit=rd;$('#aiMsg').innerHTML=`We have a tested <b>${esc(rd.src.title)}</b> circuit that always works. <button class="btn sm" id="aiUseReady">Load the tested one</button> <button class="btn sm" id="aiCustom">✨ Custom with AI</button>`;return}
   if(!aiKey()){aiEditing=true;aiKeyUI();$('#aiMsg').textContent=aiErrText({message:'nokey'});return}
-  const btn=$('#aiGo');aiBusy(btn,true);$('#aiMsg').textContent='The AI is designing your circuit… (10–30 seconds)';
+  const btn=$('#aiGo');aiBusy(btn,true);const t0=Date.now();$('#aiMsg').textContent='The AI is designing your circuit…';
+  const tick=setInterval(()=>{const m=$('#aiMsg');if(/…/.test(m.textContent))m.textContent=m.textContent.replace(/ \(\d+ s\)$/,'')+` (${Math.round((Date.now()-t0)/1000)} s)`},1000);
   try{let r=await aiPost('/api/ai/build',{prompt});let res=aiToDef(r.build||{});
     if(!(r.build&&Array.isArray(r.build.parts)&&r.build.parts.length)){$('#aiMsg').textContent=(r.build&&r.build.summary)||'The AI could not build that. Try describing an electronics project.';return}
     // Score each attempt: problems found by the checks plus a failed run test. The best attempt wins.
     const score=x=>x.errors.length+(x.problem?3:0);
     const trial=x=>{if(x.def.parts.length&&x.def.conns.length){x.def.prompt=prompt;loadAIBuild(x.def);x.problem=aiSelfTest()}else x.problem='no circuit';return x};
     let best=trial(res),last=r.build;
-    for(let k=0;k<2&&score(best)>0;k++){$('#aiMsg').textContent=k?'Testing it… making it actually work.':'Fixing a few wires…';
+    for(let k=0;k<1&&score(best)>0;k++){$('#aiMsg').textContent=k?'Testing it… making it actually work.':'Fixing a few wires…';
       let rr;try{rr=await aiPost('/api/ai/build',{prompt,repair:{previous:last,errors:[...best.errors,...(best.problem?[best.problem]:[])]}})}catch(e){break}last=rr.build||last;
       const c=trial(aiToDef(rr.build||{}));if(score(c)<score(best))best=c}
     if(!best.def.parts.length||!best.def.conns.length){$('#aiMsg').textContent='The AI could not make a working circuit for this. Try a simpler request, like "LED that turns on in the dark".';return}
     if(score(best)>0){aiPending=best;loadLevel(SB);
       $('#aiMsg').innerHTML=`<b>The AI could not make this fully work.</b> ${best.def.summary?esc(best.def.summary)+'<br>':''}Problems it left:<ul class="dlist">${[...best.errors,...(best.problem?[best.problem]:[])].slice(0,5).map(e=>`<li>${esc(e)}</li>`).join('')}</ul>Try a simpler request, or <button class="btn sm" id="aiAnyway">Load it anyway</button> and fix it with the Doctor.`;return}
     loadAIBuild(best.def);aiSpend();$('#aiModal').hidden=true;flash('AI build ready and tested: '+best.def.title)}
-  catch(e){$('#aiMsg').textContent=aiErrText(e)}finally{aiBusy(btn,false);aiQuota()}};
+  catch(e){$('#aiMsg').textContent=aiErrText(e)}finally{clearInterval(tick);aiBusy(btn,false);aiQuota()}};
 $('#aiAsk').onclick=async()=>{if(!S.parts.length){$('#aiMsg').textContent='Put a circuit on the bench first.';return}if(!aiKey()){aiEditing=true;aiKeyUI();$('#aiMsg').textContent=aiErrText({message:'nokey'});return}
   const btn=$('#aiAsk');aiBusy(btn,true);$('#aiAns').hidden=true;$('#aiMsg').textContent='The doctor is checking your circuit…';
   try{const r=await aiPost('/api/ai/doctor',{question:$('#aiQ').value.trim()||'What is wrong with my circuit, and how do I fix it?',circuit:aiCircuit()});
