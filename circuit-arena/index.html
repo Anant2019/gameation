@@ -3268,13 +3268,15 @@ const AI_READY=[
   ['proj','blink',/^\s*(an?\s+|ek\s+)?(led\s+)?blink(ing)?(\s+(an?\s+)?led)?\s*$|blink(ing)?\s+(an?\s+)?led|led\s+blink/],
   ['proj','solar',/solar/],['proj','dynamo-torch',/torch|dynamo|hand.?crank/],['ex','regulator',/regulator|9\s*v.{0,12}5\s*v/],
   ['ex','robot',/obstacle|robot\s*car|self.?driving/],['ex','car',/\brc\s*car|remote\s*(control\s*)?car|toy\s*car/],
-  ['ex','drone',/drone|quadcopter/],['ex','watch',/smart\s*watch/],['ex','phone',/mobile\s*phone|smart\s*phone|\bphone\b/],
-  ['ex','weather',/weather/],['ex','plant',/plant|watering|soil|paudh/],['ex','hand',/robot(ic)?\s*hand|\bemg\b|prosthetic/],
-  ['ex','bci',/brain|\beeg\b|mind\s*control/],['ex','neurons',/neuron/]];
+  ['ex','drone',/drone|quadcopter/],['ex','watch',/smart\s*watch/],['ex','phone',/mobile\s*phone|smart\s*phone/],
+  ['ex','weather',/weather/],['ex','plant',/plants?\s*water|water(ing)?\s+(the\s+|a\s+|my\s+)?plants?|soil|smart\s*plant|paudh.{0,25}(pani|paani)|(pani|paani).{0,25}paudh|plants?.{0,20}(pani|paani|dry|sukh)|mitti/],['ex','hand',/robot(ic)?\s*hand|\bemg\b|prosthetic/],
+  ['ex','bci',/brain.{0,25}(control|light|signal|wave)|\beeg\b|mind\s*control/],['ex','neurons',/neuron/]];
 function aiReady(prompt){const t=prompt.toLowerCase();const m=AI_READY.find(r=>r[2].test(t));if(!m)return null;
   const src=m[0]==='ex'?EXAMPLES.find(e=>e.id===m[1]):PROJECTS.find(p=>p.id===m[1]);if(!src)return null;
   // Longer requests or ones that add something extra ("and", "aur", "with") may want more than the tested circuit: offer both instead of loading.
-  const extra=t.split(/\s+/).length>9||/\b(and|aur|plus|with|also|bhi|sath|saath)\b/.test(t);return {kind:m[0],src,extra}}
+  // Words that change what the circuit must do (cut, detect, camera, spray...) also mean "ask first". The matched words themselves don't count.
+  const rest=t.replace(m[2],' ');
+  const extra=t.split(/\s+/).length>9||/\b(and|aur|plus|with|also|bhi|sath|saath)\b|cut|kaat|\bkat|detect|image|photo|camera|spray|chhid|tumou?r|model|track|follow|count|gps|sms|wifi|bluetooth|voice|control|arm\b|robot|ai\b/.test(rest);return {kind:m[0],src,extra}}
 function aiLoadReady(r){if(r.kind==='ex'){setView('play');if(!L().sandbox)loadLevel(SB);const sEl=$('#exSel');sEl.value=String(EXAMPLES.indexOf(r.src));sEl.dispatchEvent(new Event('change'))}
   else{setView('play');loadProject(r.src);$('#bAutoWire').click();$('#bFillRules').click()}
   $('#aiModal').hidden=true;flash('Tested circuit loaded: '+r.src.title+'. Open ✨ AI for a custom version.')}
