@@ -3140,7 +3140,7 @@ $('#aiGo').onclick=async()=>{const prompt=$('#aiPrompt').value.trim();if(prompt.
     const trial=x=>{if(x.def.parts.length&&x.def.conns.length){x.def.prompt=prompt;loadAIBuild(x.def);x.problem=aiSelfTest()}else x.problem='no circuit';return x};
     let best=trial(res),last=r.build;
     for(let k=0;k<2&&score(best)>0;k++){$('#aiMsg').textContent=k?'Testing it… making it actually work.':'Fixing a few wires…';
-      const rr=await aiPost('/api/ai/build',{prompt,repair:{previous:last,errors:[...best.errors,...(best.problem?[best.problem]:[])]}});last=rr.build||last;
+      let rr;try{rr=await aiPost('/api/ai/build',{prompt,repair:{previous:last,errors:[...best.errors,...(best.problem?[best.problem]:[])]}})}catch(e){break}last=rr.build||last;
       const c=trial(aiToDef(rr.build||{}));if(score(c)<score(best))best=c}
     if(!best.def.parts.length||!best.def.conns.length){$('#aiMsg').textContent='The AI could not make a working circuit for this. Try a simpler request, like "LED that turns on in the dark".';return}
     if(score(best)>0){aiPending=best;loadLevel(SB);
