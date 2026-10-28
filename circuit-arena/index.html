@@ -409,6 +409,7 @@ table.conn td{padding:6px;border-bottom:1px solid var(--line);vertical-align:top
 .htile span{font-size:12px;color:var(--muted)}
 .settings{max-width:560px}
 .setrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.setrow .btn.sm{min-height:34px}
 .tog{width:56px;height:34px;border-radius:17px;border:1px solid var(--line);background:var(--line);position:relative;cursor:pointer;flex:0 0 auto}
 .tog i{position:absolute;top:4px;left:4px;width:24px;height:24px;border-radius:50%;background:var(--panel);transition:left .15s}
 .tog[aria-pressed="true"]{background:var(--good);border-color:var(--good)}.tog[aria-pressed="true"] i{left:26px}
@@ -710,8 +711,8 @@ table.conn td{padding:6px;border-bottom:1px solid var(--line);vertical-align:top
     <div id="aiBuild">
       <p class="bnote">Say what you want to make. The AI picks the parts, wires them and writes the code. Hindi or English both work.</p>
       <textarea class="sharecode" id="aiPrompt" maxlength="400" placeholder="e.g. A smart dustbin that opens when a hand comes near"></textarea>
-      <div class="chips" id="aiIdeas" style="margin:6px 0 0"></div>
       <div class="row"><button class="btn primary" id="aiGo">✨ Build it</button></div>
+      <div class="chips" id="aiIdeas" style="margin:8px 0 0"></div>
     </div>
     <div id="aiDoctor" hidden>
       <p class="bnote">Ask about the circuit on your bench. The doctor reads every part, wire and reading and tells you what to fix.</p>
@@ -3061,6 +3062,7 @@ const aiSetKey=v=>{try{store.set('circuitArena.aiKey',v?JSON.stringify(v):'')}ca
 const aiLeft=()=>Infinity,aiSpend=()=>{};
 let aiProv='gemini',aiEditing=false;
 function aiKeyUI(){const k=aiKey();const box=$('#aiKeyBox');
+  if(NB){box.innerHTML='<p class="bnote" style="margin:0">Tested circuits load here offline. Custom AI builds and the Doctor work in the web version at calmtype.life/circuit-arena.</p>';return}
   if(k&&!aiEditing){box.innerHTML=`🔑 AI: <b>${k.provider==='claude'?'Claude':'Gemini'}</b> with your own key (saved only on this device) <button class="btn sm" data-aikey="edit">Change</button> <button class="btn sm" data-aikey="remove">Remove</button>`;return}
   box.innerHTML=`<p class="bnote" style="margin:0 0 6px"><b>Add your own AI key</b>: Gemini is free. Your key stays on this device and goes only to the AI company, never to us.</p>
     <div class="chips" style="margin-bottom:6px"><button class="chip" data-aiprov="gemini" aria-pressed="${aiProv==='gemini'}">Gemini (free)</button><button class="chip" data-aiprov="claude" aria-pressed="${aiProv==='claude'}">Claude</button></div>
@@ -3068,7 +3070,7 @@ function aiKeyUI(){const k=aiKey();const box=$('#aiKeyBox');
     <div class="row"><button class="btn primary" data-aikey="save">Save key</button><a class="btn" href="${AI_KEY_LINKS[aiProv]}" target="_blank" rel="noopener">Get a ${aiProv==='claude'?'Claude':'free Gemini'} key ↗</a>${k?'<button class="btn" data-aikey="cancel">Cancel</button>':''}</div>
     <p class="extra" style="margin-top:6px">${aiProv==='claude'?'Open the link, sign in to Anthropic, add billing, then "Create Key". Copy it and paste it here.':'Open the link, sign in with Google, press "Create API key", copy it and paste it here. It takes about a minute and costs nothing.'}</p>`}
 function aiQuota(){const k=aiKey();$('#aiGo').disabled=false;$('#aiAsk').disabled=false;$('#aiGo').textContent='✨ Build it';$('#aiAsk').textContent='🔍 Check my circuit';
-  $('#aiQuota').textContent=k?'':'Add your AI key above to start.';aiKeyUI()}
+  $('#aiQuota').textContent=k||NB?'':'Add your AI key above to start.';aiKeyUI()}
 // Parts list for the AI, made from the game's own data so it always matches the simulator.
 let aiCat=null;
 function aiCatalog(){if(aiCat)return aiCat;
@@ -3157,7 +3159,7 @@ async function aiPost(path,body){
     return {build:await aiLLM('build',msgs)}}
   return {answer:await aiLLM('doctor',[{role:'user',content:`Circuit:\n${JSON.stringify(body.circuit||{}).slice(0,12000)}\n\nQuestion: ${String(body.question||'').slice(0,400)}`}])}}
 const aiErrText=e=>({nokey:'Add your AI key first (Gemini is free).',badkey:'Your AI key was not accepted. Check it, or create a new one.',
-  app:'AI needs the internet, so it works in the web version at calmtype.life/circuit-arena for now. It is coming to the app soon.',
+  app:'Custom AI builds need the internet, so they work in the web version at calmtype.life/circuit-arena. In the app, try a tested circuit: night lamp, smart dustbin, calculator, fire alarm, traffic light, robot car.',
   offline:'Could not reach the AI. Check your internet and try again.',limit:'Your AI key has hit its limit for now (Gemini free keys allow a set number of requests per minute and per day). Wait a bit and try again.',
   ai_failed:'The AI had a problem. Please try again.',slow:'The AI took too long to answer. Try again, or ask for something simpler.',empty:'Type what you want to build first.'}[e.message]||'Something went wrong. Please try again.')+(e.message==='ai_failed'&&e.detail?` (${e.detail})`:'');
 // Turn the AI's answer into a build the simulator accepts, listing every problem it finds.
@@ -3233,6 +3235,8 @@ function aiTab(t){document.querySelectorAll('[data-aitab]').forEach(b=>b.setAttr
 function openAI(tab){$('#aiIdeas').innerHTML=AI_IDEAS.map(x=>`<button class="chip" data-aiidea="${esc(x)}">${esc(x)}</button>`).join('');
   $('#aiMsg').textContent='';aiQuota();aiTab(tab||'build');$('#aiModal').hidden=false}
 function aiBusy(btn,on){btn.disabled=on;btn.classList.toggle('aibusy',on)}
+// On small screens the answer sits below the fold: bring each new message into view (not every tick of the timer).
+new MutationObserver(()=>{const m=$('#aiMsg');if(!$('#aiModal').hidden&&m.textContent.trim()&&!/\(\d+ s\)$/.test(m.textContent))m.scrollIntoView({block:'nearest',behavior:'smooth'})}).observe($('#aiMsg'),{childList:true,characterData:true,subtree:true});
 $('#bAI').onclick=()=>openAI('build');$('#bAITop').onclick=()=>openAI('build');$('#aiClose').onclick=()=>{$('#aiModal').hidden=true};
 document.querySelector('#aiModal').addEventListener('click',e=>{
   const pv=e.target.closest('[data-aiprov]');if(pv){aiProv=pv.dataset.aiprov;aiKeyUI();return}
@@ -3278,7 +3282,8 @@ let aiForce=false,aiReadyHit=null;
 $('#aiGo').onclick=async()=>{const prompt=$('#aiPrompt').value.trim();if(prompt.length<3){$('#aiMsg').textContent=aiErrText({message:'empty'});return}
   const force=aiForce;aiForce=false;const rd=force?null:aiReady(prompt);
   if(rd&&!rd.extra){aiLoadReady(rd);return}
-  if(rd){aiReadyHit=rd;$('#aiMsg').innerHTML=`We have a tested <b>${esc(rd.src.title)}</b> circuit that always works. <button class="btn sm" id="aiUseReady">Load the tested one</button> <button class="btn sm" id="aiCustom">✨ Custom with AI</button>`;return}
+  if(rd){aiReadyHit=rd;$('#aiMsg').innerHTML=`We have a tested <b>${esc(rd.src.title)}</b> circuit that always works. <button class="btn sm" id="aiUseReady">Load the tested one</button>${NB?'':' <button class="btn sm" id="aiCustom">✨ Custom with AI</button>'}`;return}
+  if(NB){$('#aiMsg').textContent=aiErrText({message:'app'});return}
   if(!aiKey()){aiEditing=true;aiKeyUI();$('#aiMsg').textContent=aiErrText({message:'nokey'});return}
   const btn=$('#aiGo');aiBusy(btn,true);const t0=Date.now();$('#aiMsg').textContent='The AI is designing your circuit…';
   const tick=setInterval(()=>{const m=$('#aiMsg');if(/…/.test(m.textContent))m.textContent=m.textContent.replace(/ \(\d+ s\)$/,'')+` (${Math.round((Date.now()-t0)/1000)} s)`},1000);
@@ -3296,7 +3301,7 @@ $('#aiGo').onclick=async()=>{const prompt=$('#aiPrompt').value.trim();if(prompt.
       $('#aiMsg').innerHTML=`<b>The AI could not make this fully work.</b> ${best.def.summary?esc(best.def.summary)+'<br>':''}Problems it left:<ul class="dlist">${[...best.errors,...(best.problem?[best.problem]:[])].slice(0,5).map(e=>`<li>${esc(e)}</li>`).join('')}</ul>Try a simpler request, or <button class="btn sm" id="aiAnyway">Load it anyway</button> and fix it with the Doctor.`;return}
     loadAIBuild(best.def);aiSpend();$('#aiModal').hidden=true;flash('AI build ready and tested: '+best.def.title)}
   catch(e){$('#aiMsg').textContent=aiErrText(e)}finally{clearInterval(tick);aiBusy(btn,false);aiQuota()}};
-$('#aiAsk').onclick=async()=>{if(!S.parts.length){$('#aiMsg').textContent='Put a circuit on the bench first.';return}if(!aiKey()){aiEditing=true;aiKeyUI();$('#aiMsg').textContent=aiErrText({message:'nokey'});return}
+$('#aiAsk').onclick=async()=>{if(!S.parts.length){$('#aiMsg').textContent='Put a circuit on the bench first.';return}if(NB){$('#aiMsg').textContent=aiErrText({message:'app'});return}if(!aiKey()){aiEditing=true;aiKeyUI();$('#aiMsg').textContent=aiErrText({message:'nokey'});return}
   const btn=$('#aiAsk');aiBusy(btn,true);$('#aiAns').hidden=true;$('#aiMsg').textContent='The doctor is checking your circuit…';
   try{const r=await aiPost('/api/ai/doctor',{question:$('#aiQ').value.trim()||'What is wrong with my circuit, and how do I fix it?',circuit:aiCircuit()});
     aiSpend();$('#aiAns').textContent=r.answer;$('#aiAns').hidden=false;$('#aiMsg').textContent=''}
@@ -3500,7 +3505,7 @@ function gfxTick(ts){if(GFX.mode!=='auto'||GFX.low>=2)return;if(!GFX.t0||ts-GFX.
 
 /* ---------- Home, settings, haptics, Android back ---------- */
 let vibOn=true;try{vibOn=store.get('circuitArena.vib')!=='0'}catch(e){}
-const haptic=ms=>{if(vibOn&&typeof navigator!=='undefined'&&navigator.vibrate)try{navigator.vibrate(ms)}catch(e){}};
+const haptic=ms=>{if(vibOn&&typeof navigator!=='undefined'&&navigator.vibrate&&(!navigator.userActivation||navigator.userActivation.hasBeenActive))try{navigator.vibrate(ms)}catch(e){}};
 ['wire','add','pop','goal','win'].forEach(k=>{const f=SFX[k];const ms={wire:8,add:12,pop:[40,30,60],goal:[15,40,15],win:[30,50,30,50,60]}[k];SFX[k]=(...a)=>{haptic(ms);return f(...a)}});
 const HOME_TILES=[['ai','M12 3l1.8 4.6L18.5 9l-4.7 1.6L12 15l-1.8-4.4L5.5 9l4.7-1.4zM18 15l.9 2.1L21 18l-2.1.9L18 21l-.9-2.1L15 18l2.1-.9zM6 15l.6 1.4L8 17l-1.4.6L6 19l-.6-1.4L4 17l1.4-.6z','Build with AI','Describe it, the AI builds it'],
   ['levels','M5 19V9l7-5l7 5v10M9 19v-6h6v6','Levels','Seven challenges with stars'],
