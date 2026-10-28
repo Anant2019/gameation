@@ -470,6 +470,9 @@ table.conn td{padding:6px;border-bottom:1px solid var(--line);vertical-align:top
 @media (prefers-reduced-motion:reduce){.demoring{animation:none}}
 .btn.ai{border-color:var(--copper);color:var(--copper);font-weight:700}
 .pro{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;background:var(--copper);color:var(--copper-ink);font-size:10px;letter-spacing:.08em;vertical-align:middle}
+.aikey{border:1px dashed var(--copper);border-radius:8px;padding:8px 10px;margin:8px 0 4px;font-size:13px;line-height:1.5}
+.aikey a.btn{text-decoration:none;color:var(--ink)}
+.aikeyin{width:100%;min-height:40px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);font-family:var(--f-mono);font-size:13px}
 .aians{margin-top:12px;padding:10px 12px;border:1px solid var(--line);border-left:4px solid var(--copper);border-radius:8px;background:var(--bench);font-size:14px;line-height:1.55;white-space:pre-wrap}
 .aibusy::after{content:'';display:inline-block;width:12px;height:12px;margin-left:8px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;vertical-align:-2px;animation:aispin .8s linear infinite}
 @keyframes aispin{to{transform:rotate(360deg)}}
@@ -701,7 +704,8 @@ table.conn td{padding:6px;border-bottom:1px solid var(--line);vertical-align:top
 <button class="btn sm cexit" id="bCreatorExit" hidden aria-label="Exit creator mode">✕ Exit</button><div class="cwm" id="creatorWm" hidden>Made with Circuit<span>Arena</span></div>
 <div class="modal" id="aiModal" hidden>
   <div class="card wide" role="dialog" aria-labelledby="aiT">
-    <p class="eyebrow">Circuit Arena AI <span class="pro">PREMIUM</span></p><h3 id="aiT" style="font-size:22px">Build anything with AI</h3>
+    <p class="eyebrow">Circuit Arena AI</p><h3 id="aiT" style="font-size:22px">Build anything with AI</h3>
+    <div class="aikey" id="aiKeyBox"></div>
     <div class="chips" role="tablist" style="margin:8px 0 12px"><button class="chip" data-aitab="build" aria-pressed="true">✨ Build with AI</button><button class="chip" data-aitab="doctor" aria-pressed="false">🔍 Circuit Doctor</button></div>
     <div id="aiBuild">
       <p class="bnote">Say what you want to make. The AI picks the parts, wires them and writes the code. Hindi or English both work.</p>
@@ -3035,23 +3039,99 @@ $('#mDemo').addEventListener('click',e=>{if(e.target.closest('[data-aidoctor]'))
 $('#insProps').addEventListener('click',e=>{if(!e.target.closest('[data-act=demo]'))return;const p=sel&&sel.kind==='part'?part(sel.id):null;if(p)openDemo(p.type)});
 
 /* ---------- AI: build with AI and the Circuit Doctor (premium, with free tries) ---------- */
-const AI_FREE=3;let aiPending=null;
+let aiPending=null;
 const AI_IDEAS=['Smart dustbin that opens when a hand comes near','Traffic light with three LEDs','Night lamp that turns on in the dark','Fire alarm with a flame sensor','Clap switch for a light','Robot car with obstacle sensor'];
-// The AI runs on calmtype.life. Pages served from there call it directly; other copies call the public site.
-const aiBase=()=>/(^|\.)calmtype\.life$|workers\.dev$|^localhost$|^127\./.test(location.hostname)?'':'https://calmtype.life';
-const aiUsed=()=>{try{return +(store.get('circuitArena.aiUsed')||0)}catch(e){return 0}};
-const isPremium=()=>{try{return store.get('circuitArena.premium')==='1'}catch(e){return false}};
-const aiLeft=()=>isPremium()?Infinity:Math.max(0,AI_FREE-aiUsed());
-const aiSpend=()=>{if(!isPremium())try{store.set('circuitArena.aiUsed',String(aiUsed()+1))}catch(e){}};
-function aiQuota(){const n=aiLeft();const out=n<=0;$('#aiGo').disabled=out;$('#aiAsk').disabled=out;$('#aiGo').textContent=out?'🔒 Premium':'✨ Build it';$('#aiAsk').textContent=out?'🔒 Premium':'🔍 Check my circuit';$('#aiQuota').innerHTML=isPremium()?'💎 Premium: AI is unlocked.':n>0?`🎁 <b>${n} free AI ${n===1?'try':'tries'} left.</b> Premium gives you unlimited AI builds, the Circuit Doctor and advanced coding.`:
-  '🔒 <b>Your free AI tries are used up.</b> Premium (₹79/month) unlocks unlimited AI builds, the Circuit Doctor and advanced coding — <b>coming very soon</b>.'}
+// The AI runs on the player's own key (Gemini is free; Claude needs billing). The key is saved only on this
+// device and requests go straight from the device to Google or Anthropic, never through calmtype.life.
+const AI_MODELS={gemini:'gemini-flash-latest',claude:'claude-haiku-5-5'};
+const AI_KEY_LINKS={gemini:'https://aistudio.google.com/apikey',claude:'https://console.anthropic.com/settings/keys'};
+const aiKey=()=>{try{const v=JSON.parse(store.get('circuitArena.aiKey')||'null');return v&&v.key?v:null}catch(e){return null}};
+const aiSetKey=v=>{try{store.set('circuitArena.aiKey',v?JSON.stringify(v):'')}catch(e){}};
+const aiLeft=()=>Infinity,aiSpend=()=>{};
+let aiProv='gemini',aiEditing=false;
+function aiKeyUI(){const k=aiKey();const box=$('#aiKeyBox');
+  if(k&&!aiEditing){box.innerHTML=`🔑 AI: <b>${k.provider==='claude'?'Claude':'Gemini'}</b> with your own key (saved only on this device) <button class="btn sm" data-aikey="edit">Change</button> <button class="btn sm" data-aikey="remove">Remove</button>`;return}
+  box.innerHTML=`<p class="bnote" style="margin:0 0 6px"><b>Add your own AI key</b>: Gemini is free. Your key stays on this device and goes only to the AI company, never to us.</p>
+    <div class="chips" style="margin-bottom:6px"><button class="chip" data-aiprov="gemini" aria-pressed="${aiProv==='gemini'}">Gemini (free)</button><button class="chip" data-aiprov="claude" aria-pressed="${aiProv==='claude'}">Claude</button></div>
+    <input class="aikeyin" id="aiKeyIn" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your ${aiProv==='claude'?'Claude':'Gemini'} API key">
+    <div class="row"><button class="btn primary" data-aikey="save">Save key</button><a class="btn" href="${AI_KEY_LINKS[aiProv]}" target="_blank" rel="noopener">Get a ${aiProv==='claude'?'Claude':'free Gemini'} key ↗</a>${k?'<button class="btn" data-aikey="cancel">Cancel</button>':''}</div>
+    <p class="extra" style="margin-top:6px">${aiProv==='claude'?'Open the link, sign in to Anthropic, add billing, then "Create Key". Copy it and paste it here.':'Open the link, sign in with Google, press "Create API key", copy it and paste it here. It takes about a minute and costs nothing.'}</p>`}
+function aiQuota(){const k=aiKey();$('#aiGo').disabled=false;$('#aiAsk').disabled=false;$('#aiGo').textContent='✨ Build it';$('#aiAsk').textContent='🔍 Check my circuit';
+  $('#aiQuota').textContent=k?'':'Add your AI key above to start.';aiKeyUI()}
+// Parts list for the AI, made from the game's own data so it always matches the simulator.
+let aiCat=null;
+function aiCatalog(){if(aiCat)return aiCat;
+  const parts=Object.entries(PD).map(([t,d])=>{const inf=PARTINFO[t]||{};const props=Object.entries(d.props||{}).filter(([k])=>!['soc','code'].includes(k)).map(([k,v])=>`${k}=${v}`).join(',');
+    const pins=d.ports.map(q=>q[0]+(inf.p&&inf.p[q[0]]?`(${String(inf.p[q[0]]).slice(0,28)})`:'')).join(' ');
+    return `${t} | ${d.name} | pins: ${pins}${props?' | props: '+props:''}${d.sensor?' | sensor: '+d.sensor:''}${d.board?' | board':''}${d.props&&'code' in d.props?' | programmable':''}${d.vmin!=null?` | ${d.vmin}-${d.vmax}V`:''} | ${(inf.d||'').split('. ')[0].slice(0,90)}`}).join('\n');
+  const env=Object.entries(ENVDEF).map(([k,v])=>`${k}: ${v[0]}${v[1]!=null?` ${v[1]}-${v[2]}${v[3]?' '+v[3]:''}`:' 0 or 1'}`).join('\n');
+  return aiCat={parts,env,batteries:Object.entries(BATT).map(([k,v])=>`${k} = ${v[2]}`).join(', '),leds:Object.keys(LEDC).join(', '),ic:IC_EXAMPLES[1][1]}}
+const AI_EXAMPLES=[{"title": "Smart Dustbin", "summary": "The lid opens by itself when a hand comes close.", "parts": [{"type": "arduino", "x": 360, "y": 330}, {"type": "ultrasonic", "x": 150, "y": 110}, {"type": "servo", "x": 660, "y": 130}], "wires": [{"a": 1, "pa": "VCC", "b": 0, "pb": "5V"}, {"a": 1, "pa": "GND", "b": 0, "pb": "GND"}, {"a": 1, "pa": "OUT", "b": 0, "pb": "D2"}, {"a": 2, "pa": "VCC", "b": 0, "pb": "5V"}, {"a": 2, "pa": "GND", "b": 0, "pb": "GND"}, {"a": 2, "pa": "SIG", "b": 0, "pb": "D3"}], "rules": [{"in": "D2", "op": "<", "value": 20, "out": "D3", "then": "90", "else": "0"}], "env": {"distance": 100}, "try": "In Controls, bring the hand distance below 20 cm: the lid opens.", "how": "The ultrasonic sensor measures distance in cm on D2. Under 20 cm the Arduino turns the servo on D3 to 90 degrees."}, {"title": "Night Lamp", "summary": "A bulb switches on by itself when it gets dark.", "parts": [{"type": "arduino", "x": 380, "y": 340}, {"type": "ldr", "x": 150, "y": 120}, {"type": "bulb", "x": 650, "y": 110}], "wires": [{"a": 1, "pa": "VCC", "b": 0, "pb": "5V"}, {"a": 1, "pa": "GND", "b": 0, "pb": "GND"}, {"a": 1, "pa": "OUT", "b": 0, "pb": "A0"}, {"a": 2, "pa": "VCC", "b": 0, "pb": "5V"}, {"a": 2, "pa": "GND", "b": 0, "pb": "GND"}, {"a": 2, "pa": "SIG", "b": 0, "pb": "D5"}], "rules": [{"in": "A0", "op": "<", "value": 40, "out": "D5", "then": "1", "else": "0"}], "env": {"light": 80}, "try": "In Controls, drag the light level below 40%: the bulb turns on.", "how": "The LDR module reports light from 0 to 100% on A0. Below 40% the Arduino switches the bulb on D5."}, {"title": "Auto Cutter Motor", "summary": "A motor (the cutter) spins only while the IR sensor sees an object.", "parts": [{"type": "battery", "x": 80, "y": 430, "props": {"preset": "9V", "v": 9}}, {"type": "driver", "x": 330, "y": 390}, {"type": "motor", "x": 150, "y": 200}, {"type": "arduino", "x": 640, "y": 400}, {"type": "irobs", "x": 700, "y": 140}], "wires": [{"a": 0, "pa": "+", "b": 1, "pb": "12V"}, {"a": 0, "pa": "-", "b": 1, "pb": "GND"}, {"a": 1, "pa": "GND", "b": 3, "pb": "GND"}, {"a": 2, "pa": "A", "b": 1, "pb": "L1"}, {"a": 2, "pa": "B", "b": 1, "pb": "L2"}, {"a": 1, "pa": "ENA", "b": 3, "pb": "D5"}, {"a": 4, "pa": "VCC", "b": 3, "pb": "5V"}, {"a": 4, "pa": "GND", "b": 3, "pb": "GND"}, {"a": 4, "pa": "OUT", "b": 3, "pb": "D2"}], "rules": [{"in": "D2", "op": "=", "value": 1, "out": "D5", "then": "200", "else": "0"}], "env": {"ir": 0}, "try": "In Controls, tick 'Obstacle in front (IR)': the motor spins.", "how": "The motor gets its power from the battery through the L298N driver. The Arduino only sends a speed (0-255) to ENA, and the IR sensor on D2 decides when."}];
+function aiBuildSystem(){const c=aiCatalog();return `You design circuits for Circuit Arena, an electronics simulator game. Players type what they want and you place the parts and wires.
+
+Use ONLY these part types and EXACT pin names:
+${c.parts}
+
+Sensor inputs players can change (env keys and ranges):
+${c.env}
+
+Battery presets: ${c.batteries}. LED colours: ${c.leds}.
+
+Wiring rules:
+- Boards (arduino, nano, mega, rpi, pi5, pizero, pico, esp32) are USB powered. Power modules from their 5V (or 3V3) and GND pins.
+- Sensor and actuator modules: VCC to board 5V (use 3V3 when the part's max voltage is below 4 V), GND to board GND, OUT/SIG to a board pin.
+- An LED on a board pin needs a resistor (220-470 ohm) from the pin to LED +, and LED - to GND. Never connect an LED straight to a battery.
+- Motors need a driver (driver/mosfet/relay); never power a motor from a board pin. Servos: VCC 5V, GND, SIG to a pin.
+- Without a board you can build with battery, switch, button, resistor, LED, chips and so on. Every circuit needs a closed loop back to battery -.
+- Wires join two pins: {a: part index, pa: pin, b: part index, pb: pin}. Part indexes start at 0 in the parts list.
+
+Logic:
+- For arduino/nano/mega/rpi/pi5/pizero/pico use rules: {in, op, value, out, then, else}. "in" is a board pin (or "*" for always). Sensor modules report real units (cm, °C, %, ppm, 0/1); raw analog parts (pot wiper, LM35) read 0-1023 on Arduino analog pins.
+- then/else accept numbers or formulas: map(x,a,b,c,d), constrain(x,a,b), blink(ms). 1 = ON, servo 0-180, PWM 0-255, motor driver -255 to 255.
+- For mcu (pins P0-P5) and esp32 (pins G2...G34) write Arduino-style C in "code" [{part, source}] instead of rules. Example:
+${c.ic}
+
+Layout: x between 40 and 900, y between 60 and 520, at least 140 apart; put the board near the bottom middle. Use at most 12 parts. Keep it simple and working.
+Set "env" so the circuit starts in a sensible state, and write "try" so the player knows what to move in Controls.
+What the simulator cannot do: no image or object recognition, no file or photo upload, no cutting blade part, and no robot-arm or wheel movement outside the car and drone worlds. For such requests build the closest simple version with real parts (servos for arm joints, a DC motor through a motor driver as the cutter or spinner, a push button or IR sensor standing in for "object detected") and start the summary with what you simplified.
+Pin reminders: motor has only pins A and B (drive it from driver L1/L2 or through a mosfet, never straight from a board pin); servo has GND, VCC, SIG; camera, rfid, ecg, spo2 and bmp work at 3.3 V only (power them from the 3V3 pin of an esp32 or rpi; Arduino has no 3V3 pin).
+Only build low-voltage hobby electronics. If the request is unsafe (mains wiring, weapons) or not an electronics build, return an empty parts list and explain in "summary" what you can build instead.
+Reply in the player's language for title, summary, try and how (Hindi or Hinglish if they write that way).
+
+Answer with ONE JSON object: {"title","summary","parts":[{"type","x","y","props"}],"wires":[{"a","pa","b","pb"}],"rules":[{"in","op","value","out","then","else"}],"code":[{"part","source"}],"env":{},"try","how"}.
+
+Correct examples (each rule reads the exact board pin the sensor OUT is wired to, writes the exact pin the output SIG is wired to, and compares in the sensor's own units):
+${AI_EXAMPLES.map(e=>JSON.stringify(e)).join('\n')}`}
+const AI_DOCTOR=`You are the Circuit Doctor in Circuit Arena, an electronics simulator game for students.
+You get the player's circuit as JSON (parts with id, type, values, live readings and warnings; wires between "id:pin"; board rules; chip code) and their question.
+Find what is wrong or answer the question. Reply in the player's language (Hindi or Hinglish if they write that way), under 130 words, friendly and concrete:
+first one line on the cause, then numbered fixes that name the parts and pins exactly. Mention safe current limits when something burnt.
+Facts: an LED needs a series resistor (about 330 ohm on 9 V, 220 ohm on 5 V) and burns above 50 mA; a 1/4 W resistor burns above 1 W; modules need VCC, GND and their signal pin wired; boards are powered over USB.`;
+const aiJSON=t=>{t=String(t||'');try{return JSON.parse(t)}catch(e){}const a=t.indexOf('{'),b=t.lastIndexOf('}');if(a<0||b<=a)throw new Error('ai_failed');try{return JSON.parse(t.slice(a,b+1))}catch(e){throw new Error('ai_failed')}};
+async function aiFetch(url,init){let r;try{r=await fetch(url,init)}catch(e){throw new Error('offline')}
+  if(!r.ok){let t='';try{t=await r.text()}catch(e){}throw new Error(r.status===401||r.status===403||/API_KEY_INVALID|invalid.{0,20}key|authentication/i.test(t)?'badkey':r.status===429?'limit':'ai_failed')}
+  return r.json()}
+// One call to the player's chosen AI. kind 'build' returns the circuit object, 'doctor' returns text.
+async function aiLLM(kind,messages){const k=aiKey();if(!k)throw new Error('nokey');if(NB)throw new Error('app');
+  const system=kind==='build'?aiBuildSystem():AI_DOCTOR;
+  if(k.provider==='claude'){
+    const j=await aiFetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'x-api-key':k.key,'anthropic-version':'2023-06-01','content-type':'application/json','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:AI_MODELS.claude,max_tokens:kind==='build'?3000:700,system,messages})});
+    const text=(j.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('\n');return kind==='build'?aiJSON(text):text.trim()}
+  const j=await aiFetch(`https://generativelanguage.googleapis.com/v1beta/models/${AI_MODELS.gemini}:generateContent`,{method:'POST',headers:{'content-type':'application/json','x-goog-api-key':k.key},
+    body:JSON.stringify({systemInstruction:{parts:[{text:system}]},contents:messages.map(m=>({role:m.role==='assistant'?'model':'user',parts:[{text:m.content}]})),
+      generationConfig:{temperature:.3,maxOutputTokens:kind==='build'?8192:1024,...(kind==='build'?{responseMimeType:'application/json'}:{})}})});
+  const text=((j.candidates&&j.candidates[0]&&j.candidates[0].content&&j.candidates[0].content.parts)||[]).map(p=>p.text||'').join('');
+  if(!text)throw new Error('ai_failed');return kind==='build'?aiJSON(text):text.trim()}
+// Same shape the build and doctor flows already use.
 async function aiPost(path,body){
-  if(NB)throw new Error('app');
-  let r;try{r=await fetch(aiBase()+path,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)})}catch(e){throw new Error('offline')}
-  let j={};try{j=await r.json()}catch(e){}
-  if(!r.ok)throw new Error(j.error||'http');return j}
-const aiErrText=e=>e.message==='offline'&&aiBase()?'The AI works on the website: open calmtype.life/circuit-arena to build with AI.':({app:'AI needs the internet, so it works in the web version at calmtype.life/circuit-arena for now. It is coming to the app soon.',
-  offline:'Could not reach the AI. Check your internet and try again.',limit:'You have used today\'s AI limit. Try again tomorrow.',not_configured:'AI is being set up. Please try again a little later.',
+  if(path.endsWith('/build')){const msgs=[{role:'user',content:String(body.prompt||'').slice(0,400)}];
+    if(body.repair){msgs.push({role:'assistant',content:JSON.stringify(body.repair.previous||{})});msgs.push({role:'user',content:'The simulator rejected this circuit:\n'+(body.repair.errors||[]).slice(0,12).join('\n')+'\nFix every problem and reply with the whole corrected JSON object.'})}
+    return {build:await aiLLM('build',msgs)}}
+  return {answer:await aiLLM('doctor',[{role:'user',content:`Circuit:\n${JSON.stringify(body.circuit||{}).slice(0,12000)}\n\nQuestion: ${String(body.question||'').slice(0,400)}`}])}}
+const aiErrText=e=>({nokey:'Add your AI key first (Gemini is free).',badkey:'Your AI key was not accepted. Check it, or create a new one.',
+  app:'AI needs the internet, so it works in the web version at calmtype.life/circuit-arena for now. It is coming to the app soon.',
+  offline:'Could not reach the AI. Check your internet and try again.',limit:'Your AI key has hit its limit for now (Gemini free keys allow a set number of requests per minute and per day). Wait a bit and try again.',
   ai_failed:'The AI had a problem. Please try again.',empty:'Type what you want to build first.'}[e.message]||'Something went wrong. Please try again.');
 // Turn the AI's answer into a build the simulator accepts, listing every problem it finds.
 function aiToDef(b){const errs=[],parts=[],map=[];
@@ -3127,12 +3207,20 @@ function openAI(tab){$('#aiIdeas').innerHTML=AI_IDEAS.map(x=>`<button class="chi
   $('#aiMsg').textContent='';aiQuota();aiTab(tab||'build');$('#aiModal').hidden=false}
 function aiBusy(btn,on){btn.disabled=on;btn.classList.toggle('aibusy',on)}
 $('#bAI').onclick=()=>openAI('build');$('#bAITop').onclick=()=>openAI('build');$('#aiClose').onclick=()=>{$('#aiModal').hidden=true};
-document.querySelector('#aiModal').addEventListener('click',e=>{if(e.target.id==='aiAnyway'&&aiPending){loadAIBuild(aiPending.def);aiPending=null;$('#aiModal').hidden=true;flash('Loaded with problems: tap 🔍 Ask the Doctor for fixes.');return}
+document.querySelector('#aiModal').addEventListener('click',e=>{
+  const pv=e.target.closest('[data-aiprov]');if(pv){aiProv=pv.dataset.aiprov;aiKeyUI();return}
+  const kb=e.target.closest('[data-aikey]');if(kb){const a=kb.dataset.aikey;
+    if(a==='edit'){aiEditing=true;aiProv=(aiKey()||{}).provider||'gemini';aiKeyUI()}
+    else if(a==='cancel'){aiEditing=false;aiKeyUI()}
+    else if(a==='remove'){aiSetKey(null);aiEditing=false;aiQuota();$('#aiMsg').textContent='Key removed from this device.'}
+    else if(a==='save'){const v=($('#aiKeyIn').value||'').trim();if(v.length<20){$('#aiMsg').textContent='That does not look like an API key. Copy the whole key and paste it.';return}
+      aiSetKey({provider:aiProv,key:v});aiEditing=false;aiQuota();$('#aiMsg').textContent='Key saved on this device. Now type what you want to build.'}
+    return}if(e.target.id==='aiAnyway'&&aiPending){loadAIBuild(aiPending.def);aiPending=null;$('#aiModal').hidden=true;flash('Loaded with problems: tap 🔍 Ask the Doctor for fixes.');return}
   const t=e.target.closest('[data-aitab]');if(t){aiTab(t.dataset.aitab);return}
   const i=e.target.closest('[data-aiidea]');if(i){$('#aiPrompt').value=i.dataset.aiidea;$('#aiPrompt').focus()}if(e.target.id==='aiModal')$('#aiModal').hidden=true});
 $('#aiGo').onclick=async()=>{const prompt=$('#aiPrompt').value.trim();if(prompt.length<3){$('#aiMsg').textContent=aiErrText({message:'empty'});return}
-  if(aiLeft()<=0){aiQuota();$('#aiMsg').textContent='';return}
-  const btn=$('#aiGo');aiBusy(btn,true);$('#aiMsg').textContent='The AI is designing your circuit… (about 10 seconds)';
+  if(!aiKey()){aiEditing=true;aiKeyUI();$('#aiMsg').textContent=aiErrText({message:'nokey'});return}
+  const btn=$('#aiGo');aiBusy(btn,true);$('#aiMsg').textContent='The AI is designing your circuit… (10–30 seconds)';
   try{let r=await aiPost('/api/ai/build',{prompt});let res=aiToDef(r.build||{});
     if(!(r.build&&Array.isArray(r.build.parts)&&r.build.parts.length)){$('#aiMsg').textContent=(r.build&&r.build.summary)||'The AI could not build that. Try describing an electronics project.';return}
     // Score each attempt: problems found by the checks plus a failed run test. The best attempt wins.
@@ -3144,10 +3232,10 @@ $('#aiGo').onclick=async()=>{const prompt=$('#aiPrompt').value.trim();if(prompt.
       const c=trial(aiToDef(rr.build||{}));if(score(c)<score(best))best=c}
     if(!best.def.parts.length||!best.def.conns.length){$('#aiMsg').textContent='The AI could not make a working circuit for this. Try a simpler request, like "LED that turns on in the dark".';return}
     if(score(best)>0){aiPending=best;loadLevel(SB);
-      $('#aiMsg').innerHTML=`<b>The AI could not make this fully work.</b> ${best.def.summary?esc(best.def.summary)+'<br>':''}Problems it left:<ul class="dlist">${[...best.errors,...(best.problem?[best.problem]:[])].slice(0,5).map(e=>`<li>${esc(e)}</li>`).join('')}</ul>Try a simpler request, or <button class="btn sm" id="aiAnyway">Load it anyway</button> and fix it with the Doctor. (This did not use a free try.)`;return}
+      $('#aiMsg').innerHTML=`<b>The AI could not make this fully work.</b> ${best.def.summary?esc(best.def.summary)+'<br>':''}Problems it left:<ul class="dlist">${[...best.errors,...(best.problem?[best.problem]:[])].slice(0,5).map(e=>`<li>${esc(e)}</li>`).join('')}</ul>Try a simpler request, or <button class="btn sm" id="aiAnyway">Load it anyway</button> and fix it with the Doctor.`;return}
     loadAIBuild(best.def);aiSpend();$('#aiModal').hidden=true;flash('AI build ready and tested: '+best.def.title)}
   catch(e){$('#aiMsg').textContent=aiErrText(e)}finally{aiBusy(btn,false);aiQuota()}};
-$('#aiAsk').onclick=async()=>{if(!S.parts.length){$('#aiMsg').textContent='Put a circuit on the bench first.';return}if(aiLeft()<=0){aiQuota();return}
+$('#aiAsk').onclick=async()=>{if(!S.parts.length){$('#aiMsg').textContent='Put a circuit on the bench first.';return}if(!aiKey()){aiEditing=true;aiKeyUI();$('#aiMsg').textContent=aiErrText({message:'nokey'});return}
   const btn=$('#aiAsk');aiBusy(btn,true);$('#aiAns').hidden=true;$('#aiMsg').textContent='The doctor is checking your circuit…';
   try{const r=await aiPost('/api/ai/doctor',{question:$('#aiQ').value.trim()||'What is wrong with my circuit, and how do I fix it?',circuit:aiCircuit()});
     aiSpend();$('#aiAns').textContent=r.answer;$('#aiAns').hidden=false;$('#aiMsg').textContent=''}
