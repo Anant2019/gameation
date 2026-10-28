@@ -648,7 +648,7 @@ table.conn td{padding:6px;border-bottom:1px solid var(--line);vertical-align:top
     <div class="setrow"><span>Graphics</span><div class="chips" id="setGfx"><button class="chip" data-gfx="auto">Auto</button><button class="chip" data-gfx="high">High</button><button class="chip" data-gfx="lite">Smooth</button></div></div>
     <div class="setrow"><span>Workbench tips</span><button class="btn sm" id="setTips">Show again</button></div>
     <div class="setrow"><span>Progress (stars and best scores)</span><button class="btn sm danger" id="setReset">Reset</button></div>
-    <p class="ver">Circuit Arena 1.3 · works offline</p>
+    <p class="ver">Circuit Arena 1.4 · works offline</p>
     <p class="ver"><a href="../" style="color:var(--copper);font-weight:600;text-decoration:none">More free games at calmtype.life →</a> · <a href="privacy/" style="color:var(--muted)">Privacy</a></p>
   </section>
 </section>
@@ -1007,7 +1007,7 @@ function afterLoad(){fxBoot=true;S.demo=null;S.cloud={send:{},ctl:{}};S.t0=Date.
   resetWorld();S.wType=undefined;renderLevels();renderBin();renderMission();renderEnv();renderRules();insFor=-1;guideSig='';portraitLayout();requestAnimationFrame(fitCam)}
 function loadLevel(i){S.proj=null;S.inv=null;S.lvl=i;const l=LEVELS[i];
   S.env={...ENV0};
-  if(l.sandbox){buildFrom(EXAMPLES[0],true,true);S.sbWorld='auto'}
+  if(l.sandbox){buildFrom(EXAMPLES.find(e=>e.id==='555-blink')||EXAMPLES[0],true,true);S.sbWorld='auto'}
   else{buildFrom({parts:l.start},false,false);S.rules=Array.from({length:l.rules||0},blankRule)}
   afterLoad()}
 function onStructure(){renderRules();if(L().sandbox)renderEnv()}
