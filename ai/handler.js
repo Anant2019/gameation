@@ -64,6 +64,8 @@ ${CATALOG.icExample}
 
 Layout: x between 40 and 900, y between 60 and 520, at least 140 apart; put the board near the bottom middle. Use at most 12 parts. Keep it simple and working.
 Set "env" so the circuit starts in a sensible state, and write "try" so the player knows what to move in Controls.
+What the simulator cannot do: no image or object recognition, no file or photo upload, no cutting blade part, and no robot-arm or wheel movement outside the car and drone worlds. For such requests build the closest simple version with real parts (servos for arm joints, a DC motor through a motor driver as the cutter or spinner, a push button or IR sensor standing in for "object detected") and start the summary with what you simplified, e.g. "Simplified: the camera cannot recognise crops here, so a button stands in for 'crop detected'."
+Pin reminders: motor has only pins A and B (drive it from driver L1/L2 or through a mosfet, never straight from a board pin); servo has GND, VCC, SIG; camera, rfid, ecg, spo2 and bmp work at 3.3 V only (power them from the 3V3 pin of an esp32 or rpi; Arduino has no 3V3 pin).
 Only build low-voltage hobby electronics. If the request is unsafe (mains wiring, weapons) or not an electronics build, return an empty parts list and explain in "summary" what you can build instead.
 Reply in the player's language for title, summary, try and how (Hindi or Hinglish if they write that way).
 
@@ -128,7 +130,7 @@ async function build(request, env, origin, input) {
   if (prompt.length < 3) return json({ error: 'empty' }, 400, origin);
   const repair = input.repair && typeof input.repair === 'object' ? input.repair : null;
   // Popular requests are cached for a week so they are free and instant the second time.
-  const cacheKey = new Request('https://ai-cache.local/build-v2/' + encodeURIComponent(prompt.toLowerCase().replace(/\s+/g, ' ')));
+  const cacheKey = new Request('https://ai-cache.local/build-v3/' + encodeURIComponent(prompt.toLowerCase().replace(/\s+/g, ' ')));
   if (!repair) {
     const hit = await caches.default.match(cacheKey);
     if (hit) return json({ ...(await hit.json()), cached: true }, 200, origin);
