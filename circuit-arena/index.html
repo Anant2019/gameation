@@ -650,7 +650,7 @@ table.conn td{padding:6px;border-bottom:1px solid var(--line);vertical-align:top
     <div class="setrow"><span>Workbench tips</span><button class="btn sm" id="setTips">Show again</button></div>
     <div class="setrow"><span>Progress (stars and best scores)</span><button class="btn sm danger" id="setReset">Reset</button></div>
     <p class="ver">Circuit Arena 1.4 · works offline</p>
-    <p class="ver"><a href="../" style="color:var(--copper);font-weight:600;text-decoration:none">More free games at calmtype.life →</a> · <a href="privacy/" style="color:var(--muted)">Privacy</a></p>
+    <p class="ver"><a href="../" style="color:var(--copper);font-weight:600;text-decoration:none">More free games at calmtype.life →</a> · <a href="projects/" style="color:var(--copper)">Project guides with code</a> · <a href="privacy/" style="color:var(--muted)">Privacy</a></p>
   </section>
 </section>
 
@@ -3352,6 +3352,10 @@ async function openShared(text){let b;try{b=cleanBuild(await unpackBuild(text))}
   setView('play');if(!L().sandbox)loadLevel(SB);pushHist();restore(b);S.env={...S.env,...b.env};S.sbWorld=b.sbWorld;S.personKey=null;renderEnv();requestAnimationFrame(fitCam);flash(`Opened "${b.name}" (${b.parts.length} parts).`);return true}
 $('#shOpen').onclick=async()=>{const t=$('#shIn').value.trim();if(!t){flash('Paste a code first.');return}if(await openShared(t))$('#shareModal').hidden=true};
 try{if(/^#b=/.test(location.hash)){const c=decodeURIComponent(location.hash.slice(3));history.replaceState(null,'',location.pathname+location.search);setTimeout(()=>openShared(c),600)}}catch(e){}
+// Links from the project pages: #p=<project id> opens the guided build, #x=<example id> opens a ready circuit in the Sandbox.
+try{const m=location.hash.match(/^#([px])=([\w-]+)$/);if(m){history.replaceState(null,'',location.pathname+location.search);setTimeout(()=>{
+  if(m[1]==='p'){const pr=PROJECTS.find(p=>p.id===m[2]);if(pr){setView('play');loadProject(pr)}}
+  else{const i=EXAMPLES.findIndex(e=>e.id===m[2]);if(i>=0){setView('play');if(!L().sandbox)loadLevel(SB);const sEl=$('#exSel');sEl.value=String(i);sEl.dispatchEvent(new Event('change'))}}},600)}}catch(e){}
 
 /* ---------- Project report (paper format, saved as PDF) ---------- */
 const DESIG={resistor:'R',ldr:'R',thermistor:'R',pot:'RV',led:'D',diode:'D',zener:'D',capacitor:'C',switch:'SW',button:'SW',transistor:'Q',mosfet:'Q',buzzer:'BZ',speaker:'LS',relay:'K',regulator:'U',battery:'BT',solar:'BT',dynamo:'G',usbc:'J'};

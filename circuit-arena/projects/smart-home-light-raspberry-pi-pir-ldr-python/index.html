@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Smart Home Light using Raspberry Pi, PIR and LDR (Python Code)</title>
+<meta name="description" content="A Raspberry Pi turns a light on only when someone is in the room and it is dark, using a PIR sensor, an LDR and a relay. Wiring, Python code and a free simulator.">
+<link rel="canonical" href="https://calmtype.life/circuit-arena/projects/smart-home-light-raspberry-pi-pir-ldr-python/">
+<meta property="og:title" content="Smart Home Light using Raspberry Pi, PIR and LDR (Python Code)"><meta property="og:description" content="A Raspberry Pi turns a light on only when someone is in the room and it is dark, using a PIR sensor, an LDR and a relay. Wiring, Python code and a free simulator.">
+<meta property="og:type" content="article"><meta property="og:url" content="https://calmtype.life/circuit-arena/projects/smart-home-light-raspberry-pi-pir-ldr-python/"><meta property="og:image" content="https://calmtype.life/circuit-arena/projects/smart-home-light-raspberry-pi-pir-ldr-python/circuit.webp">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0f1412">
+<link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "TechArticle", "headline": "Smart Home Light using Raspberry Pi, PIR Sensor and LDR", "description": "A Raspberry Pi turns a light on only when someone is in the room and it is dark, using a PIR sensor, an LDR and a relay. Wiring, Python code and a free simulator.", "image": "https://calmtype.life/circuit-arena/projects/smart-home-light-raspberry-pi-pir-ldr-python/circuit.webp", "url": "https://calmtype.life/circuit-arena/projects/smart-home-light-raspberry-pi-pir-ldr-python/", "datePublished": "2026-10-29", "dateModified": "2026-10-29", "inLanguage": "en", "author": {"@type": "Organization", "name": "CalmType", "url": "https://calmtype.life/"}, "publisher": {"@type": "Organization", "name": "CalmType", "url": "https://calmtype.life/"}, "proficiencyLevel": "Intermediate"}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "CalmType", "item": "https://calmtype.life/"}, {"@type": "ListItem", "position": 2, "name": "Circuit Arena", "item": "https://calmtype.life/circuit-arena/"}, {"@type": "ListItem", "position": 3, "name": "Project guides", "item": "https://calmtype.life/circuit-arena/projects/"}, {"@type": "ListItem", "position": 4, "name": "Smart Home Light (Pi)", "item": "https://calmtype.life/circuit-arena/projects/smart-home-light-raspberry-pi-pir-ldr-python/"}]}, {"@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Which language is used?", "acceptedAnswer": {"@type": "Answer", "text": "Python 3 with the gpiozero or RPi.GPIO library."}}, {"@type": "Question", "name": "Can I do this with Arduino instead?", "acceptedAnswer": {"@type": "Answer", "text": "Yes, and it is cheaper. The Pi is useful if you also want Wi-Fi control or a web dashboard."}}]}]}</script>
+<style>
+:root{--bg:#0f1412;--card:#161d1a;--line:#26302c;--ink:#e8eef0;--muted:#9aa8a3;--copper:#e3884b;--green:#4fc28a}
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.65 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+a{color:var(--copper)}
+.wrap{max-width:820px;margin:0 auto;padding:0 16px}
+header.top{border-bottom:1px solid var(--line);padding:12px 0}
+header.top .wrap{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.brand{font-weight:800;color:var(--ink);text-decoration:none;font-size:19px}.brand span{color:var(--copper)}
+nav.crumbs{font-size:14px;color:var(--muted);margin:18px 0 0}nav.crumbs a{color:var(--muted)}
+h1{font-size:clamp(26px,5vw,36px);line-height:1.2;margin:10px 0 8px}
+h2{font-size:22px;margin:34px 0 10px}
+.meta{color:var(--muted);font-size:15px;display:flex;gap:14px;flex-wrap:wrap}
+.cta{display:inline-block;background:var(--copper);color:#1a0f07;font-weight:800;text-decoration:none;padding:13px 20px;border-radius:12px;margin:14px 0}
+.cta:hover{filter:brightness(1.08)}
+figure{margin:18px 0;background:#0b0f0d;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+figure img{display:block;width:100%;height:auto}
+figcaption{font-size:14px;color:var(--muted);padding:8px 12px}
+table{width:100%;border-collapse:collapse;font-size:15px;margin:8px 0}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:600}
+td.r,th.r{text-align:right;white-space:nowrap}
+tfoot td{font-weight:800}
+.scroll{overflow-x:auto}
+pre{background:#0b0f0d;border:1px solid var(--line);border-radius:12px;padding:14px;overflow-x:auto;font-size:14px;line-height:1.5}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.codehead{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.copy{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:8px 14px;font:inherit;font-size:14px;cursor:pointer;min-height:40px}
+ol li,ul li{margin:6px 0}
+.faq details{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:10px 0}
+.faq summary{font-weight:700;cursor:pointer}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;margin:12px 0}
+.card{display:block;background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;color:var(--ink);text-decoration:none}
+.card img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:cover;background:#0b0f0d}
+.card div{padding:10px 12px}.card b{display:block;line-height:1.3}.card small{color:var(--muted)}
+.note{background:var(--card);border-left:4px solid var(--copper);padding:12px 14px;border-radius:8px}
+footer{border-top:1px solid var(--line);margin-top:48px;padding:22px 0;color:var(--muted);font-size:14px}
+footer a{color:var(--muted)}
+</style></head><body>
+<header class="top"><div class="wrap"><a class="brand" href="/">Calm<span>Type</span></a><a href="/circuit-arena/">Open the free circuit simulator →</a></div></header>
+
+<main class="wrap">
+<nav class="crumbs"><a href="/">CalmType</a> › <a href="/circuit-arena/">Circuit Arena</a> › <a href="../">Project guides</a></nav>
+<h1>Smart Home Light using Raspberry Pi, PIR Sensor and LDR</h1>
+<p class="meta"><span>Intermediate</span><span>15 min build</span><span>Parts about ₹4,750</span><span>Raspberry Pi 4</span></p>
+<p>The light turns on only when both things are true: someone is there and it is dark. It is a simple home-automation project that teaches AND logic and Raspberry Pi GPIO in Python.</p>
+<a class="cta" href="/circuit-arena/#p=pi-light">▶ Try this circuit free in the simulator</a>
+<figure><img src="circuit.webp" width="1200" height="701" alt="Circuit diagram: Smart Home Light using Raspberry Pi, PIR Sensor and LDR" loading="eager"><figcaption>Circuit built in Circuit Arena. Open it in the simulator to move the sensors and watch it work.</figcaption></figure>
+<h2>Components required</h2><div class="scroll"><table><thead><tr><th>Part</th><th>What it does</th><th class="r">Qty</th><th class="r">Approx. price</th></tr></thead><tbody>
+<tr><td>Raspberry Pi 4</td><td>A small Linux computer</td><td class="r">1</td><td class="r">₹4,500</td></tr>
+<tr><td>PIR motion HC-SR501</td><td>Detects the infrared heat of a moving person.</td><td class="r">1</td><td class="r">₹80</td></tr>
+<tr><td>LDR light module</td><td>Light-dependent resistor: resistance drops as light rises</td><td class="r">1</td><td class="r">₹20</td></tr>
+<tr><td>Smart bulb (relay)</td><td>A relay module that switches a mains bulb</td><td class="r">1</td><td class="r">₹150</td></tr>
+</tbody><tfoot><tr><td colspan="3">Total (plus jumper wires and a breadboard)</td><td class="r">₹4,750</td></tr></tfoot></table></div>
+<h2>Circuit connections</h2><div class="scroll"><table><thead><tr><th>From</th><th>Pin</th><th>To</th><th>Pin</th></tr></thead><tbody>
+<tr><td>PIR motion HC-SR501</td><td><code>VCC</code></td><td>Raspberry Pi 4</td><td><code>3V3</code></td></tr>
+<tr><td>PIR motion HC-SR501</td><td><code>GND</code></td><td>Raspberry Pi 4</td><td><code>GND</code></td></tr>
+<tr><td>PIR motion HC-SR501</td><td><code>OUT</code></td><td>Raspberry Pi 4</td><td><code>GPIO17</code></td></tr>
+<tr><td>LDR light module</td><td><code>VCC</code></td><td>Raspberry Pi 4</td><td><code>3V3</code></td></tr>
+<tr><td>LDR light module</td><td><code>GND</code></td><td>Raspberry Pi 4</td><td><code>GND</code></td></tr>
+<tr><td>LDR light module</td><td><code>OUT</code></td><td>Raspberry Pi 4</td><td><code>GPIO27</code></td></tr>
+<tr><td>Smart bulb (relay)</td><td><code>VCC</code></td><td>Raspberry Pi 4</td><td><code>3V3</code></td></tr>
+<tr><td>Smart bulb (relay)</td><td><code>GND</code></td><td>Raspberry Pi 4</td><td><code>GND</code></td></tr>
+<tr><td>Smart bulb (relay)</td><td><code>SIG</code></td><td>Raspberry Pi 4</td><td><code>GPIO22</code></td></tr>
+</tbody></table></div>
+<h2>How it works</h2><ol><li>The PIR sensor tells the Pi if someone is moving.</li><li>The LDR module tells the Pi if it is dark.</li><li>Python code switches the relay on only when both are true.</li></ol>
+<p>The logic in one line: <code>IF GPIO17 = 1 AND GPIO27 &lt; 40 → GPIO22 = 1 (else 0)</code>.</p>
+<h2>Python code (Raspberry Pi)</h2><div class="codehead"><span class="meta">Generated from the working circuit in the simulator.</span><button class="copy" data-for="code" type="button">Copy code</button></div><pre><code id="code"># Circuit Arena — Smart Home Light (Pi)
+# Board: Raspberry Pi 4
+# Wiring:
+#   PIR VCC -&gt; Pi 4 3V3
+#   PIR GND -&gt; Pi 4 GND
+#   PIR OUT -&gt; Pi 4 GPIO17
+#   LDR VCC -&gt; Pi 4 3V3
+#   LDR GND -&gt; Pi 4 GND
+#   LDR OUT -&gt; Pi 4 GPIO27
+#   Smart bulb VCC -&gt; Pi 4 3V3
+#   Smart bulb GND -&gt; Pi 4 GND
+#   Smart bulb SIG -&gt; Pi 4 GPIO22
+
+import time
+import RPi.GPIO as GPIO
+
+GPIO.setmode(GPIO.BCM)
+GPIO.setwarnings(False)
+GPIO.setup(17, GPIO.IN)   # PIR
+GPIO.setup(27, GPIO.IN)   # LDR
+GPIO.setup(22, GPIO.OUT)   # Smart bulb
+
+def map_range(x, a, b, c, d):
+    return c + (x - a) * (d - c) / (b - a)
+
+def constrain(x, lo, hi):
+    return max(lo, min(hi, x))
+
+def write_out(pin, value):
+    GPIO.output(pin, 1 if value &gt; 0 else 0)
+
+try:
+    while True:
+        v_GPIO17 = GPIO.input(17)
+        v_GPIO27 = 0 if GPIO.input(27) else 100   # LDR module DO: HIGH = dark
+        if v_GPIO17 == 1 and v_GPIO27 &lt; 40:
+            write_out(22, 1)
+        else:
+            write_out(22, 0)
+        time.sleep(0.05)
+except KeyboardInterrupt:
+    GPIO.cleanup()</code></pre>
+<h2>Tips for building the real thing</h2><ul><li>Never feed a 5 V signal into a Pi GPIO.</li><li>On a real Pi use the LDR module DO pin, since the Pi has no analog input.</li><li>Raspberry Pi GPIO pins are 3.3 V: never connect a 5 V signal to them.</li><li>The Pi has no analog input, so use the LDR module digital (DO) pin.</li></ul>
+<p class="note"><b>Try it in the simulator:</b> Tick motion and drop the light below 40%. <a href="/circuit-arena/#p=pi-light">Open it now →</a></p>
+<p>The simulator checks it for you: Motion + dark → bulb ON, Motion + daylight → bulb OFF, Empty room + dark → bulb OFF.</p>
+<h2>FAQ</h2><div class="faq"><details><summary>Which language is used?</summary><p>Python 3 with the gpiozero or RPi.GPIO library.</p></details><details><summary>Can I do this with Arduino instead?</summary><p>Yes, and it is cheaper. The Pi is useful if you also want Wi-Fi control or a web dashboard.</p></details></div>
+<h2>More projects</h2><div class="cards"><a class="card" href="../smart-dustbin-arduino-ultrasonic/"><img src="../smart-dustbin-arduino-ultrasonic/circuit.webp" width="1200" height="701" alt="Smart Dustbin using Arduino, Ultrasonic Sensor and Servo" loading="lazy"><div><b>Smart Dustbin using Arduino, Ultrasonic Sensor and Servo</b><small>Intermediate · parts about ₹630</small></div></a><a class="card" href="../automatic-night-lamp-ldr-arduino/"><img src="../automatic-night-lamp-ldr-arduino/circuit.webp" width="1200" height="701" alt="Automatic Night Lamp using LDR Sensor and Arduino" loading="lazy"><div><b>Automatic Night Lamp using LDR Sensor and Arduino</b><small>Beginner · parts about ₹620</small></div></a><a class="card" href="../fire-alarm-temperature-fan-arduino/"><img src="../fire-alarm-temperature-fan-arduino/circuit.webp" width="1200" height="701" alt="Smart Fan and Fire Alarm using Arduino and Temperature Sensor" loading="lazy"><div><b>Smart Fan and Fire Alarm using Arduino and Temperature Sensor</b><small>Intermediate · parts about ₹750</small></div></a><a class="card" href="../traffic-light-project-arduino/"><img src="../traffic-light-project-arduino/circuit.webp" width="1200" height="701" alt="Traffic Light using Arduino and 3 LEDs" loading="lazy"><div><b>Traffic Light using Arduino and 3 LEDs</b><small>Intermediate · parts about ₹459</small></div></a><a class="card" href="../burglar-alarm-pir-sensor-arduino/"><img src="../burglar-alarm-pir-sensor-arduino/circuit.webp" width="1200" height="701" alt="Burglar Alarm (Motion Detector) using PIR Sensor and Arduino" loading="lazy"><div><b>Burglar Alarm (Motion Detector) using PIR Sensor and Arduino</b><small>Beginner · parts about ₹560</small></div></a><a class="card" href="../car-parking-sensor-ultrasonic-arduino/"><img src="../car-parking-sensor-ultrasonic-arduino/circuit.webp" width="1200" height="701" alt="Parking Sensor using Ultrasonic Sensor, Arduino and Buzzer" loading="lazy"><div><b>Parking Sensor using Ultrasonic Sensor, Arduino and Buzzer</b><small>Intermediate · parts about ₹543</small></div></a></div>
+<a class="cta" href="/circuit-arena/#p=pi-light">▶ Build Smart Home Light (Pi) in the free simulator</a>
+</main><footer><div class="wrap">
+<p><a href="/circuit-arena/projects/">All project guides</a> · <a href="/circuit-arena/">Circuit Arena simulator</a> · <a href="/">More free games at calmtype.life</a> · <a href="/circuit-arena/privacy/">Privacy</a></p>
+<p>Prices are typical Indian online prices and change often. Mains (230 V) wiring is dangerous: practise with low-voltage parts and ask a teacher or an adult.</p>
+</div></footer><script>document.querySelectorAll('.copy').forEach(b=>b.addEventListener('click',()=>{const t=document.getElementById(b.dataset.for).innerText;
+(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>{b.textContent='Copied ✓';setTimeout(()=>b.textContent='Copy code',1500)}).catch(()=>{})}))</script></body></html>
