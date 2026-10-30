@@ -3351,11 +3351,14 @@ function cleanBuild(d){if(!d||!Array.isArray(d.parts))throw new Error('This code
 async function openShared(text){let b;try{b=cleanBuild(await unpackBuild(text))}catch(e){flash(e.message||'Could not open this code.');return false}
   setView('play');if(!L().sandbox)loadLevel(SB);pushHist();restore(b);S.env={...S.env,...b.env};S.sbWorld=b.sbWorld;S.personKey=null;renderEnv();requestAnimationFrame(fitCam);flash(`Opened "${b.name}" (${b.parts.length} parts).`);return true}
 $('#shOpen').onclick=async()=>{const t=$('#shIn').value.trim();if(!t){flash('Paste a code first.');return}if(await openShared(t))$('#shareModal').hidden=true};
-try{if(/^#b=/.test(location.hash)){const c=decodeURIComponent(location.hash.slice(3));history.replaceState(null,'',location.pathname+location.search);setTimeout(()=>openShared(c),600)}}catch(e){}
-// Links from the project pages: #p=<project id> opens the guided build, #x=<example id> opens a ready circuit in the Sandbox.
-try{const m=location.hash.match(/^#([px])=([\w-]+)$/);if(m){history.replaceState(null,'',location.pathname+location.search);setTimeout(()=>{
-  if(m[1]==='p'){const pr=PROJECTS.find(p=>p.id===m[2]);if(pr){setView('play');loadProject(pr)}}
-  else{const i=EXAMPLES.findIndex(e=>e.id===m[2]);if(i>=0){setView('play');if(!L().sandbox)loadLevel(SB);const sEl=$('#exSel');sEl.value=String(i);sEl.dispatchEvent(new Event('change'))}}},600)}}catch(e){}
+// Links into the game: #b=<build code> (shared build), #p=<project id> (guided build), #x=<example id> (ready circuit in the Sandbox).
+// Read on start and whenever the hash changes while the game is open.
+function openFromHash(wait){try{const h=location.hash;let m;
+  if(/^#b=/.test(h)){const c=decodeURIComponent(h.slice(3));history.replaceState(null,'',location.pathname+location.search);setTimeout(()=>openShared(c),wait)}
+  else if((m=h.match(/^#([px])=([\w-]+)$/))){history.replaceState(null,'',location.pathname+location.search);setTimeout(()=>{
+    if(m[1]==='p'){const pr=PROJECTS.find(p=>p.id===m[2]);if(pr){setView('play');loadProject(pr)}}
+    else{const i=EXAMPLES.findIndex(e=>e.id===m[2]);if(i>=0){setView('play');if(!L().sandbox)loadLevel(SB);const sEl=$('#exSel');sEl.value=String(i);sEl.dispatchEvent(new Event('change'))}}},wait)}}catch(e){}}
+openFromHash(600);window.addEventListener('hashchange',()=>openFromHash(0));
 
 /* ---------- Project report (paper format, saved as PDF) ---------- */
 const DESIG={resistor:'R',ldr:'R',thermistor:'R',pot:'RV',led:'D',diode:'D',zener:'D',capacitor:'C',switch:'SW',button:'SW',transistor:'Q',mosfet:'Q',buzzer:'BZ',speaker:'LS',relay:'K',regulator:'U',battery:'BT',solar:'BT',dynamo:'G',usbc:'J'};
@@ -3564,12 +3567,24 @@ function frame(ts){requestAnimationFrame(frame);if(ts-last<33)return;last=ts;if(
   const bc=S.parts.filter(p=>p.burnt).length;if(bc>burntCount)SFX.pop();burntCount=bc;
   $('#scenePanel').hidden=!!aw||!!S.inv;renderBench();renderWorld(aw);if(!aw)renderScene();renderStatus();renderHud();syncSideTabs();updateICModal()}
 
+// The bench, the open level/project and the screen are saved every couple of seconds, so a refresh (or Android closing the app) resumes where you were.
+const SESSION='circuitArena.session';
+const sessionNow=()=>({lvl:S.lvl,proj:S.proj?S.proj.id:null,inv:S.inv?S.inv.id:null,view,...JSON.parse(snap()),env:S.env,sbWorld:S.sbWorld});
+let lastSession='';
+function saveSession(){try{const s=JSON.stringify(sessionNow());if(s!==lastSession){lastSession=s;store.set(SESSION,JSON.stringify({...JSON.parse(s),t:Date.now()}))}}catch(e){}}
 function start(data){
-  if(data&&data.parts){loadLevel(data.lvl||0);restore(data);S.env={...S.env,...(data.env||{})};S.sbWorld=data.sbWorld||'auto';renderEnv();hist.length=0}
-  else loadLevel(0);
-  setView(data&&data.parts?'play':'home');
+  if(!(data&&data.parts)){try{const s=JSON.parse(store.get(SESSION)||'null');if(s&&Array.isArray(s.parts)&&Date.now()-(s.t||0)<60*864e5)data=s}catch(e){}}
+  let ok=false;
+  if(data&&data.parts){try{
+    const pr=data.proj&&PROJECTS.find(p=>p.id===data.proj),inv=data.inv&&INVENTIONS.find(x=>x.id===data.inv);
+    if(pr)loadProject(pr);else if(inv)loadInvention(inv);else loadLevel(LEVELS[data.lvl]?data.lvl:0);
+    restore(data);S.env={...S.env,...(data.env||{})};S.sbWorld=data.sbWorld||'auto';renderEnv();hist.length=0;ok=true}catch(e){}}
+  if(!ok)loadLevel(0);
+  setView(ok?(['home','play','build','projects','parts'].includes(data.view)?data.view:'play'):'home');
+  lastSession=JSON.stringify(sessionNow());
+  setInterval(saveSession,2000);window.addEventListener('pagehide',saveSession);document.addEventListener('visibilitychange',()=>{if(document.hidden)saveSession()});
   requestAnimationFrame(frame)}
-window.claude?.hot?.snapshot?.(()=>({lvl:S.lvl,...JSON.parse(snap()),env:S.env,sbWorld:S.sbWorld}));
+window.claude?.hot?.snapshot?.(sessionNow);
 window.claude?.hot?.ready?window.claude.hot.ready(start):start(window.claude?.hot?.data??{});
 })();
 </script>
