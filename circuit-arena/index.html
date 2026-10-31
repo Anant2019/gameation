@@ -3580,6 +3580,7 @@ function start(data){
     if(pr)loadProject(pr);else if(inv)loadInvention(inv);else loadLevel(LEVELS[data.lvl]?data.lvl:0);
     restore(data);S.env={...S.env,...(data.env||{})};S.sbWorld=data.sbWorld||'auto';renderEnv();hist.length=0;ok=true}catch(e){}}
   if(!ok)loadLevel(0);
+  renderHome();   // the Home screen's progress and tiles are ready even when we resume on another screen
   setView(ok?(['home','play','build','projects','parts'].includes(data.view)?data.view:'play'):'home');
   lastSession=JSON.stringify(sessionNow());
   setInterval(saveSession,2000);window.addEventListener('pagehide',saveSession);document.addEventListener('visibilitychange',()=>{if(document.hidden)saveSession()});
