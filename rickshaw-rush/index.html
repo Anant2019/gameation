@@ -164,6 +164,7 @@ h1 span{display:block;color:var(--cream)}
 .keys kbd{font-family:var(--body);font-weight:800;background:rgba(255,255,255,.1);border-radius:5px;padding:0 5px;color:var(--cream)}
 .cashline{font-size:13px;color:var(--mute)}
 .cashline b{color:var(--leaf);font-variant-numeric:tabular-nums}
+.gfx{font:inherit;font-size:12px;color:var(--saffron);background:none;border:1px solid currentColor;border-radius:999px;padding:3px 10px;cursor:pointer}
 .hublink{font-size:12px;letter-spacing:.12em;color:var(--mute);text-decoration:none;font-weight:800}
 .hublink:hover{color:var(--saffron)}
 #rotateHint{font-size:12px;color:var(--saffron)}
@@ -244,7 +245,7 @@ h1 span{display:block;color:var(--cream)}
       <button class="mode" data-mode="race" aria-pressed="false"><span class="nm">Race</span><span class="ds">2 laps, 3 rivals. Checkpoint pakdo, pehla number lao.</span></button>
     </div>
     <button class="go" id="btnGo">CHALO!</button>
-    <div class="cashline">Kamaai: <b id="cashMenu">₹0</b> · Best race: <b id="bestMenu">—</b></div>
+    <div class="cashline">Kamaai: <b id="cashMenu">₹0</b> · Best race: <b id="bestMenu">—</b> · <button id="btnGfx" class="gfx"></button></div>
     <div class="keys" id="keysHelp"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> chalao · <kbd>Shift</kbd> nitro · <kbd>Space</kbd> drift · <kbd>F</kbd> laat · <kbd>H</kbd> horn · <kbd>C</kbd> camera · <kbd>R</kbd> reset</div>
     <a class="hublink" href="../index.html">← ALL GAMES · CALMTYPE</a>
     <div id="rotateHint" hidden>Phone ko landscape (tedha) karo, zyada maza aayega.</div>
@@ -309,7 +310,10 @@ const store = {
 };
 const isTouch = (window.matchMedia && matchMedia('(pointer: coarse)').matches) || ('ontouchstart' in window);
 if(isTouch){ document.body.classList.add('touch'); $('keysHelp').hidden = true; }
-const LOW = isTouch;
+// graphics: auto (phones and slow machines get the light build), halka (lightest, no shadows), full
+const GFX = store.get('gfx','auto');
+const LITE = GFX==='low';
+const LOW = LITE || (GFX==='auto' && (isTouch || store.get('weak',false)));
 // phones: plain Lambert lighting is several times cheaper per pixel than PBR
 if(LOW){ const Lam=THREE.MeshLambertMaterial;
   THREE.MeshStandardMaterial=class extends Lam{ constructor(p={}){ const q={...p}; for(const k of ['roughness','metalness','flatShading','roughnessMap','metalnessMap','normalMap','envMapIntensity']) delete q[k]; super(q); } }; }
@@ -318,9 +322,9 @@ try { await Promise.race([ Promise.all([document.fonts.load('40px Bungee'), docu
 
 // ================= renderer / scene =================
 const renderer = new THREE.WebGLRenderer({ antialias: !LOW, powerPreference:'high-performance' });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, LOW?1.25:1.5));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, LITE?1:LOW?1.25:1.5));
 renderer.setSize(innerWidth, innerHeight);
-renderer.shadowMap.enabled = true;
+renderer.shadowMap.enabled = !LITE;
 renderer.shadowMap.type = LOW?THREE.PCFShadowMap:THREE.PCFSoftShadowMap;
 renderer.shadowMap.autoUpdate = false; // redrawn every few frames, see frame()
 renderer.outputEncoding = THREE.sRGBEncoding;
@@ -331,7 +335,7 @@ const maxAniso = renderer.capabilities.getMaxAnisotropy();
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(64, innerWidth/innerHeight, 0.3, 2600);
 const C = h => new THREE.Color(h).convertSRGBToLinear();
-scene.fog = new THREE.Fog(C(0xd9805f), 70, LOW?470:620);
+scene.fog = new THREE.Fog(C(0xd9805f), 70, LITE?340:LOW?470:620);
 
 // ================= helpers =================
 function makeTex(w,h,draw,o={}){
@@ -517,7 +521,7 @@ const pmrem = new THREE.PMREMGenerator(renderer); let envRT=null;
 
 const hemi = new THREE.HemisphereLight(C(0xffb98a), C(0x3b2442), .35); scene.add(hemi);
 const sun = new THREE.DirectionalLight(C(0xffa55a), 2.4);
-sun.castShadow=true; sun.shadow.mapSize.set(LOW?1024:2048, LOW?1024:2048);
+sun.castShadow=!LITE; sun.shadow.mapSize.set(LOW?1024:2048, LOW?1024:2048);
 const sc=sun.shadow.camera, SR=LOW?60:80; sc.left=-SR; sc.right=SR; sc.top=SR; sc.bottom=-SR; sc.near=1; sc.far=400;
 sun.shadow.bias=-0.0004; sun.shadow.normalBias=0.03;
 scene.add(sun); scene.add(sun.target);
@@ -2228,7 +2232,7 @@ function doKick(){
 let kickSide=1;
 
 // ================= footpath walkers (instanced, follow the player around) =================
-const WALK_N=LOW?30:70, walkers=[], walkBlocks=[];
+const WALK_N=LITE?16:LOW?30:70, walkers=[], walkBlocks=[];
 for(const col of blocks) for(const b of col) if(b.type==='bld'||b.type==='temple') walkBlocks.push(b);
 const walkMesh=(geo,n)=>{ const m=new THREE.InstancedMesh(geo,new THREE.MeshStandardMaterial({color:0xffffff,roughness:.8}),n); m.frustumCulled=false; m.castShadow=!LOW; scene.add(m); return m; };
 const wBody=walkMesh(new THREE.CylinderGeometry(.2,.3,1.1,7).translate(0,.62,0),WALK_N);
@@ -2659,7 +2663,7 @@ function startGame(){
     racers=[player,...ais];
     G.state='countdown'; G.countdown=3.6; setArch(); finishOrder=[];
   } else {
-    spawnTraffic(LOW?12:24); spawnCows(LOW?8:12);
+    spawnTraffic(LITE?8:LOW?12:24); spawnCows(LITE?5:LOW?8:12);
     player.reset(L[3]+4.5,L[2]+24,0); player.name='Tum';
     spawnRivals(LOW?2:3); racers=[player,...ais];
     for(let i=0;i<PATROL_N;i++) spawnCop(true);
@@ -2820,7 +2824,10 @@ for(const b of document.querySelectorAll('.tbtn')){
 }
 function cycleCam(){ G.camMode=(G.camMode+1)%3; }
 function cycleTOD(){ const o=['sunset','night','day']; applyTOD(o[(o.indexOf(G.tod)+1)%3]); }
-$('btnShopExit').onclick=closeShop; $('btnGo').onclick=startGame; $('btnPause').onclick=()=>setPause(true); $('btnResume').onclick=()=>setPause(false);
+$('btnShopExit').onclick=closeShop; $('btnGo').onclick=startGame;
+{ const GL={auto:'AUTO',low:'HALKA',high:'FULL'}, NX={auto:'low',low:'high',high:'auto'};
+  $('btnGfx').textContent='Graphics: '+GL[GFX];
+  $('btnGfx').onclick=()=>{ store.set('gfx',NX[GFX]); store.set('weak',false); location.reload(); }; } $('btnPause').onclick=()=>setPause(true); $('btnResume').onclick=()=>setPause(false);
 $('btnRestart').onclick=()=>startGame(); $('btnMenu').onclick=goMenu; $('btnMenu2').onclick=goMenu;
 $('btnAgain').onclick=()=>{ G.mode='race'; for(const c of document.querySelectorAll('.mode')) c.setAttribute('aria-pressed',c.dataset.mode==='race'); startGame(); }; $('btnFree').onclick=()=>{ G.mode='free'; for(const c of document.querySelectorAll('.mode')) c.setAttribute('aria-pressed',c.dataset.mode==='free'); startGame(); };
 $('btnCam').onclick=cycleCam; $('btnTod').onclick=cycleTOD; $('btnSnd').onclick=()=>{ audioInit(); setSound(!SND.on); }; $('btnReset').onclick=resetPlayer;
@@ -3043,16 +3050,16 @@ let cullT=0, shadowT=0;
 const Q={max:renderer.getPixelRatio(), min:LOW?.6:.75, acc:0, n:0, good:0};
 Q.pr=Q.max;
 function adaptQuality(raw){
-  if(document.hidden || raw>.25) return;
+  if(GFX!=='auto' || document.hidden || raw>.25) return;
   Q.acc+=raw; Q.n++; if(Q.acc<1) return;
   const fps=Q.n/Q.acc; Q.acc=0; Q.n=0;
   if(fps<48){ Q.good=0;
     if(Q.pr>Q.min+.01){ Q.pr=Math.max(Q.min,Q.pr-.25); renderer.setPixelRatio(Q.pr); }
-    else if(sun.castShadow && fps<40){ sun.castShadow=false; }
+    else if(sun.castShadow && fps<40){ sun.castShadow=false; store.set('weak',true); } // next visit starts in the light build
   } else if(fps>57){ if(++Q.good>=6 && Q.pr<Q.max-.01){ Q.good=0; Q.pr=Math.min(Q.max,Q.pr+.25); renderer.setPixelRatio(Q.pr); } }
   else Q.good=0;
 }
-function cullCity(){ const c=camera.position; for(const m of city.children){ const s=m.geometry.boundingSphere; if(!s) continue; m.visible=Math.hypot(s.center.x-c.x,s.center.z-c.z)-s.radius<(LOW?420:560); } }
+function cullCity(){ const c=camera.position; for(const m of city.children){ const s=m.geometry.boundingSphere; if(!s) continue; m.visible=Math.hypot(s.center.x-c.x,s.center.z-c.z)-s.radius<(LITE?300:LOW?420:560); } }
 function frame(dt){
   cullT-=dt; if(cullT<=0){ cullT=.25; cullCity(); }
   G.time+=dt; hornCool-=dt; rantCool-=dt; pedCool-=dt; kickCool-=dt;
@@ -3092,7 +3099,9 @@ setPreview(G.vtype);
 refreshMenu();
 $('loading').remove();
 let last=performance.now();
-function loop(now){ requestAnimationFrame(loop); const raw=(now-last)/1000, dt=Math.min(.05,raw); last=now; adaptQuality(raw); frame(dt); renderer.render(scene,camera); }
+function loop(now){ requestAnimationFrame(loop); const raw=(now-last)/1000; last=now; adaptQuality(raw);
+  // on a slow device take two steps per frame, so the game doesn't run in slow motion
+  const dt=Math.min(.1,raw); if(dt>.05){ frame(dt/2); frame(dt/2); } else frame(dt); renderer.render(scene,camera); }
 requestAnimationFrame(loop);
 })().catch(err=>{ const el=document.getElementById('loading'); if(el){ el.textContent='Kuch gadbad ho gayi: '+err.message; el.style.fontSize='14px'; } console.error(err); });
 </script>
