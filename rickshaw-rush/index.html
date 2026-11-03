@@ -177,6 +177,9 @@ h1 span{display:block;color:var(--cream)}
 .keys kbd{font-family:var(--body);font-weight:800;background:rgba(255,255,255,.1);border-radius:5px;padding:0 5px;color:var(--cream)}
 .cashline{font-size:13px;color:var(--mute)}
 .cashline b{color:var(--leaf);font-variant-numeric:tabular-nums}
+body:not(.touch) .tonly,body:not(.touch) #topBtns .tonly,#topBtns button[hidden],.gfx[hidden]{display:none}
+#btnTilt.on{background:var(--saffron);color:var(--ink);border-color:var(--saffron)}
+body.tilt #joy .jl.up::after{content:' · TILT'}
 .gfx{font:inherit;font-size:12px;color:var(--saffron);background:none;border:1px solid currentColor;border-radius:999px;padding:3px 10px;cursor:pointer}
 .hublink{font-size:12px;letter-spacing:.12em;color:var(--mute);text-decoration:none;font-weight:800}
 .hublink:hover{color:var(--saffron)}
@@ -224,6 +227,8 @@ h1 span{display:block;color:var(--cream)}
     <button id="btnTod" aria-label="Din ya raat">☀</button>
     <button id="btnSnd" aria-label="Awaaz">♪</button>
     <button id="btnReset" aria-label="Gaadi road pe wapas">↺</button>
+    <button id="btnTilt" class="tonly" aria-label="Tilt steering">TILT</button>
+    <button id="btnFs" aria-label="Full screen">⛶</button>
   </div>
   <div id="speedo" class="chip"><div id="spd">0</div><div class="unit">KM/H</div><div id="nitroBar"><i></i></div><div class="nlbl">NITRO</div></div>
   <div id="fuelChip" class="chip" hidden><div class="fhead"><span id="fuelName">⛽ CNG</span><b id="fuelPct">100%</b></div><div id="fuelBar"><i></i></div><div class="fnav"><span id="fuelArrow">➤</span> <span id="fuelDist">Pump 0m</span></div><div class="fnav spr"><span id="sprayArrow">➤</span> <span id="sprayDist">Spray 0m</span></div><div id="fuelLbl">PUC 4:00</div></div>
@@ -255,7 +260,7 @@ h1 span{display:block;color:var(--cream)}
       <button class="mode" data-mode="race" aria-pressed="false"><span class="nm">Race</span><span class="ds">2 laps, 3 rivals. Checkpoint pakdo, pehla number lao.</span></button>
     </div>
     <button class="go" id="btnGo">CHALO!</button>
-    <div class="cashline">Kamaai: <b id="cashMenu">₹0</b> · Best race: <b id="bestMenu">—</b> · <button id="btnGfx" class="gfx"></button></div>
+    <div class="cashline">Kamaai: <b id="cashMenu">₹0</b> · Best race: <b id="bestMenu">—</b> · <button id="btnGfx" class="gfx"></button> <button id="btnFsMenu" class="gfx">⛶ Full screen</button> <button id="btnTiltMenu" class="gfx tonly"></button></div>
     <div class="keys" id="keysHelp"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> chalao · <kbd>Shift</kbd> nitro · <kbd>Space</kbd> drift · <kbd>F</kbd> laat · <kbd>H</kbd> horn · <kbd>C</kbd> camera · <kbd>R</kbd> reset</div>
     <a class="hublink" href="../index.html">← ALL GAMES · CALMTYPE</a>
     <div id="rotateHint" hidden>Phone ko landscape (tedha) karo, zyada maza aayega.</div>
@@ -2918,6 +2923,7 @@ function setPreview(k){ if(preview) preview.dispose(); preview=new Vehicle(k,pai
 function clearRace(){ for(const a of ais) a.dispose(); ais=[]; racers=[]; }
 function startGame(){
   audioInit();
+  if(isTouch){ if(canFs&&!isFs()) goFull(true); if(TILT.want) setTilt(true); }
   $('menu').hidden=true; $('results').hidden=true; $('pause').hidden=true; $('hud').hidden=false;
   if(preview){ preview.dispose(); preview=null; }
   if(player) player.dispose(); clearRace();
@@ -3107,6 +3113,36 @@ const JOY={id:null,x:0,y:0,cx:0,cy:0};
   zone.addEventListener('pointermove',e=>{ if(e.pointerId===JOY.id) move(e); });
   zone.addEventListener('pointerup',end); zone.addEventListener('pointercancel',end); zone.addEventListener('lostpointercapture',end);
   zone.addEventListener('contextmenu',e=>e.preventDefault()); }
+// full screen (and landscape lock on phones); iPhone Safari has no fullscreen API, so the button hides there
+const fsEl=document.documentElement, canFs=!!(fsEl.requestFullscreen||fsEl.webkitRequestFullscreen);
+const isFs=()=>!!(document.fullscreenElement||document.webkitFullscreenElement);
+function goFull(on=!isFs()){
+  try{
+    if(on){ const r=(fsEl.requestFullscreen||fsEl.webkitRequestFullscreen).call(fsEl,{navigationUI:'hide'});
+      const lock=()=>{ try{ screen.orientation&&screen.orientation.lock&&screen.orientation.lock('landscape').catch(()=>{}); }catch(_){} };
+      if(r&&r.then) r.then(lock).catch(()=>{}); else lock(); }
+    else (document.exitFullscreen||document.webkitExitFullscreen).call(document);
+  }catch(_){}
+}
+for(const id of ['btnFs','btnFsMenu']){ $(id).hidden=!canFs; $(id).onclick=()=>goFull(); }
+// tilt steering: hold the phone like a steering wheel, joystick still does gas and brake
+const TILT={on:false,want:!!store.get('tilt',false),x0:0,sign:1,raw:0,steer:0,got:false};
+function scrAngle(){ const a=(screen.orientation&&typeof screen.orientation.angle==='number')?screen.orientation.angle:(window.orientation||0); return a*Math.PI/180; }
+function onMotion(e){ const g=e.accelerationIncludingGravity; if(!g||g.x==null) return;
+  const a=scrAngle(), gx=g.x*Math.cos(a)-g.y*Math.sin(a);
+  if(!TILT.got){ TILT.got=true; TILT.sign=(g.z!=null&&g.z<-2)?-1:1; TILT.x0=gx; }
+  TILT.raw=gx; let v=-(gx-TILT.x0)*TILT.sign/5.5; v=Math.abs(v)<.06?0:v; TILT.steer=clamp(v,-1,1); }
+function tiltUI(){ $('btnTilt').classList.toggle('on',TILT.want); $('btnTiltMenu').textContent='Steering: '+(TILT.want?'TILT 📱':'JOYSTICK 🕹'); document.body.classList.toggle('tilt',TILT.want&&TILT.on); }
+async function setTilt(on){
+  TILT.want=on; store.set('tilt',on);
+  if(on){ try{ if(typeof DeviceMotionEvent!=='undefined'&&DeviceMotionEvent.requestPermission){ const r=await DeviceMotionEvent.requestPermission(); if(r!=='granted'){ TILT.want=false; store.set('tilt',false); toast('Tilt ki permission nahi mili',2); tiltUI(); return; } } }catch(_){}
+    if(!TILT.on){ addEventListener('devicemotion',onMotion); TILT.on=true; }
+    TILT.got=false; setTimeout(()=>{ if(TILT.want&&!TILT.got) toast('Is phone mein tilt sensor nahi mila',2.4); },1500);
+    if(G.state==='play') toast('Tilt ON · phone ko seedha pakdo, ab mod ke chalao',2.4);
+  } else { removeEventListener('devicemotion',onMotion); TILT.on=false; TILT.steer=0; if(G.state==='play') toast('Tilt OFF · joystick se steering',1.6); }
+  tiltUI();
+}
+$('btnTilt').onclick=()=>setTilt(!TILT.want); $('btnTiltMenu').onclick=()=>setTilt(!TILT.want); tiltUI();
 function cycleCam(){ G.camMode=(G.camMode+1)%3; }
 function cycleTOD(){ const o=['sunset','night','day']; applyTOD(o[(o.indexOf(G.tod)+1)%3]); }
 $('btnShopExit').onclick=closeShop; $('btnGo').onclick=startGame;
@@ -3119,7 +3155,7 @@ $('btnCam').onclick=cycleCam; $('btnTod').onclick=cycleTOD; $('btnSnd').onclick=
 document.addEventListener('visibilitychange',()=>{ if(document.hidden){ setPause(true); if(SND.ctx) SND.ctx.suspend(); } else if(SND.ctx) SND.ctx.resume(); });
 function playerInput(dt){
   const left=keys.KeyA||keys.ArrowLeft||touch.left, right=keys.KeyD||keys.ArrowRight||touch.right;
-  const jx=Math.abs(JOY.x)<.12?0:(JOY.x-Math.sign(JOY.x)*.12)/.88;
+  const jx=TILT.on&&TILT.want?TILT.steer:Math.abs(JOY.x)<.12?0:(JOY.x-Math.sign(JOY.x)*.12)/.88;
   const target=clamp((right?1:0)-(left?1:0)+jx,-1,1);
   const rate=(target===0||Math.sign(target)!==Math.sign(player.inSteer))?9:4.2;
   player.inSteer+=clamp(target-player.inSteer,-rate*dt,rate*dt);
