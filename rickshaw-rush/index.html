@@ -7,12 +7,12 @@
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,viewport-fit=cover">
-<title>Rickshaw Rush — Indian Auto Rickshaw Driving Game | CalmType</title>
+<title>Rickshaw Rush — Pune Auto Rickshaw Driving Game | CalmType</title>
 <meta name="theme-color" content="#140b22">
-<meta name="description" content="Free 3D Indian auto rickshaw game in your browser. Pick up passengers, race rival autos, kick cars, escape crazy police and naka bandi, fill CNG, and repaint at the spray shop. Works on phone.">
+<meta name="description" content="Free 3D auto rickshaw game set in Pune: Kasba, Sadashiv and Budhwar Peth, JM Road, Shaniwar Wada, Dagdusheth Ganpati, metro and Mutha bridges. Pick up passengers, escape crazy police, fill CNG. Works on phone.">
 <link rel="canonical" href="https://calmtype.life/rickshaw-rush/">
-<meta property="og:title" content="Rickshaw Rush — Indian Auto Rickshaw Game">
-<meta property="og:description" content="Drive a 3D auto rickshaw through a crazy Indian city: passengers, races, police chases, CNG pumps and a spray shop.">
+<meta property="og:title" content="Rickshaw Rush — Pune Auto Rickshaw Game">
+<meta property="og:description" content="Drive a 3D auto rickshaw through Pune: peths, JM Road, metro, Shaniwar Wada, police chases, CNG pumps, and Dogesh bhai on your roof.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://calmtype.life/rickshaw-rush/">
 <meta property="og:image" content="https://calmtype.life/rickshaw-rush/cover.jpg">
@@ -65,6 +65,10 @@ button:focus-visible{outline:3px solid var(--saffron);outline-offset:2px}
 #combo{position:absolute;left:50%;bottom:calc(28% + env(safe-area-inset-bottom,0px));transform:translateX(-50%);font-family:var(--display);font-size:20px;color:var(--teal);text-shadow:2px 2px 0 rgba(0,0,0,.5);opacity:0;transition:opacity .2s}
 #combo.on{opacity:1}
 #vignette{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity .2s;background:radial-gradient(ellipse at center,transparent 45%,rgba(25,195,179,.18) 70%,rgba(255,46,136,.35) 100%)}
+#place{position:absolute;left:50%;transform:translateX(-50%);top:calc(10px + env(safe-area-inset-top,0px));padding:3px 12px 4px;font-size:12px;font-weight:800;letter-spacing:.06em;white-space:nowrap;pointer-events:none;color:var(--cream)}
+#place b{color:var(--saffron)}
+#place.flash{animation:placeIn .9s ease-out}
+@keyframes placeIn{0%{transform:translateX(-50%) scale(1.35);background:rgba(255,159,28,.5)}100%{transform:translateX(-50%) scale(1)}}
 #wanted{position:absolute;top:calc(10px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);padding:3px 12px 5px;text-align:center;border-width:2px}
 #wanted .stars{font-size:22px;letter-spacing:2px;color:rgba(255,255,255,.22);line-height:1.1}
 #wanted .stars b{color:var(--saffron);text-shadow:0 0 8px rgba(255,159,28,.8)}
@@ -197,6 +201,7 @@ h1 span{display:block;color:var(--cream)}
 
 <div id="hud" hidden>
   <div id="hudTL" class="chip"></div>
+  <div id="place" class="chip" hidden></div>
   <div id="wanted" class="chip" hidden><div class="stars"></div><div class="wsub"></div></div>
   <div id="mmWrap"><canvas id="minimap" width="264" height="264"></canvas></div>
   <div id="topBtns">
@@ -229,13 +234,13 @@ h1 span{display:block;color:var(--cream)}
   <div class="panel">
     <div class="stripe"></div>
     <h1>Rickshaw<span>Rush</span></h1>
-    <p class="tag">Shehar tera, sadak teri. <b>Horn OK Please.</b> Sawari uthao, drift maaro, ramp se udo, ya race jeeto.</p>
+    <p class="tag"><b>Pune edition.</b> Peth ki galiyan, JM Road, metro, Mutha ke pul aur Dagdusheth Bappa. Sawari uthao, police se bhaago. <b>Horn OK Please.</b></p>
     <div class="sect">Gaadi chuno</div>
     <div class="cards" id="cards"></div>
     <div class="tagmsg">Naya rang aur auto ke peeche dialogue: shehar ki <b style="color:#ff2e88">SPRAY SHOP</b> mein jaao (minimap pe gulabi). Police ka peecha bhi wahin chhootega.</div>
     <div class="sect">Mode</div>
     <div class="modes">
-      <button class="mode" data-mode="free" aria-pressed="true"><span class="nm">Free City</span><span class="ds">Bada shehar: nadi, lake, airport, station, VIP colony. Sawari uthao, laat maaro, police se bhaago, auto mein CNG aur car mein petrol bharwao.</span></button>
+      <button class="mode" data-mode="free" aria-pressed="true"><span class="nm">Free City</span><span class="ds">Poora Pune: Kasba, Sadashiv, Budhwar Peth, JM Road, Shaniwar Wada, mela, metro, underpass, airport, station. Sawari uthao, laat maaro, police se bhaago, auto mein CNG aur car mein petrol bharwao.</span></button>
       <button class="mode" data-mode="race" aria-pressed="false"><span class="nm">Race</span><span class="ds">2 laps, 3 rivals. Checkpoint pakdo, pehla number lao.</span></button>
     </div>
     <button class="go" id="btnGo">CHALO!</button>
@@ -519,7 +524,8 @@ const stars=new THREE.Points(starGeo,new THREE.PointsMaterial({color:0xffffff,si
 // ================= city =================
 // District map (block i = x index, j = z index). Everything not listed is a normal building block.
 const ZT={};
-for(const k of ['3,3','0,5','5,1','1,2','5,5']) ZT[k]='park';
+for(const k of ['3,3','5,1','1,2','5,5']) ZT[k]='park';
+ZT['0,5']='mela'; ZT['3,4']='temple'; ZT['2,4']='wada';
 ZT['2,3']='bazaar';
 for(let j=0;j<N;j++) ZT['7,'+j]='river';
 for(const k of ['1,7','2,7','1,8','2,8']) ZT[k]='lake';
@@ -530,7 +536,7 @@ for(const k of ['4,2','6,7','8,6']) ZT[k]='pump';
 for(const k of ['1,4','4,6','8,5','5,8']) ZT[k]='cng';
 for(const k of ['3,5','6,2']) ZT[k]='paint';
 ZT['5,3']='thana';
-const SOLIDT=new Set(['bld','vip','rail','station']);
+const SOLIDT=new Set(['bld','vip','rail','station','temple','wada']);
 const blocks=[]; const BAZAAR='2,3';
 for(let i=0;i<N;i++){ blocks.push([]); for(let j=0;j<N;j++){ const type=ZT[i+','+j]||'bld'; blocks[i].push({i,j,type,x0:L[i]+R/2,x1:L[i+1]-R/2,z0:L[j]+R/2,z1:L[j+1]-R/2,cx:(L[i]+L[i+1])/2,cz:(L[j]+L[j+1])/2,park:type==='park',bazaar:type==='bazaar',water:type==='river'||type==='lake',solid:SOLIDT.has(type)}); } }
 const rectOf=(i0,j0,i1,j1)=>({x0:L[i0]+R/2,x1:L[i1+1]-R/2,z0:L[j0]+R/2,z1:L[j1+1]-R/2});
@@ -619,7 +625,7 @@ const bzFloorMat=new THREE.MeshStandardMaterial({map:makeTex(128,128,(g,w)=>{ g.
 const tarpMats=[['#ff2e88','#ffcc00'],['#19c3b3','#fff3d6'],['#ff7a00','#b0122a'],['#3b2bd1','#ffcc00'],['#2f9e44','#fff3d6']].map(([a,b])=>new THREE.MeshStandardMaterial({map:makeTex(64,64,(g,w)=>{ for(let i=0;i<4;i++){ g.fillStyle=i%2?b:a; g.fillRect(i*16,0,16,w); } }),roughness:.8,side:THREE.DoubleSide}));
 const woodMat=stdMat(0x8a5a32,.85,0);
 const goodsMats=[0xd62828,0xff8c1a,0xffd60a,0x5aa832,0x7b2d8e,0xf1e3c2].map(h=>stdMat(h,.7,0));
-const gateMat=signMat('CHOR BAZAAR','#ffcc00','#b0122a');
+const gateMat=signMat('TULSHIBAUG','#ffcc00','#b0122a');
 const BZ={lw:4.5,cx:0,cz:0,b:null,thela:[]}; const bzBulbs=[], bzBulbCols=[];
 function bzLocal(x,z,yaw,lx,lz){ const c=Math.cos(yaw), s=Math.sin(yaw); return [x+lx*c+lz*s, z-lx*s+lz*c]; }
 function addStall(x,z,yaw){
@@ -678,7 +684,7 @@ function addBarrier(x,z,alongX,len,zone){
 
 // ---- VIP colony: "amiron ka area" ----
 const VILLA_CARS=[];
-const vipGate=signMat('PALM HEIGHTS','#14402a','#ffd98a');
+const vipGate=signMat('KOREGAON PARK','#14402a','#ffd98a');
 function buildVilla(b){
   const g=new THREE.BoxGeometry(B,.3,B); g.translate(b.cx,.15,b.cz); cp.add(subGeo(g,[0,1,4,5]),concreteMat); cp.add(subGeo(g,[2]),grassMat);
   for(const s of [-1,1]){
@@ -719,7 +725,7 @@ function buildRailBlock(b){
     const sz=(b.z0+pz-3.5)/2, sd=pz-3.5-b.z0-2;
     cp.box(B-10,9,sd,creamMat,b.cx,4.5,sz); cp.box(B-8,.6,sd+1,maroonMat,b.cx,9.3,sz);
     cp.box(12,4,8,creamMat,b.cx,11.5,sz); cp.add(new THREE.ConeGeometry(4,4,4),maroonMat,b.cx,15.5,sz,0,Math.PI/4,0);
-    cp.box(30,2.6,.3,signMat('BAWAAL NAGAR JN.','#ffcc00','#14213d'),b.cx,7,b.z0+.8);
+    cp.box(30,2.6,.3,signMat('PUNE JN.','#ffcc00','#14213d'),b.cx,7,b.z0+.8);
     for(let x=b.x0+8;x<=b.x1-8;x+=7) cp.box(3,4,.08,stdMat(0x5a3a22,.7,0),x,2.3,b.z0+1.05);
   }
 }
@@ -756,7 +762,7 @@ function buildLake(){
   cp.box(5,4,5,creamMat,ix,2.6,iz); cp.add(new THREE.ConeGeometry(3.4,6,4),stdMat(0xff7a00,.6,0),ix,7.6,iz,0,Math.PI/4,0);
   addTree(ix+6,iz+3,.6,1.1); addTree(ix-6,iz-4,.6,.9);
   for(let k=0;k<7;k++){ const a=k/7*Math.PI*2; addBoat(ix+Math.cos(a)*sr(20,50),iz+Math.sin(a)*sr(20,50),srand()*3); }
-  cp.box(24,2.4,.3,signMat('BADA TALAAB','#19c3b3','#fff3d6'),(r.x0+r.x1)/2,2.2,r.z0+1);
+  cp.box(24,2.4,.3,signMat('SARAS BAUG','#19c3b3','#fff3d6'),(r.x0+r.x1)/2,2.2,r.z0+1);
 }
 function buildRiverBlock(b){
   waterBox(b);
@@ -775,7 +781,7 @@ function buildAirport(){
   const tz0=r.z1-20, tz1=r.z1, tx0=r.x0+24, tx1=r.x1-12;
   cp.box(tx1-tx0,12,tz1-tz0,stdMat(0x9fc3dd,.15,.5),(tx0+tx1)/2,6,(tz0+tz1)/2); cp.box(tx1-tx0+3,.8,tz1-tz0+4,whiteMat,(tx0+tx1)/2,12.4,(tz0+tz1)/2);
   addSolid(tx0,tx1,tz0,tz1,'#cfd8e0');
-  cp.box(40,3,.4,signMat('AIRPORT','#14213d','#ffffff'),(tx0+tx1)/2,9,r.z1+.25);
+  cp.box(40,3,.4,signMat('PUNE AIRPORT','#14213d','#ffffff'),(tx0+tx1)/2,9,r.z1+.25);
   cp.add(new THREE.CylinderGeometry(1.6,2.2,26,10),whiteMat,r.x1-6,13,tz0-10); cp.add(new THREE.CylinderGeometry(4,3,3.5,10),MAT.glass,r.x1-6,27.5,tz0-10);
   obstacles.push({x:r.x1-6,z:tz0-10,r:2.4});
   // fence with two gates
@@ -843,7 +849,7 @@ const THANA={};
 function buildThana(b){
   const fx1=b.cx; flatPlane(fx1-b.x0,B,concreteMat,(b.x0+fx1)/2,.06,b.cz,6);
   addBuilding((fx1+b.x1)/2+1,b.cz,b.x1-fx1-4,B-6,14,1); addSolid(fx1+1,b.x1,b.z0,b.z1,'#1f3a8a');
-  cp.box(.5,3,30,signMat('POLICE THANA','#1f3a8a','#ffffff'),fx1+2.8,10,b.cz);
+  cp.box(.5,3,30,signMat('FARASKHANA POLICE','#1f3a8a','#ffffff'),fx1+2.8,10,b.cz);
   cp.box(.4,1.2,B-6,stdMat(0x1f3a8a,.5,.1),fx1+2.8,4,b.cz);
   // boundary wall with a gate on the road side
   for(const z of [b.z0+.5,b.z1-.5]){ cp.box(fx1-b.x0,1.6,.5,whiteMat,(b.x0+fx1)/2,.8,z); }
@@ -915,6 +921,74 @@ function buildPark(b){
   addRamp(cx-Math.cos(yaw)*5,cz+Math.sin(yaw)*5,yaw,10,2.8,7,.06);
 }
 
+// ================= Pune landmarks (block builders) =================
+const goldMat=stdMat(0xd4a017,.35,.6), templeWhite=stdMat(0xf6efe0,.6,0), sindoorMat=stdMat(0xd2401a,.6,0), stoneMat=stdMat(0x8a6a4a,.95,0), stoneDark=stdMat(0x4a3a2a,.95,0);
+// Shreemant Dagdusheth Halwai Ganpati mandir
+function buildTemple(b){
+  const cx=b.cx, cz=b.cz, f=b.z0+3; // faces the road on the z0 side
+  flatPlane(B,B,concreteMat,cx,.06,cz,8);
+  cp.box(34,1.2,30,templeWhite,cx,.6,cz+4); cp.box(18,.6,4,templeWhite,cx,.3,f+2);
+  for(let k=0;k<7;k++){ const x=cx-13.5+k*4.5; cp.add(new THREE.CylinderGeometry(.5,.6,7,10),goldMat,x,4.7,f+6); cp.box(1.4,.6,1.4,goldMat,x,8.3,f+6); }
+  cp.box(32,1,11,templeWhite,cx,8.9,f+9); cp.box(32.4,.5,11.4,goldMat,cx,9.6,f+9);
+  for(let k=0;k<14;k++) cp.box(.5,.5,.5,lampMat,cx-15.5+k*2.4,8.2,f+3.6);
+  cp.box(20,10,15,templeWhite,cx,6.2,cz+7);
+  for(let k=0;k<6;k++){ const s=17-k*2.7; cp.box(s,2.3,s*.85,k%2?goldMat:templeWhite,cx,12.4+k*2.3,cz+7); }
+  cp.add(new THREE.ConeGeometry(2.2,4.5,8),goldMat,cx,28.4,cz+7); cp.add(new THREE.SphereGeometry(.9,10,8),goldMat,cx,31.2,cz+7);
+  cp.add(new THREE.CylinderGeometry(.08,.08,4,6),metalMat,cx,33,cz+7); cp.box(.05,1.2,2,stdMat(0xff7a00,.7,0,{side:THREE.DoubleSide}),cx,34.3,cz+8);
+  for(const [sx,sz] of [[-1,-1],[1,-1],[-1,1],[1,1]]) cp.add(new THREE.ConeGeometry(1.6,5,8),goldMat,cx+sx*9,13.8,cz+7+sz*6.5);
+  // Bappa inside the mandap
+  const gx=cx, gz=f+11.5;
+  cp.box(5,1.4,3,goldMat,gx,1.9,gz); cp.add(new THREE.SphereGeometry(1.5,14,10),sindoorMat,gx,3.8,gz); cp.add(new THREE.SphereGeometry(1,14,10),sindoorMat,gx,5.6,gz);
+  cp.add(new THREE.ConeGeometry(.8,1.4,8),goldMat,gx,7,gz); cp.add(new THREE.CylinderGeometry(.22,.35,1.8,8),sindoorMat,gx+.3,4.9,gz-.9,.35,0,.3);
+  for(const s of [-1,1]) cp.box(.2,1.2,1,sindoorMat,gx+s*1.15,5.8,gz);
+  cp.box(28,2.4,.4,signMat('DAGDUSHETH GANPATI','#b0122a','#ffd700'),cx,11.6,f+3.4);
+  // marigold toran across the front
+  for(let k=0;k<40;k++){ const x=cx-15+k*.77; cp.add(new THREE.SphereGeometry(.22,6,4),stdMat(k%2?0xff9f1c:0xffcc00,.8,0),x,7.4-Math.sin(k/39*Math.PI)*.9,f+3.6); }
+}
+// Shaniwar Wada fort, Kasba Peth
+function buildWada(b){
+  const cx=b.cx, cz=b.cz, h=B/2-2.5, wt=2;
+  flatPlane(B,B,grassMat,cx,.05,cz,10);
+  for(const [x,z,w,d] of [[cx,cz-h,2*h,wt],[cx,cz+h,2*h,wt],[cx-h,cz,wt,2*h],[cx+h,cz,wt,2*h]]){ cp.box(w,9,d,stoneMat,x,4.5,z); cp.box(w+.4,.6,d+.4,stoneDark,x,9.2,z); }
+  for(const sx of [-1,0,1]) for(const sz of [-1,0,1]){ if(!sx&&!sz) continue; cp.add(new THREE.CylinderGeometry(3.4,3.8,11,12),stoneMat,cx+sx*h,5.5,cz+sz*h); cp.add(new THREE.CylinderGeometry(3.8,3.8,.8,12),stoneDark,cx+sx*h,11.2,cz+sz*h); }
+  // Dilli Darwaja on the road side
+  const gz=cz-h-1; cp.box(14,15,5,stoneMat,cx,7.5,gz); cp.box(6,9,5.2,stdMat(0x3a2414,.8,0),cx,4.5,gz);
+  for(let k=0;k<5;k++) for(let m=0;m<3;m++) cp.add(new THREE.ConeGeometry(.15,.5,6),metalMat,cx-2+k,2+m*2.6,gz-2.7,-Math.PI/2,0,0);
+  cp.box(13,2.2,.4,signMat('SHANIWAR WADA','#5a2d0c','#ffd98a'),cx,13.2,gz-2.7);
+  cp.add(new THREE.CylinderGeometry(4,4.6,1,16),stoneMat,cx,.5,cz+4); cp.add(new THREE.CylinderGeometry(3.4,3.4,.3,16),poolMat,cx,1.05,cz+4);
+  for(const [x,z] of [[cx-12,cz-6],[cx+12,cz-6],[cx-12,cz+14],[cx+12,cz+14]]) cp.box(8,1,6,stoneDark,x,.5,z);
+  for(const [x,z] of [[cx-20,cz+20],[cx+20,cz+20],[cx-20,cz-14],[cx+20,cz-14]]) addTree(x,z,.05,1.2);
+}
+// Ganesh mela: giant wheel, stalls, lights (drivable ground)
+const MELA={wheel:null,gondolas:[]};
+function buildMela(b){
+  const cx=b.cx, cz=b.cz;
+  const g=new THREE.BoxGeometry(B,.06,B); const uv=g.attributes.uv; for(let k=0;k<uv.count;k++) uv.setXY(k,uv.getX(k)*B/10,uv.getY(k)*B/10);
+  cp.add(g,grassMat,cx,.03,cz);
+  const wx=cx+12, wz=cz+12;
+  for(const s of [-1,1]){ cp.box(.5,13,.5,metalMat,wx-3.2,6.2,wz+s*1.4,0,0,-.25); cp.box(.5,13,.5,metalMat,wx+3.2,6.2,wz+s*1.4,0,0,.25); }
+  cp.box(9,.6,4,metalMat,wx,.3,wz); obstacles.push({x:wx,z:wz,r:4.2});
+  const wheel=new THREE.Group(); wheel.position.set(wx,12.4,wz); scene.add(wheel); MELA.wheel=wheel;
+  const rim=stdMat(0xff2e88,.4,.3), spoke=stdMat(0xffffff,.5,.3), bulbs=lampMat;
+  for(const s of [-1.2,1.2]){ const t=new THREE.Mesh(new THREE.TorusGeometry(10,.22,6,40),rim); t.position.z=s; wheel.add(t); const t2=new THREE.Mesh(new THREE.TorusGeometry(10.3,.12,4,40),bulbs); t2.position.z=s; wheel.add(t2); }
+  for(let k=0;k<12;k++){ const a=k/12*Math.PI*2; const sp=new THREE.Mesh(new THREE.BoxGeometry(.18,20,.18),spoke); sp.rotation.z=a; wheel.add(sp);
+    const pod=new THREE.Group(); pod.position.set(Math.cos(a)*10,Math.sin(a)*10,0);
+    const cab=new THREE.Mesh(new THREE.BoxGeometry(1.6,1.3,1.8),stdMat([0xffcc00,0x19c3b3,0xff7a00,0x8a2be2][k%4],.5,.1)); cab.position.y=-1.1; pod.add(cab);
+    const roof=new THREE.Mesh(new THREE.ConeGeometry(1.2,.6,4),stdMat(0xffffff,.5,0)); roof.position.y=-.2; roof.rotation.y=Math.PI/4; pod.add(roof);
+    wheel.add(pod); MELA.gondolas.push(pod); }
+  const hub=new THREE.Mesh(new THREE.CylinderGeometry(1,1,3,12),metalMat); hub.rotation.x=Math.PI/2; wheel.add(hub);
+  // stalls around the edge
+  const stalls=[['PANI PURI','#ff2e88'],['BHEL','#ffcc00'],['KULFI','#19c3b3'],['GUBBARE','#ff7a00'],['BUDDHI KE BAAL','#ff9fd0'],['VADA PAV','#2f9e44']];
+  stalls.forEach(([t,c],k)=>{ const x=cx-22+k*8.8, z=cz-24; const col=parseInt(c.slice(1),16);
+    cp.box(5,1.1,2.4,woodMat,x,.6,z); cp.box(6,.12,3.4,stdMat(col,.7,0),x,3,z+.3,-.15,0,0);
+    for(const s of [-2.6,2.6]) cp.box(.1,3,.1,metalMat,x+s,1.5,z+1.4);
+    cp.box(5.2,.8,.12,signMat(t,c,'#140b22'),x,3.6,z-1.2); obstacles.push({x,z,r:2.6}); });
+  for(let k=0;k<5;k++){ const x=cx-26, z=cz-18+k*10; cp.add(new THREE.CylinderGeometry(.12,.12,7,6),metalMat,x,3.5,z); }
+  for(let k=0;k<44;k++) cp.box(.3,.3,.3,k%3?lampMat:stdMat(0xff2e88,.4,0,{emissive:C(0xff2e88)}),cx-26,6.6-Math.sin((k%11)/10*Math.PI)*.9,cz-18+k*.92);
+  cp.box(18,2.4,.4,signMat('GANESH MELA','#ff9f1c','#b0122a'),cx,7,b.z0+.5); for(const s of [-1,1]) cp.box(.5,8,.5,woodMat,cx+s*9,4,b.z0+.5);
+}
+function updateMela(dt){ if(!MELA.wheel) return; MELA.wheel.rotation.z+=dt*.22; for(const p of MELA.gondolas) p.rotation.z=-MELA.wheel.rotation.z; }
+
 // roadside tapri: chai / paan / vada pav stall on the footpath
 let tapriSigns=null;
 function addTapri(b){
@@ -942,6 +1016,9 @@ for(let ci=0;ci<N;ci+=3) for(let cj=0;cj<N;cj+=3){
       case 'pump': buildPump(b,'petrol'); break;
       case 'cng': buildPump(b,'cng'); break;
       case 'paint': buildPaint(b); break;
+      case 'temple': buildTemple(b); break;
+      case 'wada': buildWada(b); break;
+      case 'mela': buildMela(b); break;
       case 'thana': buildThana(b); break;
       case 'lake': case 'airport': break;
       default: buildBlock(b); addStreetLamps(b,true); if(srand()<.55) addTapri(b);
@@ -968,6 +1045,62 @@ buildLake(); buildAirport(); buildVipGates(); buildTrack(); buildCrossings();
     }
   }
   bp.into(city,false,false);
+}
+// ================= Pune: road names, metro, underpass, bridges, Puneri patya =================
+const ROAD_NAMES={x:['AIRPORT ROAD','NAGAR ROAD','UNIVERSITY ROAD','LAXMI ROAD','BAJIRAO ROAD','TILAK ROAD','JM ROAD','KARVE ROAD','SINHAGAD ROAD','STATION ROAD','SATARA ROAD'],
+  z:['BANER ROAD','SB ROAD','FC ROAD','KUMTHEKAR ROAD','KELKAR ROAD','SHIVAJI ROAD','DECCAN ROAD','NADI KINARA ROAD','NORTH MAIN ROAD','MG ROAD','SOLAPUR ROAD']};
+function areaAt(i,j){
+  const t=ZT[i+','+j];
+  if(t==='airport') return 'LOHEGAON AIRPORT'; if(t==='river') return 'MUTHA NADI'; if(t==='lake') return 'SARAS BAUG'; if(t==='vip') return 'KOREGAON PARK';
+  if(j===N-1) return 'PUNE STATION'; if(t==='bazaar') return 'TULSHIBAUG'; if(t==='mela') return 'GANESH MELA';
+  if(i>=8) return j<1?'KALYANI NAGAR':'CAMP'; if(j<=1) return 'VIMAN NAGAR'; if(j===2) return 'SHIVAJINAGAR';
+  if(i<=2) return j<=5?'KASBA PETH':'KOTHRUD'; if(j<=4) return i<=4?'BUDHWAR PETH':'DECCAN'; if(j<=7) return 'SADASHIV PETH'; return 'SWARGATE';
+}
+// Pune Metro: elevated line over University Road
+const METRO={z:L[2],y:11,x:-300,dir:1,wait:0,stX:(L[4]+L[5])/2};
+{ const conc=stdMat(0xc9c3b8,.85,0), z=METRO.z;
+  for(let i=0;i<N;i++) for(const f of [.3,.7]){ const x=L[i]+P*f; cp.add(new THREE.CylinderGeometry(.9,1.1,METRO.y-.6,12),conc,x,(METRO.y-.6)/2,z); cp.box(2.4,1,4,conc,x,METRO.y-.6,z); obstacles.push({x,z,r:1.2}); }
+  cp.box(L[N]-L[0],1.2,6,conc,(L[0]+L[N])/2,METRO.y,z); for(const s of [-1,1]) cp.box(L[N]-L[0],1,.3,conc,(L[0]+L[N])/2,METRO.y+1.1,z+s*2.9);
+  for(const s of [-.8,.8]) cp.box(L[N]-L[0],.15,.15,metalMat,(L[0]+L[N])/2,METRO.y+.7,z+s);
+  const sx=METRO.stX; cp.box(40,7,14,stdMat(0xf2f2f2,.4,.1),sx,METRO.y+4.2,z); cp.box(40.4,.8,14.4,stdMat(0x1f4fbf,.5,.1),sx,METRO.y+8,z);
+  cp.box(38,2,.2,MAT.glass,sx,METRO.y+3.5,z-7.05); cp.box(38,2,.2,MAT.glass,sx,METRO.y+3.5,z+7.05);
+  for(const s of [-1,1]) cp.box(20,1.8,.3,signMat('PUNE METRO · PMC','#1f4fbf','#ffffff'),sx,METRO.y+6,z+s*7.2);
+  for(const s of [-1,1]) for(const dx of [-14,14]) { cp.add(new THREE.CylinderGeometry(1,1.2,METRO.y+.6,12),conc,sx+dx,(METRO.y+.6)/2,z+s*(R/2+1.6)); obstacles.push({x:sx+dx,z:z+s*(R/2+1.6),r:1.3}); }
+}
+METRO.train=(()=>{ const g=new THREE.Group(), p=new Parts(), body=stdMat(0xf4f4f4,.4,.2), blue=stdMat(0x1f4fbf,.4,.2), red=stdMat(0xd4232f,.4,.2);
+  for(let k=0;k<3;k++){ const x=(k-1)*19; p.box(18.4,3.2,2.9,body,x,2.1,0); p.box(18.5,.5,2.95,blue,x,1.2,0); p.box(18.5,.25,2.95,red,x,1.6,0); p.box(16,1.1,2.96,MAT.glass,x,2.7,0); }
+  p.box(.3,1.6,2.4,MAT.glass,28.8,2.6,0); p.box(.3,1.6,2.4,MAT.glass,-28.8,2.6,0);
+  p.into(g,true,false); g.position.set(-300,METRO.y+.6,METRO.z); scene.add(g); return g; })();
+function updateMetro(dt){
+  const m=METRO;
+  if(m.wait>0){ m.wait-=dt; if(m.wait<=0) m.x+=m.dir*2; }
+  else { const near=Math.abs(m.x-m.stX); m.x+=m.dir*dt*Math.min(20,3+near*.4); if(near<.6 && !m.stopped){ m.stopped=true; m.wait=6; } if(near>40) m.stopped=false;
+    if(m.x>HALF-30){ m.x=HALF-30; m.dir=-1; } if(m.x<-HALF+30){ m.x=-HALF+30; m.dir=1; } }
+  m.train.position.x=m.x;
+}
+// underpass under a cross road on FC Road, between Kasba Peth and Kothrud
+{ const x=L[2], zc=(L[5]+L[6])/2, len=26, hw=R/2, conc=stdMat(0xb8b2a6,.9,0), stripe=new THREE.MeshStandardMaterial({roughness:.6,map:makeTex(128,32,(g,w,h)=>{ for(let i=0;i<10;i++){ g.fillStyle=i%2?'#111':'#ffcc00'; g.beginPath(); g.moveTo(i*16-8,0); g.lineTo(i*16+8,0); g.lineTo(i*16,h); g.lineTo(i*16-16,h); g.fill(); } },{repeat:false})});
+  for(const s of [-1,1]) cp.box(1.4,7,len,conc,x+s*(hw+.7),3.5,zc);
+  cp.box(R+6,1,len,conc,x,7.5,zc); cp.box(R+6,.1,len-2,stdMat(0x2e2e33,.9,0),x,8.05,zc);
+  for(const s of [-1,1]){ cp.box(R+6,1.1,.4,conc,x,8.6,zc+s*(len/2-.2)); cp.box(R+2,1.2,.45,signMat('UNDERPASS · HEIGHT 4.5 M','#1f3a8a','#ffffff'),x,6.3,zc+s*(len/2+.05)); cp.box(R+2,.6,.5,stripe,x,5.4,zc+s*(len/2+.05)); }
+  for(let k=0;k<6;k++) cp.box(R-2,.12,.4,lampMat,x,6.9,zc-len/2+2+k*(len-4)/5);
+  for(const [dx,c] of [[-4,0xb0122a],[3,0x1f6feb],[7,0xffcc00]]) { cp.box(1.8,1.2,4,stdMat(c,.5,.2),x+dx,8.7,zc-3+dx*.5,0,Math.PI/2,0); }
+}
+// bridges over the Mutha: name boards at both ends
+{ const names=['HOLKAR PUL','SANGAM PUL','SHIVAJI PUL','Z BRIDGE','LAKDI PUL','OMKARESHWAR PUL','S M JOSHI PUL','MHATRE PUL','RAJARAM PUL','DECCAN PUL','VITTHALWADI PUL'];
+  for(let k=0;k<=N;k++){ const z=L[k], nm=signMat(names[k],'#138808','#ffffff');
+    for(const x of [L[7]+R/2+1,L[8]-R/2-1]){ for(const s of [-1,1]) cp.box(.4,7,.4,metalMat,x,3.5,z+s*(R/2+.4)); cp.box(.5,1.6,R,nm,x,6.6,z); } } }
+// Puneri patya: the famously strict Pune notice boards
+{ const lines=[['Yethe gaadi','lavu naye.','Lavlyas hawa','sodli jaail.'],['Dupari 1 te 4','bell vajvu naye.','Jhop chaalu aahe.'],['Horn vajvu naye.','Amhala aikayla','yeta.'],
+    ['Vicharlyashivay','salla deu naye.'],['Udhaar maagu naye.','Apmaan hoil.'],['Kutryanna khau','ghalu naye.','(Dogesh bhau','sodun)'],['Ithe thuknyas','₹500 dand.','Mood nasel tar','₹1000.'],['Parking fakt','amchya pahunyansathi.','Pahune nahit.']];
+  const mats=lines.map(ls=>new THREE.MeshStandardMaterial({roughness:.7,map:makeTex(256,180,(g,w,h)=>{
+    g.fillStyle='#fffdf5'; g.fillRect(0,0,w,h); g.strokeStyle='#c0141c'; g.lineWidth=10; g.strokeRect(5,5,w-10,h-10);
+    g.fillStyle='#c0141c'; g.textAlign='center'; g.font='bold 30px sans-serif'; g.fillText('सूचना',w/2,40);
+    g.fillStyle='#111'; g.font='bold 21px sans-serif'; ls.forEach((l,i)=>g.fillText(l,w/2,74+i*26)); },{repeat:false})}));
+  let n=0; const cand=[]; for(const col of blocks) for(const b of col) if(b.type==='bld') cand.push(b);
+  for(let k=0;k<cand.length && n<22;k++){ const b=cand[(k*7)%cand.length]; if(k%2) continue;
+    const side=k%4<2?1:-1, along=k%3?8:-8, x=b.cx+(k%4===1?side*(B/2-1.3):along), z=b.cz+(k%4===1?along:side*(B/2-1.3)), ry=k%4===1?(side>0?Math.PI/2:-Math.PI/2):(side>0?0:Math.PI);
+    cp.box(.12,2.2,.12,metalMat,x,1.4,z); cp.add(new THREE.PlaneGeometry(2.4,1.7),mats[n%mats.length],x+Math.sin(ry)*.08,2.9,z+Math.cos(ry)*.08,0,ry,0); cp.box(2.5,1.8,.06,metalMat,x,2.9,z,0,ry,0); n++; }
 }
 // road ramps on the race route
 addRamp(L[4]+10,L[1]+4.5,0,9,2.2,6,0);
@@ -1525,6 +1658,7 @@ function beep(freq,dur,type='square',vol=.15,when=0){
 }
 let hornCool=0;
 function horn(){
+  if(DOG.state==='ride') dogLeap('Horn bajaya! Dogesh bhai ko pasand nahi aaya');
   if(hornCool>0) return; hornCool=.45;
   if(G.vtype==='auto'){ beep(370,.13,'square',.12); beep(300,.13,'square',.08); beep(370,.16,'square',.12,.2); beep(300,.16,'square',.08,.2); }
   else { beep(415,.42,'sawtooth',.09); beep(523,.42,'sawtooth',.08); }
@@ -1835,6 +1969,7 @@ function resetBarriers(){ for(const b of barriers){ delete b.fly; b.root.positio
 let kickT=0, kickCool=0;
 function trafficPoint(t,x,z){ const ax=t.x-t.fx*t.hl, az=t.z-t.fz*t.hl; const u=clamp(((x-ax)*t.fx+(z-az)*t.fz)/(2*t.hl),0,1); return [ax+t.fx*2*t.hl*u, az+t.fz*2*t.hl*u]; }
 function doKick(){
+  if(DOG.state==='ride') dogLeap('Laat chalaayi! Dogesh bhai darr ke kood gaye');
   if(!player || kickCool>0 || G.state!=='play' || player.fly) return;
   kickCool=.6; kickT=.38;
   const p=player, fx=Math.sin(p.yaw), fz=Math.cos(p.yaw), rx=fz, rz=-fx;
@@ -1856,7 +1991,7 @@ let kickSide=1;
 
 // ================= footpath walkers (instanced, follow the player around) =================
 const WALK_N=LOW?30:70, walkers=[], walkBlocks=[];
-for(const col of blocks) for(const b of col) if(b.type==='bld') walkBlocks.push(b);
+for(const col of blocks) for(const b of col) if(b.type==='bld'||b.type==='temple') walkBlocks.push(b);
 const walkMesh=(geo,n)=>{ const m=new THREE.InstancedMesh(geo,new THREE.MeshStandardMaterial({color:0xffffff,roughness:.8}),n); m.frustumCulled=false; m.castShadow=!LOW; scene.add(m); return m; };
 const wBody=walkMesh(new THREE.CylinderGeometry(.2,.3,1.1,7).translate(0,.62,0),WALK_N);
 const wHead=walkMesh(new THREE.SphereGeometry(.17,8,6).translate(0,1.36,0),WALK_N);
@@ -2112,6 +2247,85 @@ function popCash(n){
   el.style.animation='none'; void el.offsetWidth; el.style.animation='';
 }
 
+// ================= Dogesh bhai: park for a few seconds and he claims your roof =================
+const DOG={state:'none',still:0,cool:8,t:0,x:0,z:0,y:0,yaw:0,sx:0,sz:0};
+DOG.mesh=(()=>{
+  const g=new THREE.Group(), fur=stdMat(0xb5793a,.9,0), dark=stdMat(0x5a3a1c,.9,0), cream=stdMat(0xf0dcb8,.9,0);
+  const body=new THREE.Mesh(new THREE.BoxGeometry(.42,.38,.9),fur); body.position.y=.55; g.add(body);
+  const chest=new THREE.Mesh(new THREE.BoxGeometry(.36,.3,.2),cream); chest.position.set(0,.5,.42); g.add(chest);
+  const head=new THREE.Group(); head.position.set(0,.88,.5); g.add(head);
+  head.add(new THREE.Mesh(new THREE.BoxGeometry(.34,.32,.34),fur));
+  const snout=new THREE.Mesh(new THREE.BoxGeometry(.2,.16,.2),cream); snout.position.set(0,-.06,.24); head.add(snout);
+  const nose=new THREE.Mesh(new THREE.BoxGeometry(.08,.06,.04),MAT.black); nose.position.set(0,-.02,.35); head.add(nose);
+  for(const s of [-1,1]){ const ear=new THREE.Mesh(new THREE.BoxGeometry(.1,.18,.06),dark); ear.position.set(s*.13,.2,-.02); ear.rotation.z=s*.3; head.add(ear);
+    const eye=new THREE.Mesh(new THREE.BoxGeometry(.05,.05,.02),MAT.black); eye.position.set(s*.08,.06,.17); head.add(eye); }
+  const legs=[]; for(const [x,z] of [[-.14,.3],[.14,.3],[-.14,-.3],[.14,-.3]]){ const l=new THREE.Mesh(new THREE.BoxGeometry(.1,.4,.1),fur); l.geometry.translate(0,-.2,0); l.position.set(x,.42,z); g.add(l); legs.push(l); }
+  const tail=new THREE.Mesh(new THREE.BoxGeometry(.07,.07,.4),fur); tail.geometry.translate(0,0,-.2); tail.position.set(0,.68,-.45); tail.rotation.x=-.7; g.add(tail);
+  for(const m of g.children) m.castShadow=true;
+  g.userData={legs,tail,head}; g.visible=false; scene.add(g); return g;
+})();
+const ROOF_Y={auto:1.86,car:1.42,jeep:2.18};
+function bark(){ beep(330,.07,'sawtooth',.16); beep(270,.09,'sawtooth',.16,.12); }
+function resetDog(){ const m=DOG.mesh; if(m.parent!==scene){ m.parent&&m.parent.remove(m); scene.add(m); } m.visible=false; m.rotation.set(0,0,0); m.scale.setScalar(1); Object.assign(DOG,{state:'none',still:0,cool:0,t:0}); }
+function dogLeap(msg){
+  if(DOG.state!=='ride') return; const p=player, m=DOG.mesh, wp=new THREE.Vector3(); m.getWorldPosition(wp);
+  p.body.remove(m); scene.add(m); m.scale.setScalar(1.15);
+  const side=Math.random()<.5?1:-1, rx=Math.cos(p.yaw)*side, rz=-Math.sin(p.yaw)*side;
+  Object.assign(DOG,{state:'leap',t:0,x:wp.x,z:wp.z,y:wp.y,sx:wp.x,sz:wp.z,sy:wp.y,ex:wp.x+rx*4,ez:wp.z+rz*4,yaw:Math.atan2(rx,rz)});
+  bark(); toast(msg,1.8);
+}
+function updateDog(dt){
+  const p=player, m=DOG.mesh, ud=m.userData;
+  if(G.mode!=='free' || !p){ if(DOG.state!=='none') resetDog(); return; }
+  const sp=Math.abs(p.fwd); DOG.cool-=dt;
+  const walk=(spd)=>{ for(let i=0;i<4;i++) ud.legs[i].rotation.x=Math.sin(G.time*spd+(i%2?Math.PI:0)+(i>1?Math.PI/2:0))*.7; };
+  ud.tail.rotation.y=Math.sin(G.time*(DOG.state==='ride'?14:8))*.6;
+  if(DOG.state==='none'){
+    if(sp<.6 && !p.air && !p.fly && W.stars===0) DOG.still+=dt; else DOG.still=0;
+    if(DOG.still>4.5 && DOG.cool<=0){
+      // he trots in from the footpath beside you
+      const side=Math.random()<.5?1:-1, ox=Math.cos(p.yaw)*side*8, oz=-Math.sin(p.yaw)*side*8;
+      Object.assign(DOG,{state:'run',t:0,x:p.x+ox-Math.sin(p.yaw)*3,z:p.z+oz-Math.cos(p.yaw)*3,y:0}); m.visible=true; m.scale.setScalar(1.15);
+      toast(pick(['Dogesh bhai aa rahe hain…','Arre! Dogesh bhai ki nazar tumhare auto pe hai','Bhau! Dogesh bhai aaye']),1.8); bark();
+    }
+    return;
+  }
+  if(DOG.state==='run'){
+    const dx=p.x-DOG.x, dz=p.z-DOG.z, d=Math.hypot(dx,dz);
+    if(sp>5){ DOG.state='leave'; DOG.t=0; DOG.yaw+=Math.PI; toast('Dogesh bhai ko chhod ke bhaag gaye? Naraz ho gaye!',1.8); return; }
+    DOG.yaw=Math.atan2(dx,dz); const v=Math.min(d,7*dt); DOG.x+=dx/d*v; DOG.z+=dz/d*v; walk(18);
+    m.position.set(DOG.x,.3,DOG.z); m.rotation.set(0,DOG.yaw,0);
+    if(d<1.6){ DOG.state='jump'; DOG.t=0; DOG.sx=DOG.x; DOG.sz=DOG.z; }
+    return;
+  }
+  if(DOG.state==='jump'){
+    DOG.t+=dt/.55; const t=Math.min(1,DOG.t), ry=ROOF_Y[p.type]||1.8, rx=p.x-Math.sin(p.yaw)*.2, rz=p.z-Math.cos(p.yaw)*.2;
+    m.position.set(DOG.sx+(rx-DOG.sx)*t,.3+(ry+.1)*t+Math.sin(t*Math.PI)*1.6,DOG.sz+(rz-DOG.sz)*t);
+    for(const l of ud.legs) l.rotation.x=-.9;
+    if(t>=1){ scene.remove(m); p.body.add(m); m.position.set(0,ry-.36,-.2); m.rotation.set(0,Math.PI*.15,0); m.scale.setScalar(1.15);
+      for(const l of ud.legs) l.rotation.x=1.3; DOG.state='ride'; DOG.t=0; bark(); chime();
+      toast(pick(['DOGESH BHAI BAITH GAYE! Ab ye unka auto hai 🐕','Dogesh bhai ki sawari! Sambhal ke chalana','Dogesh bhai on duty: chhat pe baith gaye']),2.6); }
+    return;
+  }
+  if(DOG.state==='ride'){
+    DOG.t+=dt; ud.head.rotation.y=Math.sin(G.time*.9)*.8; ud.head.rotation.x=-Math.min(.4,sp*.02);
+    if(sp>25) dogLeap('Bahut tez! Dogesh bhai kood gaye');
+    else if(impactMax>10 || p.fly) dogLeap('Takkar! Dogesh bhai naraz hoke utar gaye');
+    return;
+  }
+  if(DOG.state==='leap'){
+    DOG.t+=dt/.6; const t=Math.min(1,DOG.t);
+    m.position.set(DOG.sx+(DOG.ex-DOG.sx)*t,DOG.sy*(1-t)+.3*t+Math.sin(t*Math.PI)*1.2,DOG.sz+(DOG.ez-DOG.sz)*t); m.rotation.set(0,DOG.yaw,0);
+    if(t>=1){ DOG.state='leave'; DOG.t=0; DOG.x=DOG.ex; DOG.z=DOG.ez; }
+    return;
+  }
+  if(DOG.state==='leave'){
+    DOG.t+=dt; DOG.x+=Math.sin(DOG.yaw)*6*dt; DOG.z+=Math.cos(DOG.yaw)*6*dt; walk(18);
+    m.position.set(DOG.x,.3,DOG.z); m.rotation.set(0,DOG.yaw,0);
+    if(DOG.t>3.5){ m.visible=false; DOG.state='none'; DOG.still=0; DOG.cool=20; }
+  }
+}
+
 // ================= petrol, PUC, rules (free mode) =================
 const PETROL_PRICE={auto:150,car:320,jeep:260};
 const fuelKind=()=>player.type==='auto'?'cng':'petrol';
@@ -2150,7 +2364,7 @@ function updateRules(dt,inp){
   // no-entry zones
   const zone=inRect(ZONES.vip,p.x,p.z)?'vip':inRect(ZONES.airport,p.x,p.z)?'airport':null;
   if(zone){
-    if(F.zone!==zone){ F.zone=zone; F.zoneT=0; F.zoneFired=false; toast(zone==='vip'?'VIP colony! Auto ka andar aana mana hai':'Airport runway! Entry mana hai',2.4); }
+    if(F.zone!==zone){ F.zone=zone; F.zoneT=0; F.zoneFired=false; toast(zone==='vip'?'Koregaon Park VIP lane! Auto ka andar aana mana hai':'Lohegaon airport runway! Entry mana hai',2.4); }
     F.zoneT+=dt; if(!F.zoneFired && F.zoneT>2.5){ F.zoneFired=true; addHeat(2,zone==='vip'?'Security ne police bulayi!':'Airport security alert!'); }
   } else F.zone=null;
   // red lights
@@ -2193,7 +2407,7 @@ function startGame(){
   if(player) player.dispose(); clearRace();
   makePlayer();
   player.off=[0,0]; player.skill=1; player.nitro=1; drift={t:0,score:0,calm:0}; G.raceT=0; G.camYaw=null;
-  clearCops(); resetWanted(); resetFuel(); resetBarriers(); clearNakas(); mission.rival=null; kickT=0; applyTag(player);
+  clearCops(); resetWanted(); resetFuel(); resetBarriers(); clearNakas(); resetDog(); mission.rival=null; kickT=0; applyTag(player);
   HELI.on=false; HELI.root.visible=HELI.spot.visible=false; for(const w of walkers) placeWalker(w,true);
   beacon.visible=false; arrow.visible=false; passenger.visible=false; arch.visible=false;
   if(G.mode==='race'){
@@ -2269,7 +2483,7 @@ function showResults(){
 }
 function goMenu(){
   G.state='menu'; $('hud').hidden=true; $('pause').hidden=true; $('results').hidden=true; $('menu').hidden=false;
-  if(player){ player.dispose(); player=null; } clearRace(); clearCops(); resetWanted(); clearNakas(); beacon.visible=arrow.visible=passenger.visible=arch.visible=false;
+  if(player){ player.dispose(); player=null; } resetDog(); clearRace(); clearCops(); resetWanted(); clearNakas(); beacon.visible=arrow.visible=passenger.visible=arch.visible=false;
   spawnCows(0); spawnTraffic(LOW?14:22); setPreview(G.vtype); engineSound(0,0,'car',false); skidSound(0); sirenSound(0); $('copFlash').style.opacity=0; big('');
 }
 function setPause(p){ if(p && (G.state==='play'||G.state==='countdown')){ G.prevState=G.state; G.state='paused'; $('pause').hidden=false; engineSound(0,0,G.vtype,false); skidSound(0); } else if(!p && G.state==='paused'){ G.state=G.prevState; $('pause').hidden=true; } }
@@ -2318,7 +2532,7 @@ function updateMission(dt){
   } else if(mission.state==='ride'){
     mission.timer-=dt; mission.fare+=Math.hypot(p.x-mission.lastX,p.z-mission.lastZ)*.07; mission.lastX=p.x; mission.lastZ=p.z;
     const d=Math.hypot(mission.drop.x-p.x,mission.drop.z-p.z);
-    if(d<8 && Math.abs(p.fwd)<8){ const tip=Math.min(20,Math.max(0,Math.round(mission.timer*1.2))); const pay=Math.round(mission.fare)+tip; addCash(pay); chime(); toast('₹'+pay+' mile! ('+(tip?'tip ₹'+tip:'no tip')+')',2.4); mission.state='none'; mission.wait=1.5; beacon.visible=false; }
+    if(d<8 && Math.abs(p.fwd)<8){ const tip=Math.min(20,Math.max(0,Math.round(mission.timer*1.2))); const dg=DOG.state==='ride'?10:0, pay=Math.round(mission.fare)+tip+dg; addCash(pay); chime(); toast('₹'+pay+' mile! ('+(tip?'tip ₹'+tip:'no tip')+(dg?' · Dogesh bhai ka aashirwad +₹10':'')+')',2.4); mission.state='none'; mission.wait=1.5; beacon.visible=false; }
     else if(mission.timer<=0){ toast('Late ho gaye. Sawari utar gayi!',2.4); crashSound(4); mission.state='none'; mission.wait=2; beacon.visible=false; }
   }
 }
@@ -2387,7 +2601,7 @@ function playerInput(dt){
 // ================= minimap =================
 const MS=2; const mapCan=document.createElement('canvas'); mapCan.width=mapCan.height=Math.ceil(HALF*2*MS);
 { const g=mapCan.getContext('2d'); g.fillStyle='#8c84a0'; g.fillRect(0,0,mapCan.width,mapCan.height);
-  const MC={park:'#2f7a45',bazaar:'#d9a441',river:'#2a6fb0',lake:'#2a6fb0',airport:'#6d6f78',vip:'#6f9a5a',rail:'#5a4a40',station:'#b5523a',pump:'#3a2a4c',cng:'#3a2a4c',paint:'#3a2a4c',thana:'#3a2a4c',bld:'#3a2a4c'};
+  const MC={park:'#2f7a45',bazaar:'#d9a441',river:'#2a6fb0',lake:'#2a6fb0',airport:'#6d6f78',vip:'#6f9a5a',rail:'#5a4a40',station:'#b5523a',pump:'#3a2a4c',cng:'#3a2a4c',paint:'#3a2a4c',thana:'#3a2a4c',temple:'#e0a020',wada:'#8a6a4a',mela:'#2f7a45',bld:'#3a2a4c'};
   const R2=(r,c)=>{ g.fillStyle=c; g.fillRect((r.x0+HALF)*MS,(r.z0+HALF)*MS,(r.x1-r.x0)*MS,(r.z1-r.z0)*MS); };
   for(const col of blocks) for(const b of col) R2(b,MC[b.type]);
   R2(ZONES.lake,'#2a6fb0'); R2(ZONES.airport,'#6d6f78'); R2({x0:AP.x0,x1:AP.x1,z0:AP.rz-12,z1:AP.rz+12},'#2d2e33');
@@ -2397,7 +2611,9 @@ const MS=2; const mapCan=document.createElement('canvas'); mapCan.width=mapCan.h
   g.fillStyle='#d8d0c0'; g.fillRect(0,(TRACK_Z-1.2+HALF)*MS,2*HALF*MS,2.4*MS);
   g.fillStyle='rgba(255,255,255,.9)'; g.textAlign='center'; g.textBaseline='middle'; g.font='bold 34px Arial';
   const lab=(t,x,z)=>g.fillText(t,(x+HALF)*MS,(z+HALF)*MS);
-  lab('AIRPORT',(AP.x0+AP.x1)/2,AP.rz+50); lab('VIP',(ZONES.vip.x0+ZONES.vip.x1)/2,(ZONES.vip.z0+ZONES.vip.z1)/2); lab('LAKE',L[2],L[8]-20); lab('STATION',blocks[4][N-1].cx,blocks[4][N-1].z0+12);
+  lab('AIRPORT',(AP.x0+AP.x1)/2,AP.rz+50); lab('KP',(ZONES.vip.x0+ZONES.vip.x1)/2,(ZONES.vip.z0+ZONES.vip.z1)/2); lab('SARAS BAUG',L[2],L[8]-20); lab('PUNE JN',blocks[4][N-1].cx,blocks[4][N-1].z0+12);
+  lab('BAPPA',blocks[3][4].cx,blocks[3][4].cz); lab('WADA',blocks[2][4].cx,blocks[2][4].cz); lab('MELA',blocks[0][5].cx,blocks[0][5].cz);
+  g.fillStyle='rgba(120,170,255,.8)'; g.fillRect(0,(METRO.z-1.5+HALF)*MS,2*HALF*MS,3*MS); g.fillStyle='rgba(255,255,255,.9)';
   g.fillStyle='#ffffff'; g.font='bold 52px Arial'; for(const q of PUMPS) lab(q.kind==='cng'?'CNG':'P',q.cx,q.cz);
   g.font='bold 40px Arial'; for(const q of SPRAY) lab('SPRAY',q.cx,q.cz); lab('THANA',THANA.b.cx,THANA.b.cz);
 }
@@ -2469,6 +2685,13 @@ function updateHUD(dt){
   $('spd').textContent=Math.round(Math.abs(p.fwd)*3.6);
   $('nitroBar').firstElementChild.style.transform=`scaleX(${p.nitro.toFixed(3)})`;
   const free=G.mode==='free'; $('fuelChip').hidden=!free;
+  // where am I in Pune
+  { const ki=Math.round((p.x-L0)/P), kj=Math.round((p.z-L0)/P), onX=Math.abs(p.z-L[clamp(kj,0,N)])<R/2, onZ=Math.abs(p.x-L[clamp(ki,0,N)])<R/2;
+    if(onX&&!onZ) G.road=ROAD_NAMES.x[clamp(kj,0,N)]; else if(onZ&&!onX) G.road=ROAD_NAMES.z[clamp(ki,0,N)]; else if(!onX&&!onZ) G.road='';
+    const bi=clamp(Math.floor((p.x-L0)/P),0,N-1), bj=clamp(Math.floor((p.z-L0)/P),0,N-1), area=areaAt(bi,bj);
+    const pl=$('place'), txt=(G.road?'📍 '+G.road+' · ':'📍 ')+area; pl.hidden=false;
+    if(pl.dataset.t!==txt){ pl.dataset.t=txt; pl.innerHTML=(G.road?'📍 <b>'+G.road+'</b> · ':'📍 ')+area; if(pl.dataset.a!==area){ pl.dataset.a=area; pl.classList.remove('flash'); void pl.offsetWidth; pl.classList.add('flash'); } }
+    pl.style.top=$('wanted').hidden?'':'calc(66px + env(safe-area-inset-top,0px))'; }
   if(free){ const fk=fuelKind(), ch=$('fuelChip'); ch.classList.toggle('petrol',fk==='petrol'); ch.classList.toggle('low',F.fuel<.2);
     $('fuelName').textContent=fk==='cng'?'⛽ CNG':'⛽ PETROL'; $('fuelPct').textContent=Math.round(F.fuel*100)+'%';
     $('fuelBar').firstElementChild.style.transform=`scaleX(${F.fuel.toFixed(3)})`; $('fuelBar').classList.toggle('low',F.fuel<.2);
@@ -2531,7 +2754,7 @@ function playUpdate(dt){
     vehiclePairs(cars);
     for(const v of cars) trafficHits(v);
   }
-  updateNakas(dt);
+  updateNakas(dt); updateDog(dt);
   for(let i=cops.length-1;i>=0;i--){ const c=cops[i]; if(c.fly && updateFly(c,dt)){ c.dispose(); cops.splice(i,1); } }
   for(const a of ais) if(a.fly && updateFly(a,dt)) respawnAI(a);
   if(G.mode==='race'){ for(const v of racers){ if(!v.finished) reachCP(v); } }
@@ -2580,7 +2803,7 @@ function frame(dt){
   const live=G.state!=='paused' && G.state!=='shop';
   if(live){
     updateTraffic(dt,racers.length?racers.concat(cops):(preview?[preview]:[]));
-    updateCows(dt); updatePeds(dt); updateWalkers(dt); updateHeli(dt); updateTrain(dt); updatePlane(dt); updateBarriers(dt); updateLightMats();
+    updateCows(dt); updatePeds(dt); updateWalkers(dt); updateHeli(dt); updateMela(dt); updateMetro(dt); updateTrain(dt); updatePlane(dt); updateBarriers(dt); updateLightMats();
     const ph=(G.time*5|0)%2; MAT.sirenR.emissiveIntensity=ph?3.5:.3; MAT.sirenB.emissiveIntensity=ph?.3:3.5; sirenGlowR.opacity=ph?1:0; sirenGlowB.opacity=ph?0:1;
   } else sirenSound(0);
   if(G.state==='menu'){
