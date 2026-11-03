@@ -1035,7 +1035,11 @@ function buildPaint(b){
   cp.box(1,1.8,gz1-gz0+3,signMat('SPRAY SHOP','#ff2e88','#ffffff'),gx0+1.6,6.1,b.cz);
   for(const [x,z,c] of [[gx1-1.4,gz0+.8,0xff2e88],[gx1-1.4,gz0+1.8,0x19c3b3],[gx1-1.4,gz1-.8,0xffcc00],[gx1-2.4,gz1-.8,0x2f9e44]]) cp.add(new THREE.CylinderGeometry(.35,.35,.9,10),stdMat(c,.4,.2),x,.5,z);
   for(const [x,z,c,r] of [[mx,b.cz,0xff2e88,3],[mx-5,b.cz+3,0x19c3b3,1.6],[mx+4,b.cz-3,0xffcc00,1.8]]) cp.add(new THREE.CircleGeometry(r,16),stdMat(c,.9,0),x,.08,z,-Math.PI/2,0,0);
-  cp.box(.7,15,.7,metalMat,b.x0+.6,7.5,gz0-3); cp.box(6.5,4.5,6.5,signMat('SPRAY','#ff2e88','#ffffff'),b.x0+3.6,16,gz0-3); cp.box(6.9,.8,6.9,pylonGlow.spray,b.x0+3.6,18.6,gz0-3);
+  // tall pylon that clears the rooftops, and big boards on the other three sides so you can find it from any road
+  cp.box(.7,24,.7,metalMat,b.x0+.6,12,gz0-3); cp.box(6.5,4.5,6.5,signMat('SPRAY','#ff2e88','#ffffff'),b.x0+3.6,25,gz0-3); cp.box(6.9,.8,6.9,pylonGlow.spray,b.x0+3.6,27.6,gz0-3);
+  const ad=signMat('SPRAY SHOP · RANG BADLO','#ff2e88','#ffffff');
+  cp.box(16,2.4,.2,ad,b.cx,8,b.z0+.8); cp.box(16,2.4,.2,ad,b.cx,8,b.z1-.8); cp.box(.2,2.4,16,ad,b.x1-.8,8,b.cz);
+  for(const z of [b.z0+.9,b.z1-.9]) cp.box(16.4,.3,.3,pylonGlow.spray,b.cx,9.35,z); cp.box(.3,.3,16.4,pylonGlow.spray,b.x1-.9,9.35,b.cz);
   SPRAY.push({x0:gx0+3,x1:gx1-1,z0:gz0+1.2,z1:gz1-1.2,cx:(gx0+gx1)/2,cz:b.cz});
 }
 // ---- police thana ----
