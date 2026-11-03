@@ -85,7 +85,8 @@ body.touch #fuelChip .fnav{margin-top:2px}
 #fuelChip.petrol #fuelName{color:#ffb347}
 #fuelPct{font-variant-numeric:tabular-nums}
 #fuelChip .fnav{margin-top:4px;color:var(--cream);white-space:nowrap}
-#fuelArrow{display:inline-block;color:var(--saffron);transition:transform .1s linear}
+#fuelArrow,#sprayArrow{display:inline-block;color:var(--saffron);transition:transform .1s linear}
+#sprayArrow{color:#ff2e88}#fuelChip .spr{color:#ff9cc8}
 #fuelChip.low{animation:wflash .5s steps(2) infinite;border-width:2px}
 #fuelBar{margin-top:5px;height:12px;border-radius:6px;background:rgba(255,255,255,.12);overflow:hidden}
 #fuelBar i{display:block;height:100%;background:linear-gradient(90deg,#1fb84a,#7dffa0);transform-origin:left;border-radius:4px}
@@ -213,7 +214,7 @@ h1 span{display:block;color:var(--cream)}
     <button id="btnReset" aria-label="Gaadi road pe wapas">↺</button>
   </div>
   <div id="speedo" class="chip"><div id="spd">0</div><div class="unit">KM/H</div><div id="nitroBar"><i></i></div><div class="nlbl">NITRO</div></div>
-  <div id="fuelChip" class="chip" hidden><div class="fhead"><span id="fuelName">⛽ CNG</span><b id="fuelPct">100%</b></div><div id="fuelBar"><i></i></div><div class="fnav"><span id="fuelArrow">➤</span> <span id="fuelDist">Pump 0m</span></div><div id="fuelLbl">PUC 4:00</div></div>
+  <div id="fuelChip" class="chip" hidden><div class="fhead"><span id="fuelName">⛽ CNG</span><b id="fuelPct">100%</b></div><div id="fuelBar"><i></i></div><div class="fnav"><span id="fuelArrow">➤</span> <span id="fuelDist">Pump 0m</span></div><div class="fnav spr"><span id="sprayArrow">➤</span> <span id="sprayDist">Spray 0m</span></div><div id="fuelLbl">PUC 4:00</div></div>
   <div id="limit" hidden>60</div>
   <div id="toast"></div>
   <div id="combo"></div>
@@ -2055,6 +2056,14 @@ const beamMat=new THREE.MeshBasicMaterial({map:beamTex,transparent:true,blending
 { const beam=new THREE.Mesh(new THREE.CylinderGeometry(2.6,2.6,110,24,1,true),beamMat); beam.position.y=55; beacon.add(beam);
   const ring=new THREE.Mesh(new THREE.RingGeometry(3.2,4.4,40),new THREE.MeshBasicMaterial({color:C(0x2fff6a),transparent:true,opacity:.8,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide})); ring.rotation.x=-Math.PI/2; ring.position.y=.12; beacon.add(ring); beacon.userData.ring=ring; }
 beacon.visible=false; scene.add(beacon);
+// permanent pink light pillar over every spray shop, seen from anywhere in the city
+{ const sm=new THREE.MeshBasicMaterial({map:beamTex,transparent:true,opacity:.85,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,color:C(0xff2e88),fog:false});
+  const rm=new THREE.MeshBasicMaterial({color:C(0xff2e88),transparent:true,opacity:.75,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
+  const cm=new THREE.MeshBasicMaterial({color:C(0xff2e88),transparent:true,opacity:.6,depthWrite:false,fog:false});
+  for(const q of SPRAY){ const m=new THREE.Mesh(new THREE.CylinderGeometry(3.2,3.2,140,16,1,true),sm); m.position.set(q.cx,70,q.cz); scene.add(m);
+    const c=new THREE.Mesh(new THREE.CylinderGeometry(.9,.9,130,8,1,true),cm); c.position.set(q.cx,73,q.cz); scene.add(c);
+    const r=new THREE.Mesh(new THREE.RingGeometry(2.6,3.6,32),rm); r.rotation.x=-Math.PI/2; r.position.set(q.cx,.14,q.cz); scene.add(r); } }
+function nearestSpray(x,z){ let b=null, bd=1e9; for(const q of SPRAY){ const d=Math.hypot(q.cx-x,q.cz-z); if(d<bd){ bd=d; b=q; } } return [b,bd]; }
 function beaconColor(h){ beamMat.color.copy(C(h)); beacon.userData.ring.material.color.copy(C(h)); }
 const arrow=new THREE.Group();
 { const am=new THREE.MeshBasicMaterial({color:C(0xff9f1c),fog:false}); const cone=new THREE.Mesh(new THREE.ConeGeometry(.55,1.1,4),am); cone.rotation.x=Math.PI/2; cone.position.z=.55; arrow.add(cone); const sh=new THREE.Mesh(new THREE.BoxGeometry(.3,.12,.9),am); sh.position.z=-.3; arrow.add(sh); arrow.userData.mat=am; }
@@ -3200,6 +3209,8 @@ function updateHUD(dt){
     $('fuelBar').firstElementChild.style.transform=`scaleX(${F.fuel.toFixed(3)})`; $('fuelBar').classList.toggle('low',F.fuel<.2);
     const [np,nd]=nearestPump(p.x,p.z);
     if(np){ const rel=Math.atan2(np.cx-p.x,np.cz-p.z)-p.yaw; $('fuelArrow').style.transform=`rotate(${(-90-rel*180/Math.PI).toFixed(1)}deg)`; $('fuelDist').textContent=(fk==='cng'?'CNG ':'Pump ')+Math.round(nd)+'m'; }
+    const [ns,sd]=nearestSpray(p.x,p.z);
+    if(ns){ const rel=Math.atan2(ns.cx-p.x,ns.cz-p.z)-p.yaw; $('sprayArrow').style.transform=`rotate(${(-90-rel*180/Math.PI).toFixed(1)}deg)`; $('sprayDist').textContent='Spray '+Math.round(sd)+'m'; }
     const pm=Math.max(0,F.puc|0); $('fuelLbl').textContent='PUC '+(pm>0?Math.floor(pm/60)+':'+String(pm%60).padStart(2,'0'):'EXPIRED!')+(F.udhaar>=1?' · Udhaar ₹'+Math.round(F.udhaar):''); }
   let nearCam=false; if(free) for(const c of CAMS) if(Math.hypot(p.x-c.x,p.z-c.z)<80) nearCam=true;
   $('limit').hidden=!nearCam; $('spd').classList.toggle('over',nearCam && Math.abs(p.fwd)*3.6>SPEED_LIMIT);
