@@ -310,15 +310,19 @@ const store = {
 const isTouch = (window.matchMedia && matchMedia('(pointer: coarse)').matches) || ('ontouchstart' in window);
 if(isTouch){ document.body.classList.add('touch'); $('keysHelp').hidden = true; }
 const LOW = isTouch;
+// phones: plain Lambert lighting is several times cheaper per pixel than PBR
+if(LOW){ const Lam=THREE.MeshLambertMaterial;
+  THREE.MeshStandardMaterial=class extends Lam{ constructor(p={}){ const q={...p}; for(const k of ['roughness','metalness','flatShading','roughnessMap','metalnessMap','normalMap','envMapIntensity']) delete q[k]; super(q); } }; }
 
 try { await Promise.race([ Promise.all([document.fonts.load('40px Bungee'), document.fonts.load('20px "Baloo 2"')]), new Promise(r=>setTimeout(r,1800)) ]); } catch(e){}
 
 // ================= renderer / scene =================
 const renderer = new THREE.WebGLRenderer({ antialias: !LOW, powerPreference:'high-performance' });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, LOW?1.5:2));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, LOW?1.25:1.5));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.type = LOW?THREE.PCFShadowMap:THREE.PCFSoftShadowMap;
+renderer.shadowMap.autoUpdate = false; // redrawn every few frames, see frame()
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 $('game').appendChild(renderer.domElement);
@@ -514,7 +518,7 @@ const pmrem = new THREE.PMREMGenerator(renderer); let envRT=null;
 const hemi = new THREE.HemisphereLight(C(0xffb98a), C(0x3b2442), .35); scene.add(hemi);
 const sun = new THREE.DirectionalLight(C(0xffa55a), 2.4);
 sun.castShadow=true; sun.shadow.mapSize.set(LOW?1024:2048, LOW?1024:2048);
-const sc=sun.shadow.camera; sc.left=-80; sc.right=80; sc.top=80; sc.bottom=-80; sc.near=1; sc.far=400;
+const sc=sun.shadow.camera, SR=LOW?60:80; sc.left=-SR; sc.right=SR; sc.top=SR; sc.bottom=-SR; sc.near=1; sc.far=400;
 sun.shadow.bias=-0.0004; sun.shadow.normalBias=0.03;
 scene.add(sun); scene.add(sun.target);
 
@@ -3034,7 +3038,20 @@ function playUpdate(dt){
 
 let toastHide=0;
 // city pieces past the fog are invisible anyway; skip drawing them
-let cullT=0;
+let cullT=0, shadowT=0;
+// auto quality: if the device can't hold ~50fps, render fewer pixels, then drop shadows
+const Q={max:renderer.getPixelRatio(), min:LOW?.6:.75, acc:0, n:0, good:0};
+Q.pr=Q.max;
+function adaptQuality(raw){
+  if(document.hidden || raw>.25) return;
+  Q.acc+=raw; Q.n++; if(Q.acc<1) return;
+  const fps=Q.n/Q.acc; Q.acc=0; Q.n=0;
+  if(fps<48){ Q.good=0;
+    if(Q.pr>Q.min+.01){ Q.pr=Math.max(Q.min,Q.pr-.25); renderer.setPixelRatio(Q.pr); }
+    else if(sun.castShadow && fps<40){ sun.castShadow=false; }
+  } else if(fps>57){ if(++Q.good>=6 && Q.pr<Q.max-.01){ Q.good=0; Q.pr=Math.min(Q.max,Q.pr+.25); renderer.setPixelRatio(Q.pr); } }
+  else Q.good=0;
+}
 function cullCity(){ const c=camera.position; for(const m of city.children){ const s=m.geometry.boundingSphere; if(!s) continue; m.visible=Math.hypot(s.center.x-c.x,s.center.z-c.z)-s.radius<(LOW?420:560); } }
 function frame(dt){
   cullT-=dt; if(cullT<=0){ cullT=.25; cullCity(); }
@@ -3053,7 +3070,8 @@ function frame(dt){
   } else if(live && player){ playUpdate(dt); }
   updateParticles(live?dt:0);
   const f=player&&G.state!=='menu'?player:{x:PV.x,z:PV.z};
-  sun.position.set(f.x+sunDir.x*160,sunDir.y*160,f.z+sunDir.z*160); sun.target.position.set(f.x,0,f.z);
+  // the sun only follows the player when the shadow map is redrawn, so shadows never slide
+  if(--shadowT<=0){ shadowT=LOW?3:2; sun.position.set(f.x+sunDir.x*160,sunDir.y*160,f.z+sunDir.z*160); sun.target.position.set(f.x,0,f.z); renderer.shadowMap.needsUpdate=true; }
   sky.position.copy(camera.position); stars.position.copy(camera.position);
 }
 
@@ -3074,7 +3092,7 @@ setPreview(G.vtype);
 refreshMenu();
 $('loading').remove();
 let last=performance.now();
-function loop(now){ requestAnimationFrame(loop); const dt=Math.min(.05,(now-last)/1000); last=now; frame(dt); renderer.render(scene,camera); }
+function loop(now){ requestAnimationFrame(loop); const raw=(now-last)/1000, dt=Math.min(.05,raw); last=now; adaptQuality(raw); frame(dt); renderer.render(scene,camera); }
 requestAnimationFrame(loop);
 })().catch(err=>{ const el=document.getElementById('loading'); if(el){ el.textContent='Kuch gadbad ho gayi: '+err.message; el.style.fontSize='14px'; } console.error(err); });
 </script>
