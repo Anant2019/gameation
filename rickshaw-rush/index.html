@@ -12,7 +12,7 @@
 <meta name="description" content="Free 3D auto rickshaw game set in Pune: Kasba, Sadashiv and Budhwar Peth, JM Road, Shaniwar Wada, Dagdusheth Ganpati, metro and Mutha bridges. Pick up passengers, escape crazy police, fill CNG. Works on phone.">
 <link rel="canonical" href="https://calmtype.life/rickshaw-rush/">
 <meta property="og:title" content="Rickshaw Rush — Pune Auto Rickshaw Game">
-<meta property="og:description" content="Drive a 3D auto rickshaw through Pune: peths, JM Road, metro, Shaniwar Wada, police chases, CNG pumps, and Dogesh bhai on your roof.">
+<meta property="og:description" content="Drive a 3D auto rickshaw through Pune: peths, JM Road, metro, Shaniwar Wada, police chases, CNG pumps, and Dogesh bhai marking your tyre.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://calmtype.life/rickshaw-rush/">
 <meta property="og:image" content="https://calmtype.life/rickshaw-rush/cover.jpg">
@@ -413,12 +413,16 @@ const roadTex = makeTex(1024,1024,(g,w)=>{
   g.fillStyle='#3d3c42'; g.fillRect(0,0,w,w); speckle(g,w,w,60000,.09);
   for(let i=0;i<6;i++){ const y=w/2+(i<3?-1:1)*(R/4)*s*(i%3===1?1:.6); g.fillStyle='rgba(20,20,24,.10)'; g.fillRect(0,y-.4*s,w,.8*s); g.fillRect(y-.4*s,0,.8*s,w); }
   for(let i=0;i<10;i++){ g.fillStyle=`rgba(15,15,20,${.12+Math.random()*.14})`; g.beginPath(); g.ellipse(Math.random()*w,Math.random()*w,20+Math.random()*60,10+Math.random()*30,Math.random()*3,0,7); g.fill(); }
+  for(let i=0;i<7;i++){ g.fillStyle=`rgba(${pick(['30,30,34','72,70,74','52,51,56'])},.8)`; g.save(); g.translate(Math.random()*w,Math.random()*w); g.rotate(Math.random()*3); g.fillRect(0,0,(1.5+Math.random()*3)*s,(1+Math.random()*1.5)*s); g.restore(); }
+  for(let i=0;i<14;i++){ const x=Math.random()*w, y=Math.random()*w, r=(.25+Math.random()*.35)*s;
+    g.fillStyle='rgba(120,112,100,.45)'; g.beginPath(); g.ellipse(x,y,r*1.35,r*1.1,0,0,7); g.fill();
+    g.fillStyle='rgba(12,12,14,.85)'; g.beginPath(); for(let k=0;k<7;k++){ const a=k/7*6.283, rr2=r*(.7+Math.random()*.4); g.lineTo(x+Math.cos(a)*rr2,y+Math.sin(a)*rr2*.8); } g.fill(); }
   const c=w/2, hw=R/2*s, a=c-hw, b=c+hw, ins=1.0*s, lw=.25*s;
-  g.fillStyle='rgba(235,235,225,.85)';
+  g.fillStyle='rgba(235,235,225,.62)';
   for(const y of [a+ins,b-ins-lw]){ g.fillRect(0,y,a,lw); g.fillRect(b,y,w-b,lw); }
   for(const x of [a+ins,b-ins-lw]){ g.fillRect(x,0,lw,a); g.fillRect(x,b,lw,w-b); }
   const dl=3*s, gap=3*s, cw=.3*s, zl=5*s;
-  g.fillStyle='rgba(255,205,60,.9)';
+  g.fillStyle='rgba(255,205,60,.7)';
   for(let x=0;x<a-zl;x+=dl+gap){ g.fillRect(x,c-cw/2,Math.min(dl,a-zl-x),cw); g.fillRect(c-cw/2,x,cw,Math.min(dl,a-zl-x)); }
   for(let x=b+zl;x<w;x+=dl+gap){ g.fillRect(x,c-cw/2,Math.min(dl,w-x),cw); g.fillRect(c-cw/2,x,cw,Math.min(dl,w-x)); }
   g.fillStyle='rgba(245,245,240,.88)';
@@ -427,6 +431,8 @@ const roadTex = makeTex(1024,1024,(g,w)=>{
     g.fillRect(a-4.3*s,t,3.3*s,zs); g.fillRect(b+1*s,t,3.3*s,zs);
     g.fillRect(t,a-4.3*s,zs,3.3*s); g.fillRect(t,b+1*s,zs,3.3*s);
   }
+  // paint wears off where the wheels run
+  for(let i=0;i<900;i++){ g.fillStyle=`rgba(61,60,66,${.4+Math.random()*.5})`; g.fillRect(Math.random()*w,Math.random()*w,2+Math.random()*9,2+Math.random()*5); }
 });
 const paverTex = makeTex(128,128,(g,w)=>{ g.fillStyle='#9c958c'; g.fillRect(0,0,w,w); speckle(g,w,w,2500,.25); g.strokeStyle='rgba(60,50,45,.5)'; g.lineWidth=2; for(let i=0;i<=4;i++){ g.beginPath(); g.moveTo(i*32,0); g.lineTo(i*32,w); g.moveTo(0,i*32); g.lineTo(w,i*32); g.stroke(); } });
 const curbTex = makeTex(64,16,(g,w,h)=>{ g.fillStyle='#151515'; g.fillRect(0,0,w/2,h); g.fillStyle='#f2c200'; g.fillRect(w/2,0,w/2,h); });
@@ -466,6 +472,8 @@ for(const f of FACADES){
         if(Math.random()<.25){ g.fillStyle='rgba(30,30,30,.8)'; g.fillRect(x-4,y+30,44,3); for(let k=0;k<7;k++) g.fillRect(x-4+k*7,y+30,1.5,10); g.fillRect(x-4,y+40,44,2); }
       }
     }
+    for(let k=0;k<9;k++){ const sx=Math.random()*w, sw=4+Math.random()*16, sy=Math.random()*w; const st=g.createLinearGradient(0,sy,0,sy+60+Math.random()*120); st.addColorStop(0,'rgba(45,40,35,.32)'); st.addColorStop(1,'rgba(45,40,35,0)'); g.fillStyle=st; g.fillRect(sx,sy,sw,200); }
+    for(let k=0;k<5;k++){ g.fillStyle=`rgba(255,255,255,${.05+Math.random()*.08})`; g.beginPath(); g.ellipse(Math.random()*w,Math.random()*w,20+Math.random()*40,10+Math.random()*30,0,0,7); g.fill(); }
   });
   const em=makeTex(256,256,(g,w)=>{
     g.fillStyle='#000'; g.fillRect(0,0,w,w);
@@ -638,6 +646,38 @@ function parkScooters(b){
     }
   }
 }
+// Mangalore-tile roofs, wooden wada balconies, hanging signboards and the tangle of overhead wires
+const tileMat=new THREE.MeshStandardMaterial({map:makeTex(64,64,(g,w)=>{ g.fillStyle='#9c4328'; g.fillRect(0,0,w,w); for(let j=0;j<8;j++){ g.fillStyle='rgba(40,12,5,.45)'; g.fillRect(0,j*8+6,w,2); for(let i=0;i<8;i++){ g.fillStyle=`rgba(${150+Math.random()*50|0},${60+Math.random()*30|0},35,.5)`; g.fillRect(i*8+(j%2)*4,j*8,7,6); } } }),roughness:.9,flatShading:true});
+const woodMat2=stdMat(0x5b3a22,.85,0), woodLite=stdMat(0x8a5a32,.85,0), whiteMat2=stdMat(0xf2efe8,.8,0), redBand=stdMat(0xb52a1c,.8,0);
+const SIGNS=[['डॉ. कुलकर्णी','दवाखाना','#ffffff','#1d3f9a'],['जोशी क्लासेस','१० वी · १२ वी','#ffcc00','#b0122a'],['लॉज','AC रूम्स','#1f5fbf','#ffffff'],['पेठे ज्वेलर्स','सोने · चांदी','#7a1f2b','#ffd700'],
+  ['बँक ऑफ महाराष्ट्र','ATM','#ffffff','#2a4d8f'],['पुणेरी टेलर्स','पगडी · शेरवानी','#2f9e44','#ffffff'],['ॲड. देशपांडे','वकील','#f2f2f2','#111111'],['योगा क्लास','सकाळी ६ वा.','#ff7a00','#ffffff']];
+const hangSignMat=new THREE.MeshStandardMaterial({map:makeTex(512,512,(g)=>{ SIGNS.forEach(([a,b,bg,fg],i)=>{ const x=(i%2)*256, y=Math.floor(i/2)*128;
+  g.fillStyle=bg; g.fillRect(x,y,256,128); g.strokeStyle=fg; g.lineWidth=5; g.strokeRect(x+6,y+6,244,116); g.fillStyle=fg; g.textAlign='center'; g.textBaseline='middle';
+  g.font=`bold ${a.length>12?30:38}px ${DEVA}`; g.fillText(a,x+128,y+52); g.font=`22px ${DEVA}`; g.fillText(b,x+128,y+94); }); },{repeat:false}),roughness:.7,emissive:C(0xffffff),emissiveIntensity:.12});
+hangSignMat.emissiveMap=hangSignMat.map;
+const wirePos=[];
+function wire(x0,y0,z0,x1,y1,z1,sag){ let px=x0,py=y0,pz=z0; for(let k=1;k<=8;k++){ const t=k/8, x=x0+(x1-x0)*t, z=z0+(z1-z0)*t, y=y0+(y1-y0)*t-sag*4*t*(1-t); wirePos.push(px,py,pz,x,y,z); px=x; py=y; pz=z; } }
+// box flush against a street face: (nx,nz) outward normal, `along` slides it along the face, `out` pushes it away from the wall
+function faceBox(nx,nz,fx,fz,len,hh,dep,mat,along,out,y){ cp.box(nx?dep:len,hh,nx?len:dep,mat,fx+nx*out+(nx?0:along),y,fz+nz*out+(nx?along:0)); }
+function dressBuilding(bx,bz,w,d,h,qx,qz,tiled){
+  if(tiled){ const rh=Math.min(w,d)*.2, g=new THREE.ConeGeometry(.7071,1,4,1); g.rotateY(Math.PI/4); g.scale(w+1.4,rh,d+1.4);
+    const uv=g.attributes.uv; for(let k=0;k<uv.count;k++) uv.setXY(k,uv.getX(k)*w/2,uv.getY(k)*rh/2); cp.add(g,tileMat,bx,.3+h+.5+rh/2,bz); }
+  if(LITE) return;
+  for(const [nx,nz,fx,fz,len] of [[qx,0,bx+qx*w/2,bz,d],[0,qz,bx,bz+qz*d/2,w]]){
+    if(tiled){ // carved wooden balcony running along the first floor, like the old wadas
+      const L=len*.7, y=.3+5.2; faceBox(nx,nz,fx,fz,L,.16,1.0,woodMat2,0,.5,y); faceBox(nx,nz,fx,fz,L,.8,.08,woodLite,0,.96,y+.48); faceBox(nx,nz,fx,fz,L,.08,.12,woodMat2,0,.96,y+.9);
+      for(let t=-L/2;t<=L/2+.01;t+=L/6){ faceBox(nx,nz,fx,fz,.12,.9,.12,woodMat2,t,.92,y+.45); faceBox(nx,nz,fx,fz,.14,.5,.6,woodMat2,t,.3,y-.32); }
+      faceBox(nx,nz,fx,fz,L+.6,.12,1.3,tileMat,0,.65,y+2.6);
+    }
+    if(Math.random()<.65 && h>7){ // signboard sticking out of the wall so you can read it down the street
+      const g=new THREE.BoxGeometry(nx?1.9:.12,1.05,nx?.12:1.9), i=Math.floor(Math.random()*SIGNS.length), u0=(i%2)*.5, v0=1-(Math.floor(i/2)+1)*.25, uv=g.attributes.uv;
+      for(let k=0;k<uv.count;k++) uv.setXY(k,u0+uv.getX(k)*.5,v0+uv.getY(k)*.25);
+      const along=(Math.random()-.5)*len*.7, y=.3+Math.min(h-1.2,4.6+Math.random()*3);
+      cp.add(g,hangSignMat,fx+nx*1.15+(nx?0:along),y,fz+nz*1.15+(nx?along:0)); faceBox(nx,nz,fx,fz,.05,.05,2.1,metalMat,along,1.05,y+.57);
+    }
+    if(!tiled && Math.random()<.4) faceBox(nx,nz,fx,fz,len*.5,1.6,.06,hoardMats[Math.floor(Math.random()*hoardMats.length)],(Math.random()-.5)*len*.3,.06,.3+5+Math.random()*2);
+  }
+}
 const city=new THREE.Group(); scene.add(city);
 let cp=new Parts();
 const lampGlow=[];
@@ -653,6 +693,7 @@ function addBuilding(cx,cz,w,d,h,fi){
 }
 function addTree(x,z,base,s=1){
   cp.add(new THREE.CylinderGeometry(.16*s,.24*s,2.6*s,6),trunkMat,x,base+1.3*s,z);
+  cp.add(new THREE.CylinderGeometry(.235*s,.26*s,.75*s,6),whiteMat2,x,base+.4*s,z); cp.add(new THREE.CylinderGeometry(.24*s,.25*s,.16*s,6),redBand,x,base+.86*s,z);
   const lm=srand()<.3?leafMats[2]:leafMats[[0,1,3][Math.floor(srand()*3)]];
   const g=new THREE.IcosahedronGeometry(1.9*s,0); g.scale(1,.8,1); cp.add(g,lm,x,base+3.6*s,z,0,srand()*3,0);
   if(srand()<.5){ const g2=new THREE.IcosahedronGeometry(1.2*s,0); cp.add(g2,lm,x+.8*s,base+4.3*s,z-.5*s); }
@@ -999,11 +1040,11 @@ function buildBlock(b){
   const g=new THREE.BoxGeometry(B,.3,B); const uv=g.attributes.uv;
   for(let f=0;f<6;f++){ const su=f===2||f===3?B/4:B/2, sv=f===2||f===3?B/4:1; for(let k=0;k<4;k++){ const q=f*4+k; uv.setXY(q,uv.getX(q)*su,uv.getY(q)*sv); } }
   g.translate(cx,.15,cz); cp.add(subGeo(g,[0,1,4,5]),curbMat); cp.add(subGeo(g,[2]),paverMat);
-  const dc=Math.hypot(cx,cz)/HALF, hm=Math.max(.45,1.55-dc);
+  const dc=Math.hypot(cx,cz)/HALF, hm=.6+dc*.9;
   const inner=B-7;
-  const roofStuff=(bx,bz,w,d,h,qx,qz)=>{
+  const roofStuff=(bx,bz,w,d,h,qx,qz,tiled)=>{
     const top=.3+h;
-    if(srand()<.65){ const n=1+Math.floor(srand()*2); for(let k=0;k<n;k++) cp.add(new THREE.CylinderGeometry(.85,.85,1.6,12),tankMat,bx+sr(-w/4,w/4),top+.8,bz+sr(-d/4,d/4)); }
+    if(srand()<.65){ const n=1+Math.floor(srand()*2); for(let k=0;k<n;k++) if(tiled){ srand(); srand(); } else cp.add(new THREE.CylinderGeometry(.85,.85,1.6,12),tankMat,bx+sr(-w/4,w/4),top+.8,bz+sr(-d/4,d/4)); }
     if(h<32 && srand()<.35){
       const hm2=hoardMats[Math.floor(srand()*hoardMats.length)];
       const yaw = Math.abs(qx)>Math.abs(qz) ? (qx>0?Math.PI/2:-Math.PI/2) : (qz>0?0:Math.PI);
@@ -1014,14 +1055,15 @@ function buildBlock(b){
     }
   };
   if(srand()<.28){
-    const w=inner-sr(0,10), d=inner-sr(0,10), h=Math.max(14,(30+srand()*50)*hm);
+    const w=inner-sr(0,10), d=inner-sr(0,10), h=Math.max(14,(18+srand()*30)*hm);
     addBuilding(cx,cz,w,d,h,srand()<.5?6:Math.floor(srand()*6)); roofStuff(cx,cz,w,d,h,0,1);
   } else {
     const half=inner/2;
     for(const qx of [-1,1]) for(const qz of [-1,1]){
-      const w=half-sr(1,5), d=half-sr(1,5), h=Math.max(6,(8+srand()*26)*hm+3);
+      const w=half-sr(1,5), d=half-sr(1,5), h=Math.max(7,(5+srand()*12)*Math.min(hm,1.15)+4);
       const bx=cx+qx*half/2, bz=cz+qz*half/2;
-      addBuilding(bx,bz,w,d,h,Math.floor(srand()*6)); roofStuff(bx,bz,w,d,h,qx,qz); addShops(bx,bz,w,d);
+      const tiled=h<13.5 && Math.random()<.6;
+      addBuilding(bx,bz,w,d,h,Math.floor(srand()*6)); roofStuff(bx,bz,w,d,h,qx,qz,tiled); addShops(bx,bz,w,d); dressBuilding(bx,bz,w,d,h,qx,qz,tiled);
     }
   }
   parkScooters(b);
@@ -1036,8 +1078,17 @@ function addStreetLamps(b,trees){
       cp.box(nx?2:.12,.12,nz?2:.12,metalMat,px+nx*1,7.25,pz+nz*1);
       cp.box(nx?.8:.4,.18,nz?.8:.4,lampMat,px+nx*1.9,7.15,pz+nz*1.9);
       lampGlow.push(px+nx*1.9,7.0,pz+nz*1.9);
+      // three or four sagging cables to the next pole, a service drop into the building, and some across the road
+      if(t<21){ const qx=px+(nz?21:0), qz=pz+(nx?21:0); for(let k=0;k<3+(Math.random()<.5);k++){ const o=(k-1.5)*.12; wire(px+nx*o,6.9-k*.22,pz+nz*o,qx+nx*o,6.9-k*.22,qz+nz*o,.5+Math.random()*.5); } }
+      if(trees && Math.random()<.6) wire(px,6.5,pz,px-nx*4.5+(nz?rr(-3,3):0),4+Math.random()*2,pz-nz*4.5+(nx?rr(-3,3):0),.4);
+      const nb=(nx>0||nz>0) && blocks[b.i+(nx>0?1:0)] && blocks[b.i+(nx>0?1:0)][b.j+(nz>0?1:0)];
+      if(nb && nb.type==='bld' && t===21) for(let k=0;k<2;k++) wire(px,6.8-k*.3,pz+k*.2,px+nx*(R+1.6),6.8-k*.3,pz+nz*(R+1.6)+k*.2,1.1+Math.random()*.4);
     }
-    if(trees) for(const t of [-10.5,10.5]){ if(srand()<.55){ const tx=nz!==0?t:0, tz=nx!==0?t:0; addTree(cx+nx*(B/2-1.6)+tx,cz+nz*(B/2-1.6)+tz,.3,sr(.8,1.1)); } }
+    if(trees) for(const t of [-10.5,10.5]){ if(srand()<.55){ const tx=nz!==0?t:0, tz=nx!==0?t:0, ts=sr(.8,1.1)*1.35, x=cx+nx*(B/2-1.6)+tx, z=cz+nz*(B/2-1.6)+tz; addTree(x,z,.3,ts);
+      cp.add(new THREE.IcosahedronGeometry(1.7*ts,0).scale(1.3,.65,1.3),leafMats[Math.random()<.5?0:3],x+nx*2,.3+4.4*ts,z+nz*2,0,Math.random()*3,0); } }
+    if(trees) for(const t of [-27,27]){ if(Math.random()<.6){ const tx=nz!==0?t:0, tz=nx!==0?t:0, ts=rr(1.1,1.5), x=cx+nx*(B/2-1.6)+tx, z=cz+nz*(B/2-1.6)+tz;
+      cp.add(new THREE.CylinderGeometry(.16*ts,.24*ts,2.6*ts,6),trunkMat,x,.3+1.3*ts,z); cp.add(new THREE.CylinderGeometry(.235*ts,.26*ts,.75*ts,6),whiteMat2,x,.3+.4*ts,z); cp.add(new THREE.CylinderGeometry(.24*ts,.25*ts,.16*ts,6),redBand,x,.3+.86*ts,z);
+      for(let k=0;k<3;k++) cp.add(new THREE.IcosahedronGeometry(rr(1.3,1.9)*ts,0).scale(1.2,.7,1.2),leafMats[[0,1,3][k]],x+nx*k*.9+rr(-.8,.8),.3+rr(3.4,4.4)*ts,z+nz*k*.9+rr(-.8,.8),0,Math.random()*3,0); } }
   }
 }
 function buildPark(b){
@@ -1160,6 +1211,7 @@ for(let ci=0;ci<N;ci+=4) for(let cj=0;cj<N;cj+=4){
   }
   cp.into(city,true,true); cp=new Parts();
 }
+{ const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(wirePos,3)); const l=new THREE.LineSegments(g,new THREE.LineBasicMaterial({color:C(0x141414)})); city.add(l); }
 buildLake(); buildAirport(); buildVipGates(); buildTrack(); buildCrossings();
 // festive bunting strung across busy streets
 { const bp=new Parts(), fm=[0xff2e88,0xffcc00,0x19c3b3,0xff7a00,0x2f9e44,0xffffff].map(h=>stdMat(h,.7,0,{side:THREE.DoubleSide})), rope=stdMat(0x222222,.9,0);
@@ -1473,7 +1525,13 @@ const bzGeo=new THREE.BufferGeometry(); bzGeo.setAttribute('position',new THREE.
 const bzPts=new THREE.Points(bzGeo,new THREE.PointsMaterial({map:glowTex,vertexColors:true,size:1.6,transparent:true,opacity:.9,blending:THREE.AdditiveBlending,depthWrite:false})); scene.add(bzPts);
 // skyline
 const skylineMat=new THREE.MeshBasicMaterial({color:C(0x6a3c58),fog:false});
-{ const sp=new Parts(); for(let i=0;i<190;i++){ const a=Math.random()*Math.PI*2, r=rr(780,1150); const w=rr(20,60), h=rr(25,190); sp.box(w,h,w,skylineMat,Math.cos(a)*r,h/2-2,Math.sin(a)*r,0,a,0); } sp.into(scene,false,false); }
+const hillMat=new THREE.MeshBasicMaterial({color:C(0x5d6b45),fog:false}), farTemple=new THREE.MeshBasicMaterial({color:C(0xf1e8d6),fog:false});
+{ const sp=new Parts(); for(let i=0;i<70;i++){ const a=Math.random()*Math.PI*2, r=rr(980,1180); const w=rr(20,50), h=rr(25,110); sp.box(w,h,w,skylineMat,Math.cos(a)*r,h/2-2,Math.sin(a)*r,0,a,0); }
+  for(let i=0;i<30;i++){ const a=i/30*Math.PI*2+rr(-.06,.06), r=rr(820,1060), hr=rr(130,260), hh=rr(45,140); const g=new THREE.ConeGeometry(hr,hh,7,1); g.scale(1,1,rr(.45,.9)); sp.add(g,hillMat,Math.cos(a)*r,hh/2-6,Math.sin(a)*r,0,-a,0); }
+  // Parvati hill and its temple
+  const pa=2.4, px=Math.cos(pa)*760, pz=Math.sin(pa)*760; sp.add(new THREE.ConeGeometry(150,95,8,1),hillMat,px,40,pz);
+  sp.box(16,12,16,farTemple,px,92,pz); sp.add(new THREE.ConeGeometry(7,20,8),stdMat(0xd4a017,.4,.5),px,108,pz);
+  sp.into(scene,false,false); }
 
 // ================= vehicles =================
 const tireCache=new Map(), hubCache=new Map();
@@ -1493,63 +1551,66 @@ function makeModel(type,o={}){
   const p=new Parts(); const wheels=[]; let head=[],tail=[],exhaust=[0,.4,-2];
   const hub=!!o.hub; const W=(x,y,z,r,w,f)=>wheels.push(addWheel(body,x,y,z,r,w,f,hub));
   if(type==='auto'||type==='tauto'){
-    // Pune kaali-peeli: black body, yellow hood, khaki-shirt driver, MH-12 plate
-    const bm=stdMat(o.body??0x181818,.35,.25), tm=stdMat(o.top??0xffc61a,.55,.05,{side:THREE.DoubleSide}), dk=MAT.black, cr=MAT.chrome;
-    // chassis and passenger tub
-    p.box(1.26,.1,2.1,dk,0,.42,-.1);
-    p.box(1.3,.44,1.1,bm,0,.68,-.6); p.box(1.32,.06,1.12,tm,0,.92,-.6);
-    for(const sx of [-1,1]) p.add(new THREE.CylinderGeometry(.08,.08,.44,8),bm,sx*.57,.68,-1.12);
-    p.box(1.14,.44,.12,bm,0,.68,-1.14);
-    p.box(1.0,.36,.5,bm,0,.62,.2);
-    // rear wheel fenders and mud flaps
-    for(const sx of [-1,1]){ const f=new THREE.CylinderGeometry(.36,.36,.24,12,1,true,0,Math.PI); f.rotateZ(Math.PI/2); p.add(f,dk,sx*.72,.32,-.75,0,0,0);
-      p.box(.22,.26,.02,dk,sx*.72,.4,-1.12); }
-    // front cowl: rounded nose, yellow upper half like the real ones
-    const nose=new THREE.CylinderGeometry(.4,.48,.5,16,1,false,-Math.PI/2,Math.PI); p.add(nose,bm,0,.72,1.0);
-    const noseT=new THREE.CylinderGeometry(.34,.4,.32,16,1,false,-Math.PI/2,Math.PI); p.add(noseT,tm,0,1.13,1.0);
-    p.box(.96,.82,.04,dk,0,.88,1.0);
+    // Bajaj RE shape, Pune kaali-peeli: curved black body, yellow canvas hood, flared front cowl
+    const bm=stdMat(o.body??0x181818,.35,.25), bmD=stdMat(o.body??0x181818,.35,.25,{side:THREE.DoubleSide}), tm=stdMat(o.top??0xffc61a,.55,.05,{side:THREE.DoubleSide}), dk=MAT.black, cr=MAT.chrome;
+    // side profile (z,y) extruded across the width, with rounded edges
+    const prof=(pts,wd,bev=.02)=>{ const s=new THREE.Shape(); s.moveTo(pts[0][0],pts[0][1]); for(let i=1;i<pts.length;i++) s.lineTo(pts[i][0],pts[i][1]);
+      const g=new THREE.ExtrudeGeometry(s,{depth:wd,bevelEnabled:bev>0,bevelThickness:.03,bevelSize:bev,bevelSegments:2}); g.rotateY(-Math.PI/2); g.translate(wd/2,0,0); return g; };
+    const arc=(cz,cy,r,a0,a1,n)=>{ const a=[]; for(let i=0;i<=n;i++){ const t=a0+(a1-a0)*i/n; a.push([cz+Math.cos(t)*r,cy+Math.sin(t)*r]); } return a; };
+    // passenger tub: rear wheel arch, dips down to the door sill, rounded tail
+    p.add(prof([[-1.16,.42],...arc(-.75,.3,.38,2.82,.32,8),[.32,.42],[.32,.6],[-.02,.6],[-.12,.66],[-.2,.8],[-.24,.98],[-1.1,.98],[-1.19,.95],[-1.24,.86],[-1.25,.65],[-1.22,.5]],1.4),bm);
+    p.box(1.2,.28,.74,dk,0,.52,-.75);
+    p.box(.03,.03,.86,cr,.73,.9,-.68); p.box(.03,.03,.86,cr,-.73,.9,-.68);
+    for(const sx of [-1,1]) p.box(.2,.24,.02,dk,sx*.72,.36,-1.16);
+    // driver floor pan, tapering towards the nose
+    { const g=new THREE.BoxGeometry(1.4,.16,.86); g.translate(0,.5,.73); const a=g.attributes.position; for(let i=0;i<a.count;i++){ const t=clamp((a.getZ(i)-.3)/.86,0,1); a.setX(i,a.getX(i)*(1-.68*t)); } p.add(g,bm); }
+    p.box(.36,.42,.36,dk,0,.78,.4);
+    // front cowl: a flared shield, black below and yellow on top like every Pune auto
+    const cowl=(rt,rb,h,yc)=>{ const g=new THREE.CylinderGeometry(rt,rb,h,18,1,true,-1.15,2.3); g.translate(0,yc,0); g.rotateX(-.3); return g; };
+    p.add(cowl(.42,.26,.42,-.13),bmD,0,.84,.92); p.add(cowl(.52,.42,.26,.21),tm,0,.84,.92);
+    p.box(.86,.05,.26,dk,0,1.22,1.06,-.2);
     p.add(new THREE.CylinderGeometry(.35,.35,.2,12,1,true,0,Math.PI).rotateZ(Math.PI/2),dk,0,.32,1.25);
-    p.box(.04,.38,.04,cr,.13,.47,1.25); p.box(.04,.38,.04,cr,-.13,.47,1.25);
-    // headlight with chrome ring, indicators, badge
-    p.add(new THREE.SphereGeometry(.11,12,8),MAT.head,0,1.0,1.4);
-    p.add(new THREE.TorusGeometry(.12,.025,6,16),cr,0,1.0,1.41);
+    p.box(.04,.4,.04,cr,.13,.46,1.25); p.box(.04,.4,.04,cr,-.13,.46,1.25);
+    // headlight in the middle of the cowl, indicators on its shoulders, badge
+    p.add(new THREE.SphereGeometry(.1,12,8),MAT.head,0,.97,1.33);
+    p.add(new THREE.TorusGeometry(.11,.024,6,16),cr,0,.97,1.35);
     const ind=stdMat(0xff9a1a,.4,.1,{emissive:C(0xff7a00),emissiveIntensity:.6});
-    p.box(.09,.06,.05,ind,.3,1.05,1.32); p.box(.09,.06,.05,ind,-.3,1.05,1.32);
-    p.box(.22,.05,.03,cr,0,.84,1.47);
-    // windshield with frame, visor and wiper
-    p.box(1.0,.56,.03,glassClear,0,1.42,1.0,-.12);
-    p.box(1.06,.04,.05,cr,0,1.16,1.03); p.box(1.06,.08,.18,dk,0,1.72,1.02);
-    p.box(.04,.56,.05,cr,.52,1.42,1.0,-.12); p.box(.04,.56,.05,cr,-.52,1.42,1.0,-.12);
-    p.box(.36,.02,.02,dk,.1,1.25,1.03,0,0,.5);
-    // mirrors
-    for(const sx of [-1,1]){ p.box(.2,.02,.02,cr,sx*.6,1.32,1.02); p.box(.05,.12,.09,dk,sx*.72,1.35,1.02); }
-    // hood: canvas dome, front lip, rolled side curtains, back panel
-    const dome=new THREE.CylinderGeometry(.72,.72,2.15,16,1,true,-Math.PI/2,Math.PI); dome.rotateX(-Math.PI/2); dome.scale(1,.55,1); p.add(dome,tm,0,1.42,-.05);
-    p.box(1.46,.05,.16,tm,0,1.44,1.06);
-    for(const sx of [-1,1]) p.add(new THREE.CylinderGeometry(.06,.06,1.7,8).rotateX(Math.PI/2),dk,sx*.7,1.4,-.25);
-    p.box(1.42,.8,.07,tm,0,1.04,-1.13);
-    // pillars and the chrome grab bar at the door
-    p.box(.06,.62,.06,dk,.66,1.14,.95); p.box(.06,.62,.06,dk,-.66,1.14,.95);
-    p.box(.05,.5,.05,dk,.66,1.17,-.12); p.box(.05,.5,.05,dk,-.66,1.17,-.12);
-    p.box(.035,.42,.035,cr,.6,1.1,-.05); p.box(.035,.42,.035,cr,-.6,1.1,-.05);
+    p.box(.08,.06,.05,ind,.38,1.18,1.25); p.box(.08,.06,.05,ind,-.38,1.18,1.25);
+    p.box(.2,.04,.02,cr,0,.8,1.31);
+    p.add(new THREE.PlaneGeometry(.3,.08),plateMat,0,.66,1.3);
+    // raked windshield with chrome frame, wiper and mirrors
+    p.box(.98,.5,.02,glassClear,0,1.55,1.21,-.36);
+    p.box(.04,.5,.04,cr,.5,1.55,1.21,-.36); p.box(.04,.5,.04,cr,-.5,1.55,1.21,-.36); p.box(1.02,.04,.05,cr,0,1.31,1.3);
+    p.box(.34,.018,.018,dk,.12,1.42,1.27,-.36,0,.5);
+    for(const sx of [-1,1]){ p.box(.16,.02,.02,cr,sx*.58,1.38,1.25); p.box(.05,.12,.08,dk,sx*.68,1.4,1.25); }
+    // canvas hood: one shell from the windshield lip, flat on top, rolling down the back
+    const outer=[[1.17,1.74],[1.1,1.81],[.6,1.85],[-.5,1.85],[-.85,1.82],[-1.04,1.74],[-1.18,1.62],[-1.24,1.45],[-1.24,1.0]];
+    const inner=[[-1.19,1.0],[-1.19,1.45],[-1.13,1.6],[-1.0,1.7],[-.83,1.77],[-.5,1.8],[.6,1.8],[1.06,1.77],[1.13,1.72]];
+    p.add(prof([...outer,...inner],1.4),tm);
+    // closed canvas sides behind the passengers, with little plastic windows
+    for(const sx of [-1,1]){ const g=prof([[-.55,.98],[-.55,1.79],[-.83,1.77],[-1.0,1.7],[-1.13,1.6],[-1.19,1.45],[-1.19,.98]],.03,0); g.translate(sx*.7,0,0); p.add(g,tm);
+      p.box(.02,.22,.28,MAT.glass,sx*.72,1.46,-.84); }
+    p.box(.78,.15,.02,MAT.glass,0,1.54,-1.235,.34);
+    // rolled-up side curtains and the chrome grab bars at the door
+    for(const sx of [-1,1]){ p.add(new THREE.CylinderGeometry(.055,.055,1.55,8).rotateX(Math.PI/2),stdMat(0x2b2b2b,.9,0),sx*.69,1.75,.28);
+      p.box(.035,.8,.035,cr,sx*.66,1.38,-.5); }
     // seats
-    p.box(1.15,.18,.6,MAT.seat,0,.98,-.68); p.box(1.15,.5,.12,MAT.seat,0,1.24,-1.02); p.box(.5,.14,.42,MAT.seat,0,.98,.4);
+    p.box(1.24,.16,.56,MAT.seat,0,1.06,-.76); p.box(1.24,.5,.12,MAT.seat,0,1.32,-1.08); p.box(.5,.14,.42,MAT.seat,0,1.0,.4);
     // handlebar, fare meter
-    p.box(.06,.36,.06,dk,0,1.0,.78,-.4); p.box(.78,.04,.04,cr,0,1.16,.72); p.box(.1,.05,.05,dk,.42,1.16,.72); p.box(.1,.05,.05,dk,-.42,1.16,.72);
-    p.box(.14,.2,.1,dk,-.45,1.28,.86); p.box(.1,.05,.01,MAT.tail,-.45,1.33,.81);
+    p.box(.06,.36,.06,dk,0,1.0,.86,-.4); p.box(.78,.04,.04,cr,0,1.16,.72); p.box(.1,.05,.05,dk,.42,1.16,.72); p.box(.1,.05,.05,dk,-.42,1.16,.72);
+    p.box(.14,.2,.1,dk,-.45,1.3,.92); p.box(.1,.05,.01,MAT.tail,-.45,1.35,.87);
     // driver: khaki shirt, dark pants, cap
     const khaki=stdMat(0xb59a5a,.85,0), skin=stdMat(0x8a5a3c,.8,0), pant=stdMat(0x2b2b33,.85,0);
     p.box(.42,.44,.26,khaki,0,1.25,.36); p.box(.34,.14,.42,pant,0,1.1,.58);
     p.add(new THREE.SphereGeometry(.12,10,8),skin,0,1.58,.4); p.add(new THREE.SphereGeometry(.125,10,6,0,Math.PI*2,0,Math.PI*.5),dk,0,1.6,.39);
     p.box(.09,.09,.44,khaki,.22,1.28,.54,.59); p.box(.09,.09,.44,khaki,-.22,1.28,.54,.59);
     // rear: lights, bumper, plate, exhaust
-    p.box(.14,.1,.04,MAT.tail,.5,.66,-1.21); p.box(.14,.1,.04,MAT.tail,-.5,.66,-1.21);
-    p.box(1.16,.05,.06,cr,0,.48,-1.22);
-    p.add(new THREE.PlaneGeometry(.46,.12),plateMat,0,.6,-1.205,0,Math.PI,0);
-    p.add(new THREE.PlaneGeometry(.3,.08),plateMat,0,.6,1.475);
-    p.add(new THREE.CylinderGeometry(.035,.035,.3,8).rotateX(Math.PI/2),cr,.45,.34,-1.2);
+    p.box(.14,.1,.04,MAT.tail,.5,.68,-1.28); p.box(.14,.1,.04,MAT.tail,-.5,.68,-1.28);
+    p.box(1.16,.05,.06,cr,0,.47,-1.29);
+    p.add(new THREE.PlaneGeometry(.46,.12),plateMat,0,.58,-1.272,0,Math.PI,0);
+    p.add(new THREE.CylinderGeometry(.035,.035,.3,8).rotateX(Math.PI/2),cr,.45,.34,-1.22);
     W(0,.3,1.25,.3,.18,true); W(.72,.3,-.75,.3,.2,false); W(-.72,.3,-.75,.3,.2,false);
-    head=[[0,1.0,1.5]]; tail=[[.5,.66,-1.28],[-.5,.66,-1.28]]; exhaust=[.45,.34,-1.38];
+    head=[[0,.97,1.42]]; tail=[[.5,.68,-1.33],[-.5,.68,-1.33]]; exhaust=[.45,.34,-1.4];
   } else if(type==='scooty'){
     const c=paint(o.body??pick([0xe8e8e8,0x1f5fbf,0xb0122a,0x2b2b2b,0x8fbf3f,0xd9b46a])), dk=MAT.black;
     const shirt=stdMat(pick([0x2f6fd6,0xe0452b,0xf2f2f2,0x2f9e44,0xff9a1a,0x7b2d8e]),.85,0), skin=stdMat(0x8a5a3c,.8,0), pant=stdMat(0x2b2b33,.85,0);
@@ -1969,7 +2030,7 @@ function applyTOD(name){
   for(const m of facadeMats) m.emissiveIntensity=t.win; for(const m of hoardMats) m.emissiveIntensity=t.win*.55+.15;
   lampMat.emissiveIntensity=t.lamp; glowPts.material.opacity=t.glow; glowPts.visible=t.glow>0; bzPts.visible=t.glow>0; bzPts.material.opacity=Math.max(.6,t.glow);
   MAT.head.emissiveIntensity=t.head; MAT.tail.emissiveIntensity=t.head*.8;
-  skylineMat.color.copy(C(t.sky)); renderer.toneMappingExposure=t.exp; stars.visible=t.stars;
+  skylineMat.color.copy(C(t.sky)); hillMat.color.copy(C(t.sky)).lerp(C(0x55663f),t.stars?.12:.5); renderer.toneMappingExposure=t.exp; stars.visible=t.stars;
   if(headLight) headLight.intensity=t.hl;
   if(envRT) envRT.dispose(); envRT=pmrem.fromScene(envScene,.04); scene.environment=envRT.texture;
   $('btnTod').textContent=t.icon;
@@ -2016,7 +2077,7 @@ function beep(freq,dur,type='square',vol=.15,when=0){
 }
 let hornCool=0;
 function horn(){
-  if(DOG.state==='ride') dogLeap('Horn bajaya! Dogesh bhai ko pasand nahi aaya');
+  dogScare('Horn bajaya! Dogesh bhai darr ke bhaag gaye');
   if(hornCool>0) return; hornCool=.45;
   if(G.vtype==='auto'){ beep(370,.13,'square',.12); beep(300,.13,'square',.08); beep(370,.16,'square',.12,.2); beep(300,.16,'square',.08,.2); }
   else { beep(415,.42,'sawtooth',.09); beep(523,.42,'sawtooth',.08); }
@@ -2328,7 +2389,7 @@ function resetBarriers(){ for(const b of barriers){ delete b.fly; b.root.positio
 let kickT=0, kickCool=0;
 function trafficPoint(t,x,z){ const ax=t.x-t.fx*t.hl, az=t.z-t.fz*t.hl; const u=clamp(((x-ax)*t.fx+(z-az)*t.fz)/(2*t.hl),0,1); return [ax+t.fx*2*t.hl*u, az+t.fz*2*t.hl*u]; }
 function doKick(){
-  if(DOG.state==='ride') dogLeap('Laat chalaayi! Dogesh bhai darr ke kood gaye');
+  dogScare('Laat chalaayi! Dogesh bhai bhaag gaye');
   if(!player || kickCool>0 || G.state!=='play' || player.fly) return;
   kickCool=.6; kickT=.38;
   const p=player, fx=Math.sin(p.yaw), fz=Math.cos(p.yaw), rx=fz, rz=-fx;
@@ -2524,11 +2585,11 @@ function tagMat(id){
   },{repeat:false});
   return tagMats[id]=new THREE.MeshStandardMaterial({map:tex,roughness:.6,emissive:C(0xffffff),emissiveMap:tex,emissiveIntensity:.25});
 }
-const tagGeo=new THREE.PlaneGeometry(1.32,.5);
+const tagGeo=new THREE.PlaneGeometry(1.2,.42);
 function applyTag(v){
   if(!v || (v.type!=='auto' && v.type!=='tauto')) return;
   if(v.tagMesh) v.body.remove(v.tagMesh);
-  const m=new THREE.Mesh(tagGeo,tagMat(store.get('tag','horn'))); m.position.set(0,1.1,-1.175); m.rotation.y=Math.PI; v.body.add(m); v.tagMesh=m;
+  const m=new THREE.Mesh(tagGeo,tagMat(store.get('tag','horn'))); m.position.set(0,1.21,-1.272); m.rotation.y=Math.PI; v.body.add(m); v.tagMesh=m;
 }
 function renderTags(){
   const owned=store.get('tags',['horn']), cur=store.get('tag','horn'), el=$('tags'); el.innerHTML='';
@@ -2606,8 +2667,8 @@ function popCash(n){
   el.style.animation='none'; void el.offsetWidth; el.style.animation='';
 }
 
-// ================= Dogesh bhai: park for a few seconds and he claims your roof =================
-const DOG={state:'none',still:0,cool:8,t:0,x:0,z:0,y:0,yaw:0,sx:0,sz:0};
+// ================= Dogesh bhai: park for a few seconds and he marks your tyre =================
+const DOG={state:'none',still:0,cool:8,t:0,x:0,z:0,yaw:0,side:1,leg:2,blessed:false};
 DOG.mesh=(()=>{
   const g=new THREE.Group(), fur=stdMat(0xb5793a,.9,0), dark=stdMat(0x5a3a1c,.9,0), cream=stdMat(0xf0dcb8,.9,0);
   const body=new THREE.Mesh(new THREE.BoxGeometry(.42,.38,.9),fur); body.position.y=.55; g.add(body);
@@ -2623,66 +2684,81 @@ DOG.mesh=(()=>{
   for(const m of g.children) m.castShadow=true;
   g.userData={legs,tail,head}; g.visible=false; scene.add(g); return g;
 })();
-const ROOF_Y={auto:1.86,car:1.42,jeep:2.18};
 const DOG_S=.6; // a desi street dog, not a calf
+// the stream and the puddle it leaves behind
+const PEE_N=60, PEE=new THREE.Points(new THREE.BufferGeometry().setAttribute('position',new THREE.Float32BufferAttribute(new Float32Array(PEE_N*3),3)),
+  new THREE.PointsMaterial({color:C(0xffe14a),size:.075,transparent:true,opacity:.95,depthWrite:false}));
+PEE.frustumCulled=false; PEE.visible=false; scene.add(PEE);
+const PUDDLE=new THREE.Mesh(new THREE.CircleGeometry(.32,14).scale(1.3,1,1).rotateX(-Math.PI/2),new THREE.MeshStandardMaterial({color:C(0xc9a42c),roughness:.08,metalness:.25,transparent:true,opacity:.45,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-3}));
+PUDDLE.visible=false; PUDDLE.userData.t=0; scene.add(PUDDLE);
+const groundY=(x,z)=>{ const u=((x-L0)%P+P)%P, v=((z-L0)%P+P)%P; return u>R/2&&u<P-R/2&&v>R/2&&v<P-R/2?.3:0; };
 function bark(){ beep(330,.07,'sawtooth',.16); beep(270,.09,'sawtooth',.16,.12); }
-function resetDog(){ const m=DOG.mesh; if(m.parent!==scene){ m.parent&&m.parent.remove(m); scene.add(m); } m.visible=false; m.rotation.set(0,0,0); m.scale.setScalar(DOG_S); Object.assign(DOG,{state:'none',still:0,cool:0,t:0}); }
-function dogLeap(msg){
-  if(DOG.state!=='ride') return; const p=player, m=DOG.mesh, wp=new THREE.Vector3(); m.getWorldPosition(wp);
-  p.body.remove(m); scene.add(m); m.scale.setScalar(1.15);
-  const side=Math.random()<.5?1:-1, rx=Math.cos(p.yaw)*side, rz=-Math.sin(p.yaw)*side;
-  Object.assign(DOG,{state:'leap',t:0,x:wp.x,z:wp.z,y:wp.y,sx:wp.x,sz:wp.z,sy:wp.y,ex:wp.x+rx*4,ez:wp.z+rz*4,yaw:Math.atan2(rx,rz)});
-  bark(); toast(msg,1.8);
+function peeSound(dur){ if(!SND.ctx) return; const ctx=SND.ctx,t=ctx.currentTime; const s=ctx.createBufferSource(); s.buffer=SND.noise; s.loop=true; const f=ctx.createBiquadFilter(); f.type='bandpass'; f.frequency.value=2600; f.Q.value=.8;
+  const g=ctx.createGain(); g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.09,t+.15); g.gain.setValueAtTime(.09,t+dur-.3); g.gain.linearRampToValueAtTime(0,t+dur); s.connect(f); f.connect(g); g.connect(SND.master); s.start(t); s.stop(t+dur+.05); DOG.snd=s; }
+function stopPee(){ PEE.visible=false; if(DOG.snd){ try{ DOG.snd.stop(); }catch(e){} DOG.snd=null; } const l=DOG.mesh.userData.legs[DOG.leg]; l.rotation.set(0,0,0); DOG.mesh.rotation.z=0; }
+function resetDog(){ stopPee(); DOG.mesh.visible=false; DOG.mesh.rotation.set(0,0,0); DOG.mesh.scale.setScalar(DOG_S); PUDDLE.visible=false; Object.assign(DOG,{state:'none',still:0,cool:0,t:0,blessed:false}); }
+// horn, kick or driving off scares him away mid-business
+function dogScare(msg){
+  if(DOG.state!=='run' && DOG.state!=='pee') return;
+  stopPee(); DOG.state='leave'; DOG.t=0; DOG.yaw=Math.atan2(DOG.x-player.x,DOG.z-player.z); bark(); toast(msg,1.9);
+}
+// where his target tyre is: a rear wheel on the chosen side, in the vehicle's own frame
+function dogSpot(p){
+  const ws=p.wheels.filter(w=>!w.front); let w=ws.find(w=>Math.sign(w.pivot.position.x)===DOG.side)||ws[0]||p.wheels[0];
+  const wp=w.pivot.position, out=Math.abs(wp.x)>.2?DOG.side:1; if(Math.abs(wp.x)<=.2) DOG.side=1;
+  return {tyre:new THREE.Vector3(wp.x+out*.12,wp.y*.75,wp.z), stand:[wp.x+out*.66,wp.z+.15]};
 }
 function updateDog(dt){
   const p=player, m=DOG.mesh, ud=m.userData;
+  if(PUDDLE.visible){ PUDDLE.userData.t-=dt; PUDDLE.material.opacity=Math.min(.45,PUDDLE.userData.t*.08); if(PUDDLE.userData.t<=0) PUDDLE.visible=false; }
   if(G.mode!=='free' || !p){ if(DOG.state!=='none') resetDog(); return; }
   const sp=Math.abs(p.fwd); DOG.cool-=dt;
   const walk=(spd)=>{ for(let i=0;i<4;i++) ud.legs[i].rotation.x=Math.sin(G.time*spd+(i%2?Math.PI:0)+(i>1?Math.PI/2:0))*.7; };
-  ud.tail.rotation.y=Math.sin(G.time*(DOG.state==='ride'?14:8))*.6;
+  const place=()=>{ m.position.set(DOG.x,groundY(DOG.x,DOG.z),DOG.z); m.rotation.y=DOG.yaw; };
+  ud.tail.rotation.y=Math.sin(G.time*(DOG.state==='pee'?3:8))*.6;
   if(DOG.state==='none'){
     if(sp<.6 && !p.air && !p.fly && W.stars===0) DOG.still+=dt; else DOG.still=0;
     if(DOG.still>4.5 && DOG.cool<=0){
-      // he trots in from the footpath beside you
-      const side=Math.random()<.5?1:-1, ox=Math.cos(p.yaw)*side*8, oz=-Math.sin(p.yaw)*side*8;
-      Object.assign(DOG,{state:'run',t:0,x:p.x+ox-Math.sin(p.yaw)*3,z:p.z+oz-Math.cos(p.yaw)*3,y:0}); m.visible=true; m.scale.setScalar(DOG_S);
-      toast(pick(['Dogesh bhai aa rahe hain…','Arre! Dogesh bhai ki nazar tumhare auto pe hai','Bhau! Dogesh bhai aaye']),1.8); bark();
+      // he trots in from the footpath, sniffing for the right tyre
+      DOG.side=Math.random()<.5?1:-1; const ox=Math.cos(p.yaw)*DOG.side*8, oz=-Math.sin(p.yaw)*DOG.side*8;
+      Object.assign(DOG,{state:'run',t:0,x:p.x+ox-Math.sin(p.yaw)*4,z:p.z+oz-Math.cos(p.yaw)*4}); m.visible=true; m.scale.setScalar(DOG_S); m.rotation.set(0,0,0);
+      toast(pick(['Dogesh bhai aa rahe hain… tyre sambhalo!','Arre! Dogesh bhai ki nazar tumhare tyre pe hai','Bhau! Dogesh bhai inspection pe aaye']),1.9); bark();
     }
     return;
   }
   if(DOG.state==='run'){
-    const dx=p.x-DOG.x, dz=p.z-DOG.z, d=Math.hypot(dx,dz);
-    if(sp>5){ DOG.state='leave'; DOG.t=0; DOG.yaw+=Math.PI; toast('Dogesh bhai ko chhod ke bhaag gaye? Naraz ho gaye!',1.8); return; }
-    DOG.yaw=Math.atan2(dx,dz); const v=Math.min(d,7*dt); DOG.x+=dx/d*v; DOG.z+=dz/d*v; walk(18);
-    m.position.set(DOG.x,.2,DOG.z); m.rotation.set(0,DOG.yaw,0);
-    if(d<1.6){ DOG.state='jump'; DOG.t=0; DOG.sx=DOG.x; DOG.sz=DOG.z; }
+    if(sp>5){ dogScare('Dogesh bhai ko chhod ke bhaag gaye? Naraz ho gaye!'); return; }
+    const s=dogSpot(p), [tx,tz]=bzLocal(p.x,p.z,p.yaw,s.stand[0],s.stand[1]);
+    const dx=tx-DOG.x, dz=tz-DOG.z, d=Math.hypot(dx,dz);
+    if(d<.12){
+      Object.assign(DOG,{state:'pee',t:0,x:tx,z:tz,yaw:p.yaw,leg:DOG.side>0?2:3}); place();
+      for(const l of ud.legs) l.rotation.set(0,0,0); ud.legs[DOG.leg].rotation.z=-DOG.side*1.15; m.rotation.z=DOG.side*.12;
+      PEE.visible=true; peeSound(3.2);
+      toast(pick(['Dogesh bhai ne tyre pe taang utha di! 🐕💦','Pssss… Dogesh bhai apna ilaaka mark kar rahe hain','Tyre ka abhishek ho raha hai. Hilna mat!']),2.2);
+      return;
+    }
+    DOG.t+=dt; DOG.yaw=Math.atan2(dx,dz); const v=Math.min(d,(d>3?7:3)*dt); DOG.x+=dx/d*v; DOG.z+=dz/d*v; walk(d>3?18:10); place();
+    if(DOG.t>12){ dogScare('Dogesh bhai ko tyre pasand nahi aaya'); }
     return;
   }
-  if(DOG.state==='jump'){
-    DOG.t+=dt/.55; const t=Math.min(1,DOG.t), ry=ROOF_Y[p.type]||1.8, rx=p.x-Math.sin(p.yaw)*.2, rz=p.z-Math.cos(p.yaw)*.2;
-    m.position.set(DOG.sx+(rx-DOG.sx)*t,.2+(ry-.1)*t+Math.sin(t*Math.PI)*1.4,DOG.sz+(rz-DOG.sz)*t);
-    for(const l of ud.legs) l.rotation.x=-.9;
-    if(t>=1){ scene.remove(m); p.body.add(m); m.position.set(0,ry-.36*DOG_S,-.2); m.rotation.set(0,Math.PI*.15,0); m.scale.setScalar(DOG_S);
-      for(const l of ud.legs) l.rotation.x=1.3; DOG.state='ride'; DOG.t=0; bark(); chime();
-      toast(pick(['DOGESH BHAI BAITH GAYE! Ab ye unka auto hai 🐕','Dogesh bhai ki sawari! Sambhal ke chalana','Dogesh bhai on duty: chhat pe baith gaye']),2.6); }
-    return;
-  }
-  if(DOG.state==='ride'){
-    DOG.t+=dt; ud.head.rotation.y=Math.sin(G.time*.9)*.8; ud.head.rotation.x=-Math.min(.4,sp*.02);
-    if(sp>25) dogLeap('Bahut tez! Dogesh bhai kood gaye');
-    else if(impactMax>10 || p.fly) dogLeap('Takkar! Dogesh bhai naraz hoke utar gaye');
-    return;
-  }
-  if(DOG.state==='leap'){
-    DOG.t+=dt/.6; const t=Math.min(1,DOG.t);
-    m.position.set(DOG.sx+(DOG.ex-DOG.sx)*t,DOG.sy*(1-t)+.2*t+Math.sin(t*Math.PI)*1.2,DOG.sz+(DOG.ez-DOG.sz)*t); m.rotation.set(0,DOG.yaw,0);
-    if(t>=1){ DOG.state='leave'; DOG.t=0; DOG.x=DOG.ex; DOG.z=DOG.ez; }
+  if(DOG.state==='pee'){
+    if(sp>1.2){ dogScare(pick(['Arre! Dogesh bhai ka kaam adhoora chhod ke bhaag gaye!','Beech mein hi gaadi bhaga di? Dogesh bhai naraz!'])); return; }
+    DOG.t+=dt; ud.head.rotation.y=Math.sin(G.time*.7)*.5;
+    const s=dogSpot(p), a=m.localToWorld(new THREE.Vector3(-DOG.side*.06,.44,-.32)), b=p.body.localToWorld(s.tyre.clone());
+    const pos=PEE.geometry.attributes.position, fl=Math.min(1,DOG.t*3)*Math.min(1,(3.2-DOG.t)*3);
+    for(let i=0;i<PEE_N;i++){ const u=(i/PEE_N+G.time*2.4)%1*fl;
+      pos.setXYZ(i,a.x+(b.x-a.x)*u+(Math.random()-.5)*.02,a.y+(b.y-a.y)*u+Math.sin(u*Math.PI)*.12,a.z+(b.z-a.z)*u+(Math.random()-.5)*.02); }
+    pos.needsUpdate=true;
+    if(DOG.t>3.2){
+      stopPee(); const gy=groundY(b.x,b.z); PUDDLE.position.set(b.x+(a.x-b.x)*.3,gy+.015,b.z+(a.z-b.z)*.3); PUDDLE.visible=true; PUDDLE.userData.t=25;
+      DOG.blessed=true; DOG.state='leave'; DOG.t=0; DOG.yaw=p.yaw+DOG.side*.6+Math.PI; bark(); chime();
+      toast(pick(['Tyre pe Dogesh bhai ki mohar lag gayi! Agli sawari pe +₹10 ka aashirwad 🐕','Ilaaka mark ho gaya. Ab ye auto Dogesh bhai ka hai! +₹10 agli sawari pe']),2.6);
+    }
     return;
   }
   if(DOG.state==='leave'){
-    DOG.t+=dt; DOG.x+=Math.sin(DOG.yaw)*6*dt; DOG.z+=Math.cos(DOG.yaw)*6*dt; walk(18);
-    m.position.set(DOG.x,.2,DOG.z); m.rotation.set(0,DOG.yaw,0);
-    if(DOG.t>3.5){ m.visible=false; DOG.state='none'; DOG.still=0; DOG.cool=20; }
+    DOG.t+=dt; DOG.x+=Math.sin(DOG.yaw)*6*dt; DOG.z+=Math.cos(DOG.yaw)*6*dt; walk(18); place();
+    if(DOG.t>3.5){ m.visible=false; DOG.state='none'; DOG.still=0; DOG.cool=25; }
   }
 }
 
@@ -2893,7 +2969,7 @@ function updateMission(dt){
   } else if(mission.state==='ride'){
     mission.timer-=dt; mission.fare+=Math.hypot(p.x-mission.lastX,p.z-mission.lastZ)*.07; mission.lastX=p.x; mission.lastZ=p.z;
     const d=Math.hypot(mission.drop.x-p.x,mission.drop.z-p.z);
-    if(d<8 && Math.abs(p.fwd)<8){ const tip=Math.min(20,Math.max(0,Math.round(mission.timer*1.2))); const dg=DOG.state==='ride'?10:0, pay=Math.round(mission.fare)+tip+dg; addCash(pay); chime(); toast('₹'+pay+' mile! ('+(tip?'tip ₹'+tip:'no tip')+(dg?' · Dogesh bhai ka aashirwad +₹10':'')+')',2.4); mission.state='none'; mission.wait=1.5; beacon.visible=false; }
+    if(d<8 && Math.abs(p.fwd)<8){ const tip=Math.min(20,Math.max(0,Math.round(mission.timer*1.2))); const dg=DOG.blessed?10:0; DOG.blessed=false; const pay=Math.round(mission.fare)+tip+dg; addCash(pay); chime(); toast('₹'+pay+' mile! ('+(tip?'tip ₹'+tip:'no tip')+(dg?' · Dogesh bhai ki mohar +₹10':'')+')',2.4); mission.state='none'; mission.wait=1.5; beacon.visible=false; }
     else if(mission.timer<=0){ toast('Late ho gaye. Sawari utar gayi!',2.4); crashSound(4); mission.state='none'; mission.wait=2; beacon.visible=false; }
   }
 }
