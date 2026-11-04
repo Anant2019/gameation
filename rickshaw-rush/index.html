@@ -566,7 +566,7 @@ const stars=new THREE.Points(starGeo,new THREE.PointsMaterial({color:0xffffff,si
 // District map (block i = x index, j = z index). Everything not listed is a normal building block.
 const ZT={};
 for(const k of ['3,3','5,1','1,2','5,5','0,5','10,6','11,9']) ZT[k]='park';
-ZT['3,4']='temple'; ZT['2,4']='wada'; ZT['6,5']='theatre';
+ZT['3,4']='temple'; ZT['2,4']='wada'; ZT['2,5']='lalmahal'; ZT['6,5']='theatre';
 for(const k of ['3,9','4,9']) ZT[k]='busstand';
 for(const k of ['5,10','6,10']) ZT[k]='mela';
 ZT['2,3']='bazaar';
@@ -579,7 +579,7 @@ for(const k of ['4,2','6,7','8,6','11,3']) ZT[k]='pump';
 for(const k of ['1,4','4,6','8,5','5,8','10,10']) ZT[k]='cng';
 for(const k of ['3,5','6,2','9,9']) ZT[k]='paint';
 ZT['5,3']='thana';
-const SOLIDT=new Set(['bld','vip','rail','station','temple','wada','theatre']);
+const SOLIDT=new Set(['bld','vip','rail','station','temple','wada','lalmahal','theatre']);
 const blocks=[]; const BAZAAR='2,3';
 for(let i=0;i<N;i++){ blocks.push([]); for(let j=0;j<N;j++){ const type=ZT[i+','+j]||'bld'; blocks[i].push({i,j,type,x0:L[i]+R/2,x1:L[i+1]-R/2,z0:L[j]+R/2,z1:L[j+1]-R/2,cx:(L[i]+L[i+1])/2,cz:(L[j]+L[j+1])/2,park:type==='park',bazaar:type==='bazaar',water:type==='river',solid:SOLIDT.has(type)}); } }
 const rectOf=(i0,j0,i1,j1)=>({x0:L[i0]+R/2,x1:L[i1+1]-R/2,z0:L[j0]+R/2,z1:L[j1+1]-R/2});
@@ -980,6 +980,40 @@ function buildRiverBlock(b){
   if(srand()<.6){ const m=boatMats[Math.floor(srand()*boatMats.length)], x=b.cx+sr(-15,15), z=b.cz+sr(-15,15), yaw=srand()*3; cp.box(1.8,.6,4.2,m,x,RIVER_Y+.2,z,0,yaw,0); cp.box(1.5,.08,2,woodMat,x,RIVER_Y+.55,z,0,yaw,0); }
   // ghat steps down to the water on some blocks
   if(b.j%3===1){ const st=stdMat(0xa8977a,.95,0); for(let s=0;s<6;s++){ const dd=(6-s)*.9; cp.box(dd,.7,30,st,b.x0+dd/2,RIVER_Y+.35+s*.7,b.cz); } }
+  dressRiver(b);
+}
+// Mula-Mutha detail: silt banks with reeds, jalkumbhi (water hyacinth), rocks with bagla birds,
+// drain outfalls, painted embankment walls, ghat temples, dhobi ghat washing lines
+const RV={};
+function dressRiver(b){
+  if(!RV.sand){ RV.sand=stdMat(0x9c8a66,1,0); RV.reed=stdMat(0x5f7d33,.9,0); RV.hya=stdMat(0x2c5a1e,.95,0,{side:THREE.DoubleSide}); RV.flower=stdMat(0xb48ad8,.8,0); RV.rock=stdMat(0x6a655c,.95,0); RV.bird=stdMat(0xf6f4ee,.7,0); RV.beak=stdMat(0xe0a020,.6,0); RV.stain=stdMat(0x3c4a32,1,0); RV.rope=stdMat(0xe8e0c8,.9,0);
+    RV.murals=[['MULA-MUTHA','#1f6f8b','#ffffff'],['NADI SWACHH THEVA','#2f9e44','#ffffff'],['SAVE OUR RIVER','#ff7a00','#140b22'],['PMC · NADI SUDHAR','#5a2d0c','#ffd98a'],['PUNE ❤ MUTHA','#ff2e88','#ffffff']].map(([t,bg,fg])=>signMat(t,bg,fg));
+    RV.cloth=[0xff2e88,0xffcc00,0x19c3b3,0xffffff,0xff7a00,0x2f6fd8].map(c=>stdMat(c,.8,0,{side:THREE.DoubleSide})); }
+  let sd=b.j*7919+13; const rnd=()=>(sd=(sd*16807)%2147483647)/2147483647;
+  const ghat=b.j%3===1, side=ghat?1:(b.j%2?1:-1), wall=side>0?b.x1-1.2:b.x0+1.2, bx=wall-side*2.6, wy=RIVER_Y;
+  // silt bank along one wall, grass and reeds on it
+  cp.box(5.2,.5,40,RV.sand,bx,wy+.12,b.cz); cp.box(3.6,.15,34,grassMat,bx+side*.6,wy+.42,b.cz);
+  for(let k=0;k<26;k++){ const z=b.cz-17+rnd()*34, x=bx-side*(1.6+rnd()*.8); cp.add(new THREE.ConeGeometry(.08,1.2+rnd()*.8,4),RV.reed,x,wy+.9,z,(rnd()-.5)*.3,0,(rnd()-.5)*.3); }
+  // dhobi ghat: washing lines on the bank
+  if(b.j%4===2) for(let r=0;r<2;r++){ const z0=b.cz-10+r*12; for(const z of [z0,z0+9]) cp.add(new THREE.CylinderGeometry(.05,.05,2.2,5),woodMat,bx,wy+1.4,z); cp.box(.03,.03,9,RV.rope,bx,wy+2.4,z0+4.5);
+    for(let k=0;k<6;k++) cp.box(.04,.9,1,RV.cloth[(k+r)%6],bx,wy+1.95,z0+.9+k*1.3); }
+  // jalkumbhi patches with a few lilac flowers
+  for(let k=0;k<7;k++){ const x=b.cx+(rnd()-.5)*(B-14), z=b.z0+4+rnd()*(B-8), r=1.2+rnd()*2.4, g=new THREE.CircleGeometry(r,7); g.scale(1,1.6,1);
+    cp.add(g,RV.hya,x,wy+.05,z,-Math.PI/2,0,rnd()*3); for(let f=0;f<3;f++) cp.add(new THREE.SphereGeometry(.12,6,4),RV.flower,x+(rnd()-.5)*r,wy+.15,z+(rnd()-.5)*r); }
+  // rocks, one with a bagla (egret)
+  for(let k=0;k<3;k++){ const x=b.cx+(rnd()-.5)*30, z=b.z0+8+rnd()*(B-16), r=.5+rnd()*.5; cp.add(new THREE.DodecahedronGeometry(r,0),RV.rock,x,wy+r*.35,z,rnd(),rnd(),0);
+    if(k===0){ const by=wy+r*.8; const bd=new THREE.SphereGeometry(.22,8,6); bd.scale(1,.9,1.7); cp.add(bd,RV.bird,x,by+.35,z); cp.add(new THREE.CylinderGeometry(.04,.05,.45,5),RV.bird,x,by+.62,z+.25,.5,0,0); cp.add(new THREE.SphereGeometry(.08,6,5),RV.bird,x,by+.84,z+.35); cp.add(new THREE.ConeGeometry(.03,.22,4),RV.beak,x,by+.83,z+.5,Math.PI/2,0,0);
+      for(const lx of [-.06,.06]) cp.box(.03,.4,.03,RV.beak,x+lx,by,z); } }
+  // painted embankment walls and drain outfalls with a green stain
+  for(const [x,sx] of [[b.x0+1.23,1],[b.x1-1.23,-1]]){ cp.box(.06,2.2,12,RV.murals[(b.j+(sx>0?0:2))%RV.murals.length],x,wy+2.6,b.cz+(sx>0?-12:12));
+    const dz=b.cz+(sx>0?14:-16); cp.add(new THREE.CylinderGeometry(.45,.45,.5,12),stdMat(0x2a2a2a,.9,0),x+sx*.1,wy+1.4,dz,0,0,Math.PI/2); cp.box(.06,1.3,.7,RV.stain,x+sx*.04,wy+.65,dz); }
+  // ghat: small Mahadev temple, bhagwa flag and diyas; Sangam ghat gets a bigger one
+  if(ghat){ const tx=b.x0+3.2, tz=b.cz+(b.j===1?0:9), sc=b.j===1?1.5:1, ty=wy+4.2;
+    cp.box(2.4*sc,1.6*sc,2.4*sc,templeWhite,tx,ty+.8*sc,tz); cp.add(new THREE.ConeGeometry(1.4*sc,2.8*sc,8),templeWhite,tx,ty+3*sc,tz); cp.add(new THREE.SphereGeometry(.25*sc,8,6),goldMat,tx,ty+4.5*sc,tz);
+    cp.box(.9*sc,1.1*sc,.1,stdMat(0x2a1a14,.8,0),tx+1.21*sc,ty+.55*sc,tz,0,Math.PI/2,0);
+    cp.add(new THREE.CylinderGeometry(.04,.04,3,5),woodMat,tx-.6*sc,ty+4.5*sc,tz-.6*sc); cp.add(new THREE.CircleGeometry(.7,3),stdMat(0xff7a00,.7,0,{side:THREE.DoubleSide}),tx-.2*sc,ty+5.6*sc,tz-.6*sc,0,Math.PI/2,0);
+    for(let k=0;k<8;k++){ const z=b.cz-12+k*3; lampGlow.push(b.x0+1.8,wy+2.2,z); }
+    if(b.j===1) cp.box(5,1,.2,signMat('SANGAM GHAT','#ff7a00','#ffffff'),b.x0+1.25,wy+6.2,b.cz-8,0,Math.PI/2,0); }
 }
 
 // ---- airport ----
@@ -1211,18 +1245,109 @@ function buildTheatre(b){
 }
 
 // Shaniwar Wada fort, Kasba Peth
+// Shaniwar Wada: battered stone walls with kangoore (crenellations), octagonal buruj, Dilli Darwaja with spiked teak doors
+// and the Nagarkhana above it, Bajirao Peshwa on horseback on the front lawn, plinth ruins and Hazari Karanje inside
+const wadaWall=stdMat(0x9a7350,.95,0), wadaBand=stdMat(0x6e5236,.95,0), teakMat=stdMat(0x4a2c16,.8,0), bronzeMat=stdMat(0x4e4234,.45,.6), slitMat=stdMat(0x1c140e,.9,0);
+function kangoore(x0,z0,x1,z1,y,mat){ const len=Math.hypot(x1-x0,z1-z0), n=Math.max(1,Math.round(len/1.5)), ax=Math.abs(x1-x0)>Math.abs(z1-z0);
+  for(let k=0;k<=n;k++){ const t=k/n, x=x0+(x1-x0)*t, z=z0+(z1-z0)*t; cp.box(ax?.8:.5,1.1,ax?.5:.8,mat,x,y+.55,z); cp.add(new THREE.ConeGeometry(.42,.55,4),mat,x,y+1.37,z,0,Math.PI/4,0); } }
+function buruj(x,z,r,H){
+  cp.add(new THREE.CylinderGeometry(r,r*1.18,H,8),wadaWall,x,H/2,z,0,Math.PI/8,0);
+  cp.add(new THREE.CylinderGeometry(r*1.2,r*1.25,1.6,8),wadaBand,x,.8,z,0,Math.PI/8,0);
+  cp.add(new THREE.CylinderGeometry(r*1.06,r*1.06,.5,8),wadaBand,x,H*.55,z,0,Math.PI/8,0);
+  cp.add(new THREE.CylinderGeometry(r*1.08,r*1.04,.6,8),wadaBand,x,H+.3,z,0,Math.PI/8,0);
+  for(let k=0;k<8;k++){ const a=k/8*Math.PI*2; cp.box(.9,1.1,.5,wadaWall,x+Math.sin(a)*r*.98,H+1.15,z+Math.cos(a)*r*.98,0,a,0); cp.add(new THREE.ConeGeometry(.45,.55,4),wadaWall,x+Math.sin(a)*r*.98,H+1.98,z+Math.cos(a)*r*.98,0,a+Math.PI/4,0);
+    if(k%2===0) cp.box(.18,1.1,.1,slitMat,x+Math.sin(a)*r*1.02,H*.7,z+Math.cos(a)*r*1.02,0,a,0); }
+}
+function chhatri(x,y,z,r){ for(const [dx,dz] of [[-1,-1],[1,-1],[-1,1],[1,1]]) cp.box(.18,1.5,.18,wadaWall,x+dx*r*.7,y+.75,z+dz*r*.7);
+  cp.box(r*1.8,.25,r*1.8,wadaBand,x,y+1.6,z); cp.add(new THREE.SphereGeometry(r*.85,10,6,0,Math.PI*2,0,Math.PI/2),wadaWall,x,y+1.7,z); cp.add(new THREE.ConeGeometry(.12,.6,6),goldMat,x,y+1.7+r*.85+.25,z); }
 function buildWada(b){
-  const cx=b.cx, cz=b.cz, h=B/2-2.5, wt=2;
-  flatPlane(B,B,grassMat,cx,.05,cz,10);
-  for(const [x,z,w,d] of [[cx,cz-h,2*h,wt],[cx,cz+h,2*h,wt],[cx-h,cz,wt,2*h],[cx+h,cz,wt,2*h]]){ cp.box(w,9,d,stoneMat,x,4.5,z); cp.box(w+.4,.6,d+.4,stoneDark,x,9.2,z); }
-  for(const sx of [-1,0,1]) for(const sz of [-1,0,1]){ if(!sx&&!sz) continue; cp.add(new THREE.CylinderGeometry(3.4,3.8,11,12),stoneMat,cx+sx*h,5.5,cz+sz*h); cp.add(new THREE.CylinderGeometry(3.8,3.8,.8,12),stoneDark,cx+sx*h,11.2,cz+sz*h); }
-  // Dilli Darwaja on the road side
-  const gz=cz-h-1; cp.box(14,15,5,stoneMat,cx,7.5,gz); cp.box(6,9,5.2,stdMat(0x3a2414,.8,0),cx,4.5,gz);
-  for(let k=0;k<5;k++) for(let m=0;m<3;m++) cp.add(new THREE.ConeGeometry(.15,.5,6),metalMat,cx-2+k,2+m*2.6,gz-2.7,-Math.PI/2,0,0);
-  cp.box(13,2.2,.4,signMat('SHANIWAR WADA','#5a2d0c','#ffd98a'),cx,13.2,gz-2.7);
-  cp.add(new THREE.CylinderGeometry(4,4.6,1,16),stoneMat,cx,.5,cz+4); cp.add(new THREE.CylinderGeometry(3.4,3.4,.3,16),poolMat,cx,1.05,cz+4);
-  for(const [x,z] of [[cx-12,cz-6],[cx+12,cz-6],[cx-12,cz+14],[cx+12,cz+14]]) cp.box(8,1,6,stoneDark,x,.5,z);
-  for(const [x,z] of [[cx-20,cz+20],[cx+20,cz+20],[cx-20,cz-14],[cx+20,cz-14]]) addTree(x,z,.05,1.2);
+  const cx=b.cx, cz=b.cz+4, h=25, wt=2.4, H=10;
+  flatPlane(B,B,grassMat,b.cx,.05,b.cz,10);
+  // fort walls
+  for(const [x,z,w,d] of [[cx,cz-h,2*h,wt],[cx,cz+h,2*h,wt],[cx-h,cz,wt,2*h],[cx+h,cz,wt,2*h]]){
+    cp.box(w+.9,1.8,d+.9,wadaBand,x,.9,z); cp.box(w,H,d,wadaWall,x,H/2,z); cp.box(w+.5,.45,d+.5,wadaBand,x,H*.55,z); cp.box(w+.6,.5,d+.6,wadaBand,x,H+.25,z); }
+  const o=h+wt*.25;
+  kangoore(cx-h,cz-o,cx-9,cz-o,H+.5,wadaWall); kangoore(cx+9,cz-o,cx+h,cz-o,H+.5,wadaWall); kangoore(cx-h,cz+o,cx+h,cz+o,H+.5,wadaWall);
+  kangoore(cx-o,cz-h,cx-o,cz+h,H+.5,wadaWall); kangoore(cx+o,cz-h,cx+o,cz+h,H+.5,wadaWall);
+  for(let x=cx-h+4;x<cx+h-3;x+=4.2) if(Math.abs(x-cx)>10) cp.box(.22,1.2,.1,slitMat,x,H*.75,cz-h-wt/2-.05);
+  for(const sx of [-1,0,1]) for(const sz of [-1,0,1]){ if(!sx&&!sz) continue; if(!sx&&sz<0) continue; buruj(cx+sx*h,cz+sz*h,3.6,H+1.5); }
+  // Dilli Darwaja: two buruj, arched gateway, spiked teak doors, Nagarkhana on top
+  const gz=cz-h-1;
+  for(const sx of [-1,1]){ buruj(cx+sx*7.6,gz,3.4,H+4); chhatri(cx+sx*7.6,H+6.2,gz,1.6); }
+  cp.box(11.5,H+3,5.4,wadaWall,cx,(H+3)/2,gz); cp.box(12,.5,5.8,wadaBand,cx,H+3.2,gz);
+  cp.box(5.2,7,5.6,slitMat,cx,3.5,gz); cp.add(new THREE.CylinderGeometry(2.6,2.6,5.6,20),slitMat,cx,7,gz,Math.PI/2,0,0);
+  cp.add(new THREE.TorusGeometry(2.95,.32,6,20,Math.PI),wadaBand,cx,7,gz-2.75);
+  for(const sx of [-1,1]){ cp.box(2.5,6.9,.3,teakMat,cx+sx*1.3,3.45,gz-2.6); for(let r=0;r<4;r++) cp.box(2.3,.12,.34,bronzeMat,cx+sx*1.3,1+r*1.8,gz-2.62); }
+  for(let k=0;k<6;k++) for(let m=0;m<3;m++) cp.add(new THREE.ConeGeometry(.13,.55,6),metalMat,cx-2.2+k*.88,1.8+m*2.1,gz-2.95,-Math.PI/2,0,0);
+  // Nagarkhana: carved wooden gallery with arched openings
+  cp.box(11,3.4,5,teakMat,cx,H+5.1,gz); cp.box(12,.35,6,wadaBand,cx,H+6.95,gz);
+  for(let k=0;k<5;k++){ const x=cx-4+k*2; cp.box(1.1,1.9,.12,slitMat,x,H+4.8,gz-2.52); cp.add(new THREE.CylinderGeometry(.55,.55,.12,12),slitMat,x,H+5.75,gz-2.52,Math.PI/2,0,0); }
+  kangoore(cx-5.5,gz-2.6,cx+5.5,gz-2.6,H+7.1,wadaWall);
+  cp.box(10,1.8,.3,signMat('SHANIWAR WADA','#5a2d0c','#ffd98a'),cx,H+2,gz-2.85);
+  // front lawn: path to the gate, Bajirao Peshwa statue, lamps
+  cp.box(6,.12,gz-2.7-b.z0,concreteMat,cx,.11,(b.z0+gz-2.7)/2);
+  { const sx=cx-12, sz=b.z0+6;
+    cp.box(4.4,2.6,3.2,wadaBand,sx,1.3,sz); cp.box(4.8,.3,3.6,wadaWall,sx,2.75,sz); cp.box(3,.8,.08,signMat('THORALE BAJIRAO PESHWE','#3a2414','#ffd98a'),sx,1.6,sz-1.65);
+    const y=2.9; cp.box(.9,1.1,2.6,bronzeMat,sx,y+1.9,sz); // horse body
+    for(const [lx,lz,r] of [[-.3,.9,-.5],[.3,.9,-.5],[-.3,-.9,.15],[.3,-.9,.15]]) cp.box(.22,1.5,.22,bronzeMat,sx+lx,y+.85,sz+lz,r,0,0);
+    cp.box(.5,1.3,.6,bronzeMat,sx,y+2.85,sz-1.35,.6,0,0); cp.box(.45,.5,.9,bronzeMat,sx,y+3.45,sz-1.8,.3,0,0); cp.box(.12,1.2,.12,bronzeMat,sx,y+1.9,sz+1.35,-.6,0,0);
+    cp.add(new THREE.CylinderGeometry(.3,.42,1.3,8),bronzeMat,sx,y+3,sz-.1); cp.add(new THREE.SphereGeometry(.26,10,8),bronzeMat,sx,y+3.85,sz-.15); cp.add(new THREE.CylinderGeometry(.3,.27,.25,10),bronzeMat,sx,y+4.1,sz-.15);
+    cp.box(.1,1.6,.1,metalMat,sx+.45,y+4.1,sz-.6,-.5,0,.25); obstacles.push({x:sx,z:sz,r:2.8}); }
+  for(const x of [cx-5,cx+5]){ cp.add(new THREE.CylinderGeometry(.09,.12,4,6),metalMat,x,2,b.z0+4); cp.add(new THREE.SphereGeometry(.32,8,6),lampMat,x,4.1,b.z0+4); lampGlow.push(x,4.1,b.z0+4); }
+  for(let x=cx-h+3;x<cx+h-2;x+=7) if(Math.abs(x-cx)>6){ lampGlow.push(x,.6,cz-h-wt/2-1.2); }
+  // inside: palace plinths (the wada burnt in 1828, only foundations remain) and the lotus-shaped Hazari Karanje
+  for(let ix=-2;ix<=2;ix++) for(let iz=-1;iz<=2;iz++){ if(Math.abs(ix)<1&&iz>=0&&iz<=1) continue; const x=cx+ix*8.5, z=cz-6+iz*8.5;
+    cp.box(7,1.1,7,wadaBand,x,.55,z); cp.box(6.2,.25,6.2,wadaWall,x,1.2,z); for(const [dx,dz] of [[-2.6,-2.6],[2.6,-2.6],[-2.6,2.6],[2.6,2.6]]) cp.box(.5,.6+((ix+iz)&1)*.5,.5,wadaWall,x+dx,1.6,z+dz); }
+  { const fx=cx, fz=cz+3; cp.add(new THREE.CylinderGeometry(5.4,5.8,.9,24),wadaBand,fx,.45,fz); cp.add(new THREE.CylinderGeometry(5,5,.12,24),poolMat,fx,.92,fz);
+    for(let r=0;r<3;r++){ const n=16-r*4, rad=3.6-r*1.2; for(let k=0;k<n;k++){ const a=k/n*Math.PI*2+r*.2, g=new THREE.SphereGeometry(1,8,6); g.scale(.45-r*.08,.22,1.1-r*.2); cp.add(g,templeWhite,fx+Math.sin(a)*rad,1.05+r*.25,fz+Math.cos(a)*rad,-.35-r*.2,a,0); } }
+    cp.add(new THREE.CylinderGeometry(.4,.6,1.4,10),templeWhite,fx,1.6,fz); cp.add(new THREE.SphereGeometry(.5,10,8),goldMat,fx,2.5,fz); }
+  for(const [x,z] of [[cx-18,cz+18],[cx+18,cz+18],[cx-18,cz-17],[cx+18,cz-17]]) addTree(x,z,.05,1.2);
+}
+// Lal Mahal: Shivaji Maharaj's childhood palace in Kasba, red walls with white trims and arches,
+// a garden in front with the golden statue of Jijamata and bal Shivaji ploughing Pune with a golden plough
+function buildLalMahal(b){
+  const cx=b.cx, red=stdMat(0xa8342a,.85,0), trim=stdMat(0xf2e8d5,.7,0), dark=stdMat(0x2a1a14,.8,0), hedge=stdMat(0x3d7a2c,.9,0);
+  flatPlane(B,B,grassMat,cx,.05,b.cz,10);
+  // compound wall with iron railing on the road side, gate in the middle
+  const fz=b.z0+.7;
+  for(const sx of [-1,1]){ const x0=cx+sx*4, x1=cx+sx*(B/2-1), mx=(x0+x1)/2, w=Math.abs(x1-x0);
+    cp.box(w,1,.6,red,mx,.5,fz); cp.box(w,.12,.7,trim,mx,1.05,fz); cp.box(w,.08,.08,metalMat,mx,2.2,fz);
+    for(let x=Math.min(x0,x1);x<Math.max(x0,x1);x+=.45) cp.box(.06,1.2,.06,metalMat,x,1.65,fz);
+    cp.box(1.4,3.2,1.4,red,cx+sx*4,1.6,fz); cp.box(1.6,.3,1.6,trim,cx+sx*4,3.3,fz); cp.add(new THREE.SphereGeometry(.6,10,6,0,Math.PI*2,0,Math.PI/2),trim,cx+sx*4,3.45,fz); }
+  cp.box(6.5,.12,30,stdMat(0xc9b38a,.9,0),cx,.1,b.z0+16);
+  // garden: hedges, fountain, the statue on a pedestal
+  for(const sx of [-1,1]){ cp.box(18,.9,.9,hedge,cx+sx*14,.45,b.z0+6); cp.box(18,.9,.9,hedge,cx+sx*14,.45,b.z0+26); cp.box(.9,.9,20,hedge,cx+sx*23,.45,b.z0+16); }
+  { const fx=cx+13, fzz=b.z0+16; cp.add(new THREE.CylinderGeometry(2.6,2.9,.7,18),trim,fx,.35,fzz); cp.add(new THREE.CylinderGeometry(2.3,2.3,.1,18),poolMat,fx,.72,fzz); cp.add(new THREE.CylinderGeometry(.25,.4,1.6,8),trim,fx,1.3,fzz); obstacles.push({x:fx,z:fzz,r:3}); }
+  { const sx=cx-13, sz=b.z0+16;
+    cp.box(6,1.6,4,red,sx,.8,sz); cp.box(6.4,.25,4.4,trim,sx,1.7,sz); cp.box(4.2,.7,.06,signMat('JIJAMATA · BAL SHIVAJI','#7e2620','#ffd98a'),sx,.95,sz-2.03);
+    const y=1.85;
+    for(const ox of [-.7,.7]){ cp.box(.6,.6,1.3,goldMat,sx+ox,y+.75,sz-1); cp.box(.4,.4,.5,goldMat,sx+ox,y+.9,sz-1.8); for(const lz of [-.45,.45]) for(const lx of [-.2,.2]) cp.box(.12,.5,.12,goldMat,sx+ox+lx,y+.25,sz-1+lz);
+      for(const hs of [-1,1]) cp.add(new THREE.ConeGeometry(.05,.35,5),goldMat,sx+ox+hs*.16,y+1.25,sz-1.85,0,0,-hs*.6); }
+    cp.box(1.8,.1,.12,goldMat,sx,y+1.05,sz-1.6); cp.box(.12,.12,2.4,goldMat,sx,y+.75,sz-.1,.3,0,0); cp.box(.1,.5,.1,goldMat,sx,y+.4,sz+1.05);
+    cp.add(new THREE.CylinderGeometry(.18,.24,.8,8),goldMat,sx+.25,y+.4,sz+1.05); cp.add(new THREE.SphereGeometry(.16,8,6),goldMat,sx+.25,y+.95,sz+1.05);
+    cp.add(new THREE.CylinderGeometry(.25,.5,1.7,10),goldMat,sx-.6,y+.85,sz+1.3); cp.add(new THREE.SphereGeometry(.22,10,8),goldMat,sx-.6,y+1.9,sz+1.3); cp.box(.12,.12,.8,goldMat,sx-.35,y+1.3,sz+.9,.4,0,0);
+    obstacles.push({x:sx,z:sz,r:3.4}); }
+  // the palace
+  const W=40, D=17, H=10, bz=b.z1-12, ff=bz-D/2;
+  cp.box(W+2,1.3,D+2,stdMat(0x8f7a62,.9,0),cx,.65,bz); cp.box(W,H,D,red,cx,1.3+H/2,bz);
+  for(const y of [1.3+H/2,1.3+H]) cp.box(W+.5,.45,D+.5,trim,cx,y,bz);
+  for(let fl=0;fl<2;fl++){ const y=1.3+fl*H/2+2; for(let k=0;k<10;k++){ const x=cx-W/2+2.3+k*3.93; if(Math.abs(x-cx)<5) continue;
+    cp.box(2,3,.12,trim,x,y+.2,ff-.04); cp.box(1.4,2.2,.14,dark,x,y,ff-.08); cp.add(new THREE.CylinderGeometry(.7,.7,.14,14),dark,x,y+1.1,ff-.08,Math.PI/2,0,0); } }
+  for(const sx of [-1,1]) for(let k=0;k<3;k++){ const z=bz-D/2+3+k*5.5, x=cx+sx*(W/2+.04); cp.box(.12,3,2,trim,x,4.2,z); cp.box(.14,2.2,1.4,dark,x,4,z); }
+  // portico with the main arched door, balcony and a small dome
+  cp.box(10,H+1.5,3.2,red,cx,1.3+(H+1.5)/2,ff-1.5); cp.box(10.5,.45,3.6,trim,cx,1.3+H+1.5,ff-1.5);
+  cp.box(4.2,5.6,.15,trim,cx,4.3,ff-3.15); cp.box(3.4,4.8,.2,dark,cx,3.8,ff-3.2); cp.add(new THREE.CylinderGeometry(1.7,1.7,.2,18),dark,cx,6.2,ff-3.2,Math.PI/2,0,0);
+  cp.box(2.8,1.6,.1,teakMat,cx,2.2,ff-3.32);
+  cp.box(7,.25,1.4,trim,cx,8.2,ff-3.6); for(let x=cx-3.3;x<=cx+3.3;x+=.55) cp.box(.1,.7,.1,trim,x,8.65,ff-4.2); cp.box(7,.1,.12,trim,cx,9,ff-4.2);
+  cp.box(5.5,.5,.2,signMat('LAL MAHAL','#ff7a00','#ffffff'),cx,11.2,ff-3.15);
+  cp.add(new THREE.SphereGeometry(2,14,8,0,Math.PI*2,0,Math.PI/2),trim,cx,1.3+H+1.75,ff-1.5); cp.add(new THREE.ConeGeometry(.15,.9,6),goldMat,cx,1.3+H+4.2,ff-1.5);
+  // parapet jaali and corner chhatris
+  for(let x=cx-W/2+.5;x<cx+W/2;x+=1.1){ cp.box(.6,.9,.15,trim,x,1.3+H+.7,ff+.1); cp.box(.6,.9,.15,trim,x,1.3+H+.7,bz+D/2-.1); }
+  for(const sx of [-1,1]) for(const sz of [-1,1]){ const x=cx+sx*(W/2-1.4), z=bz+sz*(D/2-1.4); for(const [dx,dz] of [[-1,-1],[1,-1],[-1,1],[1,1]]) cp.box(.2,1.6,.2,trim,x+dx*.8,1.3+H+1,z+dz*.8); cp.box(2.2,.25,2.2,trim,x,1.3+H+1.9,z); cp.add(new THREE.SphereGeometry(1,10,6,0,Math.PI*2,0,Math.PI/2),red,x,1.3+H+2,z); cp.add(new THREE.ConeGeometry(.1,.5,6),goldMat,x,1.3+H+3.2,z); }
+  // bhagwa flag on the roof
+  cp.add(new THREE.CylinderGeometry(.06,.06,5,6),metalMat,cx+W/2-6,1.3+H+2.5,bz); cp.add(new THREE.CircleGeometry(1,3),stdMat(0xff7a00,.7,0,{side:THREE.DoubleSide}),cx+W/2-5.2,1.3+H+4.3,bz,0,Math.PI/2,0);
+  for(const x of [cx-4.5,cx+4.5]){ cp.add(new THREE.CylinderGeometry(.09,.12,4,6),metalMat,x,2,b.z0+3.5); cp.add(new THREE.SphereGeometry(.32,8,6),lampMat,x,4.1,b.z0+3.5); lampGlow.push(x,4.1,b.z0+3.5); }
+  for(const [x,z] of [[cx-26,b.z0+30],[cx+26,b.z0+30],[cx-26,b.z0+8],[cx+26,b.z0+8]]) addTree(x,z,.05,1.15);
 }
 
 // roadside tapri: chai / paan / vada pav stall on the footpath
@@ -1254,6 +1379,7 @@ for(let ci=0;ci<N;ci+=4) for(let cj=0;cj<N;cj+=4){
       case 'paint': buildPaint(b); break;
       case 'temple': buildTemple(b); break;
       case 'wada': buildWada(b); break;
+      case 'lalmahal': buildLalMahal(b); break;
       case 'thana': buildThana(b); break;
       case 'lake': case 'airport': case 'busstand': case 'mela': break;
       case 'theatre': buildTheatre(b); break;
@@ -1288,9 +1414,9 @@ const ROAD_NAMES={x:['AIRPORT ROAD','NAGAR ROAD','UNIVERSITY ROAD','LAXMI ROAD',
   z:['BANER ROAD','SB ROAD','FC ROAD','KUMTHEKAR ROAD','KELKAR ROAD','SHIVAJI ROAD','DECCAN ROAD','NADI KINARA ROAD','NADI PAAR ROAD','NORTH MAIN ROAD','MG ROAD','EAST STREET','KONDHWA ROAD','SOLAPUR ROAD']};
 function areaAt(i,j){
   const t=ZT[i+','+j];
-  if(t==='airport') return 'LOHEGAON AIRPORT'; if(t==='river') return 'MUTHA NADI'; if(t==='lake') return 'SARAS BAUG'; if(t==='vip') return 'KOREGAON PARK';
+  if(t==='airport') return 'LOHEGAON AIRPORT'; if(t==='river') return 'MULA-MUTHA NADI'; if(t==='lake') return 'SARAS BAUG'; if(t==='vip') return 'KOREGAON PARK';
   if(j===N-1) return 'PUNE STATION'; if(t==='bazaar') return 'TULSHIBAUG'; if(t==='busstand') return 'SWARGATE BUS STAND'; if(t==='mela') return 'GANESH MELA';
-  if(t==='temple') return 'BUDHWAR PETH'; if(t==='wada') return 'KASBA PETH'; if(t==='theatre') return 'DECCAN';
+  if(t==='temple') return 'BUDHWAR PETH'; if(t==='wada'||t==='lalmahal') return 'KASBA PETH'; if(t==='theatre') return 'DECCAN';
   if(i>=10) return j<=3?'KALYANI NAGAR':j<=7?'CAMP':'HADAPSAR';
   if(i>=8) return j<1?'YERAWADA':j<=6?'BUND GARDEN':'WANOWRIE';
   if(j<=1) return 'VIMAN NAGAR'; if(j===2) return 'SHIVAJINAGAR';
@@ -1298,24 +1424,38 @@ function areaAt(i,j){
   if(j<=4) return i<=4?'BUDHWAR PETH':'DECCAN'; if(j<=7) return i>=5?'DECCAN':'SADASHIV PETH'; if(j<=9) return 'SWARGATE'; return 'PARVATI';
 }
 const RIVER={xa:L[7]+R/2,xb:L[8]-R/2};
+const riverTex=waterMat.map.clone(); riverTex.needsUpdate=true; riverTex.wrapS=riverTex.wrapT=THREE.RepeatWrapping;
+const riverMat=new THREE.MeshStandardMaterial({map:riverTex,color:C(0x86a070),roughness:.2,metalness:.1});
 // the Mutha flows in a sunken channel; every crossing road is a proper arched bridge
-{ const xa=RIVER.xa, xb=RIVER.xb, span=xb-xa, mx=(xa+xb)/2, stone=stdMat(0x9a8a70,.95,0), conc=stdMat(0xd8d0c0,.85,0), band=stdMat(0xb5523a,.7,0), rail=stdMat(0xf4f1ea,.6,0);
-  flatPlane(span,2*HALF,waterMat,mx,RIVER_Y,0,60);
+{ const xa=RIVER.xa, xb=RIVER.xb, span=xb-xa, mx=(xa+xb)/2, stone=stdMat(0x9a8a70,.95,0), conc=stdMat(0xd8d0c0,.85,0), band=stdMat(0xb5523a,.7,0), rail=stdMat(0xf4f1ea,.6,0), stoneP=stdMat(0xa89676,.95,0), stoneD=stdMat(0x7a6a52,.95,0), ironMat=stdMat(0x1e2226,.5,.5), steelMat=stdMat(0x5f86a8,.45,.5);
+  flatPlane(span,2*HALF,riverMat,mx,RIVER_Y,0,30);
   for(const x of [xa+.6,xb-.6]) cp.box(1.2,-RIVER_Y+.1,2*HALF,stone,x,RIVER_Y/2,0);
   const names=['HOLKAR PUL','SANGAM PUL','SHIVAJI PUL','Z BRIDGE','LAKDI PUL','OMKARESHWAR PUL','S M JOSHI PUL','MHATRE PUL','RAJARAM PUL','DECCAN PUL','VITTHALWADI PUL','DANDEKAR PUL','WAKDEWADI PUL','SANGAMWADI PUL'];
   for(let k=0;k<=N;k++){
-    const z=L[k], hw=R/2, nmM=signMat(names[k],'#138808','#ffffff');
-    cp.box(span,1.5,R+1.4,conc,mx,-.8,z); cp.box(span,.5,R+1.5,band,mx,-1.2,z);
+    const z=L[k], hw=R/2, nmM=signMat(names[k],'#138808','#ffffff'), old=k===0||k===1||k===2||k===5;
+    cp.box(span,1.5,R+1.4,old?stoneP:conc,mx,-.8,z); cp.box(span,.5,R+1.5,old?stoneD:band,mx,-1.2,z);
     for(const s of [-1,1]){
       const ez=z+s*(hw+.45);
-      for(let a=0;a<3;a++){ const ax=xa+(a+.5)*span/3, ar=new THREE.TorusGeometry(span/6-.4,.55,6,22,Math.PI); ar.scale(1,.42,1); cp.add(ar,stone,ax,RIVER_Y,ez); }
-      cp.box(span,.45,.5,rail,mx,.25,ez); cp.box(span,.18,.6,rail,mx,1.15,ez);
-      for(let x=xa+.6;x<xb;x+=1.3) cp.box(.18,.75,.18,rail,x,.75,ez);
       addSolid(xa,xb,Math.min(ez,ez+s*.6)-.05,Math.max(ez,ez+s*.6)+.05,'#ddd');
-      for(let x=xa+6;x<xb-3;x+=16){ cp.add(new THREE.CylinderGeometry(.1,.13,6,6),metalMat,x,3.2,ez); cp.box(.5,.2,1.4,metalMat,x,6.2,ez-s*.6); cp.box(.55,.22,.55,lampMat,x,6.05,ez-s*1.1); lampGlow.push(x,5.9,ez-s*1.1); }
+      if(old){
+        for(let a=0;a<3;a++){ const ax=xa+(a+.5)*span/3, ar=new THREE.TorusGeometry(span/6-.4,.55,6,22,Math.PI); ar.scale(1,.42,1); cp.add(ar,stone,ax,RIVER_Y,ez); cp.box(.9,1.2,.7,stoneD,ax,RIVER_Y+(span/6-.4)*.42+.3,ez+s*.1); }
+        // stone parapet with pierced openings, end pillars and twin-globe cast iron lamps
+        cp.box(span,1.15,.6,stoneP,mx,.55,ez); cp.box(span+.4,.18,.8,stoneD,mx,1.2,ez);
+        for(let x=xa+2;x<xb-1.5;x+=2.4) cp.box(1.2,.45,.62,stoneD,x,.6,ez);
+        for(const x of [xa+.8,xb-.8]){ cp.box(1.4,2.4,1.4,stoneP,x,1.2,ez); cp.box(1.7,.3,1.7,stoneD,x,2.55,ez); cp.add(new THREE.SphereGeometry(.5,10,6,0,Math.PI*2,0,Math.PI/2),stoneP,x,2.7,ez); }
+        for(let x=xa+8;x<xb-6;x+=12){ cp.add(new THREE.CylinderGeometry(.11,.16,4.6,8),ironMat,x,3.4,ez); cp.box(1.6,.1,.1,ironMat,x,5.5,ez);
+          for(const d of [-.75,.75]){ cp.add(new THREE.SphereGeometry(.3,10,8),lampMat,x+d,5.3,ez); lampGlow.push(x+d,5.3,ez); } cp.add(new THREE.ConeGeometry(.12,.4,6),ironMat,x,5.9,ez); }
+      } else {
+        // concrete crash barrier, steel pedestrian rail, tall sodium lamps
+        cp.box(span,.85,.45,conc,mx,.42,ez); cp.box(span,.1,.1,steelMat,mx,1.25,ez); cp.box(span,.1,.1,steelMat,mx,1.6,ez);
+        for(let x=xa+.6;x<xb;x+=2) cp.box(.08,.8,.08,steelMat,x,1.25,ez);
+        cp.box(span,.35,.08,band,mx,-.25,ez+s*.66);
+        for(let x=xa+6;x<xb-3;x+=16){ cp.add(new THREE.CylinderGeometry(.1,.13,6,6),metalMat,x,3.2,ez); cp.box(.5,.2,1.4,metalMat,x,6.2,ez-s*.6); cp.box(.55,.22,.55,lampMat,x,6.05,ez-s*1.1); lampGlow.push(x,5.9,ez-s*1.1); }
+      }
       cp.box(3.6,1,.2,nmM,xa+3,1.9,ez+s*.15); cp.box(3.6,1,.2,nmM,xb-3,1.9,ez+s*.15);
     }
-    for(let a=1;a<3;a++){ const px=xa+a*span/3; cp.box(2.2,-RIVER_Y-1.5,R+2.6,stone,px,(RIVER_Y-1.5)/2,z); for(const s of [-1,1]) cp.add(new THREE.ConeGeometry(1.6,2,4),stone,px,RIVER_Y+.5,z+s*(R/2+1.9),Math.PI/2*s,Math.PI/4,0); }
+    if(old) for(let a=1;a<3;a++){ const px=xa+a*span/3; cp.box(2.2,-RIVER_Y-1.5,R+2.6,stone,px,(RIVER_Y-1.5)/2,z); for(const s of [-1,1]) cp.add(new THREE.ConeGeometry(1.6,2,4),stone,px,RIVER_Y+.5,z+s*(R/2+1.9),Math.PI/2*s,Math.PI/4,0); }
+    else for(let a=1;a<4;a++){ const px=xa+a*span/4; cp.box(1.6,.9,R+.8,conc,px,-2,z); for(const dz of [-R/3,0,R/3]) cp.add(new THREE.CylinderGeometry(.75,.85,-RIVER_Y-2,12),conc,px,(RIVER_Y-2.4)/2,z+dz); }
   }
 }
 // JM Road: shopfronts, median with trees and lamps, gantries, Sambhaji Udyan gate
@@ -2548,10 +2688,17 @@ const NAKAS=[]; let nakaT=0;
 const stripeTex=makeTex(128,32,(g,w,h)=>{ for(let i=0;i<8;i++){ g.fillStyle=i%2?'#ffffff':'#d4232f'; g.beginPath(); g.moveTo(i*16,0); g.lineTo(i*16+16,0); g.lineTo(i*16+8,h); g.lineTo(i*16-8,h); g.fill(); } },{repeat:false});
 const stripeMat=new THREE.MeshStandardMaterial({map:stripeTex,roughness:.6});
 const nakaSign=signMat('POLICE NAKA','#1f3a8a','#ffffff'), khakiMat=stdMat(0xb59a5e,.85,0), lathiMat=stdMat(0x6b4423,.8,0);
-function makeBarricade(){
+const bambooMat=stdMat(0xc9a55a,.8,0), ropeMat=stdMat(0xe8e0c8,.9,0);
+function makeBarricade(weak){
   const g=new THREE.Group(), p=new Parts();
-  p.box(3.2,.5,.18,stripeMat,0,.95,0); p.box(3.2,.5,.18,stripeMat,0,.35,0); p.box(1.6,.35,.2,nakaSign,0,1.42,0);
-  for(const x of [-1.4,1.4]) p.box(.12,1.2,.6,metalMat,x,.6,0);
+  if(weak){ // kachcha naka: lashed bamboo poles on X legs, easy to smash through
+    for(const y of [.55,1.05]) p.add(new THREE.CylinderGeometry(.06,.06,3.6,6),bambooMat,0,y,0,0,0,Math.PI/2);
+    for(const x of [-1.5,1.5]) for(const r of [-.45,.45]) p.add(new THREE.CylinderGeometry(.05,.05,1.5,5),bambooMat,x,.65,0,r,0,0);
+    p.box(1.3,.3,.04,nakaSign,0,1.4,0); p.box(3.4,.05,.05,ropeMat,0,.8,0);
+  } else {
+    p.box(3.2,.5,.18,stripeMat,0,.95,0); p.box(3.2,.5,.18,stripeMat,0,.35,0); p.box(1.6,.35,.2,nakaSign,0,1.42,0);
+    for(const x of [-1.4,1.4]) p.box(.12,1.2,.6,metalMat,x,.6,0);
+  }
   p.into(g,true,false); scene.add(g); return g;
 }
 function makeHavaldar(){
@@ -2571,11 +2718,14 @@ function spawnNaka(){
     // the road runs along q.axis; the naka blocks it side to side
     const ax=q.axis, line=ax==='x'?q.z:q.x, at=ax==='x'?q.x:q.z;
     const P2=(off,al)=>ax==='x'?[at+al,line+off]:[line+off,at+al];
-    const n={x:q.x,z:q.z,ax,parts:[],men:[]};
+    // kachcha naka (bamboo only) can be smashed at speed; pakka naka has two jeeps and needs nitro or another road
+    const weak=Math.random()<(W.stars>=5?.45:.65);
+    const n={x:q.x,z:q.z,ax,parts:[],men:[],weak};
     const add=(root,off,al,yaw,hw,hd,kind)=>{ const [x,z]=P2(off,al); root.position.set(x,0,z); root.rotation.y=yaw; n.parts.push({root,x,z,y:0,yaw,hx:ax==='x'?hd:hw,hz:ax==='x'?hw:hd,kind}); };
     const across=ax==='x'?0:Math.PI/2;
-    for(const off of [-4.6,4.6]){ const m=makeModel('police'); scene.add(m.root); add(m.root,off,0,across+(off>0?.35:-.35),2.3,1.2,'car'); }
-    for(const off of [0,-8.2,8.2]) add(makeBarricade(),off,0,across+Math.PI/2,off?1.2:1.7,.4,'bar');
+    if(weak) for(const off of [-8.2,-4.1,0,4.1,8.2]) add(makeBarricade(true),off,0,across+Math.PI/2,1.8,.4,'bar');
+    else { for(const off of [-4.6,4.6]){ const m=makeModel('police'); scene.add(m.root); add(m.root,off,0,across+(off>0?.35:-.35),2.3,1.2,'car'); }
+      for(const off of [0,-8.2,8.2]) add(makeBarricade(false),off,0,across+Math.PI/2,off?1.2:1.7,.4,'bar'); }
     for(const off of [-2.2,2.2]){ const m=makeHavaldar(); const [x,z]=P2(off,4); m.position.set(x,0,z); m.rotation.y=Math.atan2(p.x-x,p.z-z); n.men.push(m); }
     NAKAS.push(n); return n;
   }
@@ -2587,7 +2737,7 @@ function updateNakas(dt){
   const p=player; W.nakaClose=false;
   if(G.mode!=='free'){ if(NAKAS.length) clearNakas(); return; }
   nakaT-=dt;
-  if(W.stars>=3 && nakaT<=0 && NAKAS.length<(W.stars>=5?3:W.stars>=4?2:1)){ nakaT=W.stars>=5?7:11; if(spawnNaka()) toast(pick(['NAKA BANDI aage! Raasta badlo ya tod do','"Aage naka lagao, bhaagne na paaye!"','Wireless: "Har chauraahe pe naka!"']),2.4); }
+  if(W.stars>=3 && nakaT<=0 && NAKAS.length<(W.stars>=5?3:W.stars>=4?2:1)){ nakaT=W.stars>=5?7:11; const nk=spawnNaka(); if(nk) toast(nk.weak?pick(['Kachcha naka aage! Bamboo hai, tez chalao aur tod do 💥','Aage bamboo ka naka! Seedha ghusa do']):pick(['PAKKA NAKA! Jeep khadi hai, NOS lagao ya raasta badlo','"Aage naka lagao, bhaagne na paaye!" (jeep wala naka)']),2.6); }
   for(let i=NAKAS.length-1;i>=0;i--){
     const n=NAKAS[i], d=Math.hypot(n.x-p.x,n.z-p.z);
     if((W.stars<2 && d>60) || d>320){ removeNaka(n); continue; }
@@ -2597,13 +2747,14 @@ function updateNakas(dt){
       if(o.fly){ updateFly(o,dt); continue; }
       const cr=p.spec.cr+.4, dx=p.x-o.x, dz=p.z-o.z, ox=o.hx+cr-Math.abs(dx), oz=o.hz+cr-Math.abs(dz);
       if(ox<=0 || oz<=0) continue;
-      const sp=Math.hypot(p.vx,p.vz), need=o.kind==='car'?(p.type==='auto'?24:21):11;
+      const sp=Math.hypot(p.vx,p.vz), need=o.kind==='car'?(p.type==='auto'?24:21):n.weak?5.5:11;
       if(sp>need){
         launch(o,p.vx*.8,o.kind==='car'?7:9,p.vz*.8); p.vx*=o.kind==='car'?.45:.7; p.vz*=o.kind==='car'?.45:.7;
         impactMax=Math.max(impactMax,sp*.6); addHeat(.5,'Naka tod diya!'); toast(o.kind==='car'?'POLICE JEEP UDA DI! Naka toot gaya':'NAKA TOD DIYA!',1.6);
       } else {
         if(ox<oz){ p.x+=Math.sign(dx)*ox; if(Math.sign(p.vx)!==Math.sign(dx)) p.vx*=-.25; } else { p.z+=Math.sign(dz)*oz; if(Math.sign(p.vz)!==Math.sign(dz)) p.vz*=-.25; }
         impactMax=Math.max(impactMax,sp*.5);
+        if(sp>3 && (n.hintT||0)<G.time){ n.hintT=G.time+3; toast(n.weak?'Aur tez! Bamboo hai, toot jaayega':'Pakka naka! NOS laga ke jeep udao, ya peeche mud jao',1.6); }
       }
     }
   }
@@ -3187,7 +3338,7 @@ function playerInput(dt){
 // ================= minimap =================
 const MS=2; const mapCan=document.createElement('canvas'); mapCan.width=mapCan.height=Math.ceil(HALF*2*MS);
 { const g=mapCan.getContext('2d'); g.fillStyle='#8c84a0'; g.fillRect(0,0,mapCan.width,mapCan.height);
-  const MC={park:'#2f7a45',bazaar:'#d9a441',river:'#2a6fb0',lake:'#2a6fb0',airport:'#6d6f78',vip:'#6f9a5a',rail:'#5a4a40',station:'#b5523a',pump:'#3a2a4c',cng:'#3a2a4c',paint:'#3a2a4c',thana:'#3a2a4c',temple:'#e0a020',wada:'#8a6a4a',mela:'#2f7a45',bld:'#3a2a4c'};
+  const MC={park:'#2f7a45',bazaar:'#d9a441',river:'#2a6fb0',lake:'#2a6fb0',airport:'#6d6f78',vip:'#6f9a5a',rail:'#5a4a40',station:'#b5523a',pump:'#3a2a4c',cng:'#3a2a4c',paint:'#3a2a4c',thana:'#3a2a4c',temple:'#e0a020',wada:'#8a6a4a',lalmahal:'#a8342a',mela:'#2f7a45',bld:'#3a2a4c'};
   const R2=(r,c)=>{ g.fillStyle=c; g.fillRect((r.x0+HALF)*MS,(r.z0+HALF)*MS,(r.x1-r.x0)*MS,(r.z1-r.z0)*MS); };
   for(const col of blocks) for(const b of col) R2(b,MC[b.type]);
   R2(ZONES.lake,'#2f7a45'); R2(SB_POND,'#2a6fb0'); R2(ZONES.mela,'#c9a06a'); R2(ZONES.bus,'#8a3030'); R2({x0:RIVER.xa,x1:RIVER.xb,z0:-HALF,z1:HALF},'#2a6fb0'); R2(ZONES.airport,'#6d6f78'); R2({x0:AP.x0,x1:AP.x1,z0:AP.rz-12,z1:AP.rz+12},'#2d2e33');
@@ -3198,7 +3349,7 @@ const MS=2; const mapCan=document.createElement('canvas'); mapCan.width=mapCan.h
   g.fillStyle='rgba(255,255,255,.9)'; g.textAlign='center'; g.textBaseline='middle'; g.font='bold 34px Arial';
   const lab=(t,x,z)=>g.fillText(t,(x+HALF)*MS,(z+HALF)*MS);
   lab('AIRPORT',(AP.x0+AP.x1)/2,AP.rz+50); lab('KP',(ZONES.vip.x0+ZONES.vip.x1)/2,(ZONES.vip.z0+ZONES.vip.z1)/2); lab('SARAS BAUG',L[2],L[8]-34); lab('PUNE JN',blocks[4][N-1].cx,blocks[4][N-1].z0+12);
-  lab('BAPPA',blocks[3][4].cx,blocks[3][4].cz); lab('WADA',blocks[2][4].cx,blocks[2][4].cz); lab('MELA',(ZONES.mela.x0+ZONES.mela.x1)/2,(ZONES.mela.z0+ZONES.mela.z1)/2); lab('SWARGATE',(ZONES.bus.x0+ZONES.bus.x1)/2,(ZONES.bus.z0+ZONES.bus.z1)/2); lab('JM ROAD',L[5],L[6]-12);
+  lab('BAPPA',blocks[3][4].cx,blocks[3][4].cz); lab('WADA',blocks[2][4].cx,blocks[2][4].cz); lab('LAL MAHAL',blocks[2][5].cx,blocks[2][5].cz); lab('MELA',(ZONES.mela.x0+ZONES.mela.x1)/2,(ZONES.mela.z0+ZONES.mela.z1)/2); lab('SWARGATE',(ZONES.bus.x0+ZONES.bus.x1)/2,(ZONES.bus.z0+ZONES.bus.z1)/2); lab('JM ROAD',L[5],L[6]-12);
   for(const m of METROS){ g.fillStyle=m.o.css; if(m.o.axis==='z') g.fillRect((m.c0-2.5+HALF)*MS,0,5*MS,2*HALF*MS); else g.fillRect(0,(m.c0-2.5+HALF)*MS,2*HALF*MS,5*MS); }
   g.fillStyle='rgba(255,255,255,.9)';
   g.fillStyle='#ffffff'; g.font='bold 52px Arial'; for(const q of PUMPS) lab(q.kind==='cng'?'CNG':'P',q.cx,q.cz);
@@ -3217,7 +3368,7 @@ function drawMinimap(){
   mctx.fillStyle='#ffffff'; mctx.beginPath(); mctx.arc(PLANE.x,AP.rz,6,0,7); mctx.fill();
   if(G.mode==='free'){ const r=4/zoom*1.6; for(const a of ais){ const hot=a===mission.rival; mctx.fillStyle=hot?'#ff2e88':'#ffcc00'; mctx.beginPath(); mctx.arc(a.x,a.z,hot?r*1.4:r,0,7); mctx.fill(); }
     const ph=(G.time*5|0)%2; for(const c of cops){ mctx.fillStyle=W.stars>0?(ph?'#ff2030':'#3c6bff'):'#7fa0ff'; mctx.beginPath(); mctx.arc(c.x,c.z,r*1.3,0,7); mctx.fill(); }
-    mctx.fillStyle=ph?'#ff2030':'#ffffff'; for(const n of NAKAS){ if(n.ax==='x') mctx.fillRect(n.x-2,n.z-10,4,20); else mctx.fillRect(n.x-10,n.z-2,20,4); }
+    for(const n of NAKAS){ mctx.fillStyle=n.weak?(ph?'#ffcc00':'#ffffff'):(ph?'#ff2030':'#ffffff'); if(n.ax==='x') mctx.fillRect(n.x-2,n.z-10,4,20); else mctx.fillRect(n.x-10,n.z-2,20,4); }
     if(HELI.on){ mctx.strokeStyle='#fff2b0'; mctx.lineWidth=2/zoom*1.6; mctx.beginPath(); mctx.arc(HELI.x,HELI.z,42,0,7); mctx.stroke(); } }
   mctx.restore();
   let tgt=null, col='#2fff6a';
@@ -3418,6 +3569,7 @@ function frame(dt){
     if(camera.fov!==55){ camera.fov=55; camera.updateProjectionMatrix(); }
   } else if(live && player){ playUpdate(dt); }
   updateParticles(live?dt:0);
+  riverTex.offset.y-=dt*.035;
   const f=player&&G.state!=='menu'?player:{x:PV.x,z:PV.z};
   // the sun only follows the player when the shadow map is redrawn, so shadows never slide
   if(--shadowT<=0){ shadowT=LOW?3:2; sun.position.set(f.x+sunDir.x*160,sunDir.y*160,f.z+sunDir.z*160); sun.target.position.set(f.x,0,f.z); renderer.shadowMap.needsUpdate=true; }
