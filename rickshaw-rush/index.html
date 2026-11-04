@@ -179,6 +179,26 @@ h1 span{display:block;color:var(--cream)}
 .cashline b{color:var(--leaf);font-variant-numeric:tabular-nums}
 .share{display:block;width:100%;margin-top:12px;font:800 15px var(--body);padding:11px 14px;border-radius:12px;border:0;background:#25d366;color:#08240f;cursor:pointer;box-shadow:0 4px 0 #128c4a}
 .share:active{transform:translateY(2px);box-shadow:0 2px 0 #128c4a}
+#andolanChip{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(150px + env(safe-area-inset-bottom,0px));padding:5px 12px;font-size:13px;font-weight:800;white-space:nowrap;border:2px solid #ff7a00}
+#andolanChip.warn{border-color:#ff2e4d;animation:wflash .5s steps(2) infinite}
+#andolanChip i{display:inline-block;width:70px;height:7px;border-radius:4px;background:rgba(255,255,255,.15);vertical-align:middle;margin:0 4px;overflow:hidden}
+#andolanChip i b{display:block;height:100%;background:linear-gradient(90deg,#ff7a00,#ffcc00)}
+#nareBar{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(190px + env(safe-area-inset-bottom,0px));display:grid;grid-template-columns:repeat(4,auto);gap:6px;pointer-events:auto}
+#nareBar button{font:800 13px var(--body);padding:8px 10px;border-radius:10px;border:2px solid #fff3;background:rgba(255,122,0,.9);color:#140b22;white-space:nowrap;touch-action:manipulation}
+#nareBar button:active{transform:scale(.94)}
+#nareBar button.cool{opacity:.5}
+body.touch #andolanChip{bottom:calc(80px + env(safe-area-inset-bottom,0px));font-size:11px;padding:3px 9px}
+body.touch #nareBar{bottom:calc(108px + env(safe-area-inset-bottom,0px));grid-template-columns:repeat(2,auto);gap:5px}
+body.touch #nareBar button{font-size:11.5px;padding:7px 8px}
+.box.andolan{max-width:560px}
+.aopts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0 10px}
+.aopt{display:grid;gap:6px;text-align:left;padding:12px;border-radius:14px;border:2px solid;background:rgba(255,255,255,.04);color:var(--cream);cursor:pointer;font:inherit}
+.aopt b{font-family:var(--display);font-size:17px;letter-spacing:.02em}
+.aopt span{font-size:12.5px;line-height:1.35;color:var(--mute)}
+.aopt.join{border-color:#ff7a00}.aopt.join b{color:#ff9f1c}
+.aopt.scab{border-color:#25d366}.aopt.scab b{color:#5dff9a}
+.aopt:active{transform:scale(.98)}
+@media (max-width:560px),(max-height:420px){ .aopts{grid-template-columns:1fr 1fr;gap:8px} .aopt{padding:8px} .aopt span{font-size:11px} .aopt b{font-size:14px} }
 body:not(.touch) .tonly,body:not(.touch) #topBtns .tonly,#topBtns button[hidden],.gfx[hidden]{display:none}
 #btnTilt.on{background:var(--saffron);color:var(--ink);border-color:var(--saffron)}
 body.tilt #joy .jl.up::after{content:' · TILT'}
@@ -235,6 +255,10 @@ body.tilt #joy .jl.up::after{content:' · TILT'}
   <div id="speedo" class="chip"><div id="spd">0</div><div class="unit">KM/H</div><div id="nitroBar"><i></i></div><div class="nlbl">NITRO</div></div>
   <div id="fuelChip" class="chip" hidden><div class="fhead"><span id="fuelName">⛽ CNG</span><b id="fuelPct">100%</b></div><div id="fuelBar"><i></i></div><div class="fnav"><span id="fuelArrow">➤</span> <span id="fuelDist">Pump 0m</span></div><div class="fnav spr"><span id="sprayArrow">➤</span> <span id="sprayDist">Spray 0m</span></div><div id="fuelLbl">PUC 4:00</div></div>
   <div id="limit" hidden>60</div>
+  <div id="andolanChip" class="chip" hidden></div>
+  <div id="nareBar" hidden>
+    <button data-nara="0">📢 Meter badhao!</button><button data-nara="1">📢 CNG sasta karo!</button><button data-nara="2">📢 Rapido band karo!</button><button data-nara="3">📢 Meter se jaayenge saab!</button>
+  </div>
   <div id="toast"></div>
   <div id="combo"></div>
   <div id="bigText"></div>
@@ -292,6 +316,18 @@ body.tilt #joy .jl.up::after{content:' · TILT'}
       <button class="btn2" id="btnMenu">Menu</button>
     </div>
     <button class="share" data-share>📲 Dosto ko bhejo · WhatsApp</button>
+  </div>
+</div>
+
+<div id="andolanBox" class="overlay center" hidden>
+  <div class="box andolan">
+    <h2>🚨 Rapido walon ka aatank!</h2>
+    <p id="andolanTxt"></p>
+    <div class="aopts">
+      <button class="aopt join" id="btnJoin"><b>✊ Andolan join karo</b><span>Chowk pe jaao, nare do, josh 100% karo. Jeete to meter 20% badhega aur union ₹200 dega. Par police detain kar sakti hai!</span></button>
+      <button class="aopt scab" id="btnScab"><b>💰 Mauka hai! 2x kamaai</b><span>Baaki autos band hain, har sawari ka double paisa. Union wale "gaddar" bolenge, aur kuch log phir bhi mana karenge.</span></button>
+    </div>
+    <button class="gfx" id="btnSkip">Kuch nahi, apna kaam karo</button>
   </div>
 </div>
 
@@ -3084,7 +3120,7 @@ function startGame(){
   if(player) player.dispose(); clearRace();
   makePlayer();
   player.off=[0,0]; player.skill=1; player.nitro=1; drift={t:0,score:0,calm:0}; G.raceT=0; G.camYaw=null;
-  clearCops(); resetWanted(); resetFuel(); resetBarriers(); clearNakas(); resetDog(); mission.rival=null; kickT=0; applyTag(player);
+  clearCops(); resetWanted(); resetFuel(); resetBarriers(); clearNakas(); resetDog(); resetAndolan(); mission.rival=null; kickT=0; applyTag(player);
   HELI.on=false; HELI.root.visible=HELI.spot.visible=false; for(const w of walkers) placeWalker(w,true);
   beacon.visible=false; arrow.visible=false; passenger.visible=false; arch.visible=false;
   if(G.mode==='race'){
@@ -3160,7 +3196,7 @@ function showResults(){
 }
 function goMenu(){
   G.state='menu'; $('hud').hidden=true; $('pause').hidden=true; $('results').hidden=true; $('menu').hidden=false;
-  if(player){ player.dispose(); player=null; } resetDog(); clearRace(); clearCops(); resetWanted(); clearNakas(); beacon.visible=arrow.visible=passenger.visible=arch.visible=false;
+  if(player){ player.dispose(); player=null; } resetDog(); resetAndolan(); clearRace(); clearCops(); resetWanted(); clearNakas(); beacon.visible=arrow.visible=passenger.visible=arch.visible=false;
   spawnCows(0); spawnTraffic(LOW?16:30); setPreview(G.vtype); engineSound(0,0,'car',false); skidSound(0); sirenSound(0); $('copFlash').style.opacity=0; big('');
 }
 function setPause(p){ if(p && (G.state==='play'||G.state==='countdown')){ G.prevState=G.state; G.state='paused'; $('pause').hidden=false; engineSound(0,0,G.vtype,false); skidSound(0); } else if(!p && G.state==='paused'){ G.state=G.prevState; $('pause').hidden=true; } }
@@ -3170,6 +3206,140 @@ function resetPlayer(){
   const x=q.x, z=q.z, yaw=q.axis==='x'?(fx>=0?Math.PI/2:-Math.PI/2):(fz>=0?0:Math.PI);
   const cp=player.cp, ps=player.passed, n=player.nitro; player.reset(x,z,yaw); player.cp=cp; player.passed=ps; player.nitro=n; G.camYaw=null;
 }
+
+// ================= auto andolan: Rapido ka aatank, CNG mehenga, meter purana =================
+// Every few minutes the auto union calls a chakka jam at a chowk. Join it and shout nare (police may detain you),
+// cash in on the strike for 2x fares (union calls you gaddar), or ignore it. Some passengers refuse autos meanwhile.
+const AND={state:'none',next:rr(75,110),t:0,choice:null,site:null,name:'',josh:0,police:false,policeT:0,detT:0,arrived:false,cool:0,last:-1,ppl:[],men:[],objs:[],van:null,detainT:0,fined:false,gaddarT:0,hidden:[]};
+const NARE=['Meter badhao!','CNG sasta karo!','Rapido band karo!','Meter se jaayenge saab!'];
+const NARE_HI=['मीटर बढ़ाओ!','सीएनजी सस्ता करो!','रैपिडो बंद करो!','मीटर से जाएंगे साहब!'];
+const ECHO=['Badhao! Badhao!','Sasta karo! Sasta karo!','Band karo! Band karo!','Zindabad! Zindabad!'];
+const ECHO_HI=['बढ़ाओ! बढ़ाओ!','सस्ता करो! सस्ता करो!','बंद करो! बंद करो!','ज़िंदाबाद! ज़िंदाबाद!'];
+const CHOWKS=['ALKA TALKIES CHOWK','SHIVAJI PUTALA CHOWK','GOODLUCK CHOWK','KHANDOJI BABA CHOWK','SAMBHAJI CHOWK','NAL STOP CHOWK','SARASBAUG CHOWK'];
+const DECLINE=['"Nahi bhaiya, aaj strike hai, Rapido se jaaunga 🛵"','"Itna mehenga? Main bike taxi bula leta hoon"','"Andolan wale rok lenge bhaiya, rehne do"','"Meter se chaloge? Nahi? Phir Rapido!"','"Aaj autos ka bharosa nahi, main bus se jaaunga"'];
+const PLACARDS=[['METER BADHAO','#ff7a00','#140b22'],['CNG SASTA KARO','#2f9e44','#ffffff'],['RAPIDO BAND KARO','#d4232f','#ffffff'],['METER SE JAAYENGE','#ffcc00','#140b22'],['AUTO CHALAK EKJOOT','#1f3a8a','#ffffff']];
+let placardMats=null, andBanner=null;
+const andBeam=(()=>{ const m=new THREE.MeshBasicMaterial({map:beamTex,transparent:true,opacity:.8,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,color:C(0xff7a00),fog:false});
+  const g=new THREE.Mesh(new THREE.CylinderGeometry(3,3,120,16,1,true),m); g.position.y=60; g.visible=false; scene.add(g); return g; })();
+function speak(t,pitch,rate){ try{ if(!SND.on||!window.speechSynthesis) return; const u=new SpeechSynthesisUtterance(t); u.lang='hi-IN'; const v=speechSynthesis.getVoices().find(v=>/^hi/i.test(v.lang)); if(v) u.voice=v; u.pitch=pitch||1; u.rate=rate||1.05; speechSynthesis.speak(u); }catch(_){} }
+const hasHindiVoice=()=>{ try{ return speechSynthesis.getVoices().some(v=>/^hi/i.test(v.lang)); }catch(_){ return false; } };
+function makeProtester(i){
+  const g=new THREE.Group(), shirt=[0xb59a5e,0xf2f0ea,0xb59a5e,0x8a9aa8,0xb59a5e][i%5];
+  const bd=new THREE.Mesh(new THREE.CylinderGeometry(.24,.28,1.1,8),stdMat(shirt,.85,0)); bd.position.y=.95; bd.castShadow=true;
+  const lg=new THREE.Mesh(new THREE.BoxGeometry(.4,.45,.25),stdMat(0x2a2a30,.85,0)); lg.position.y=.22;
+  const hd=new THREE.Mesh(new THREE.SphereGeometry(.17,10,8),stdMat(0x8a5a3a,.7,0)); hd.position.y=1.66;
+  g.add(bd,lg,hd);
+  if(i%3===0){ const cap=new THREE.Mesh(new THREE.BoxGeometry(.3,.12,.2),stdMat(0xf6f4ee,.8,0)); cap.position.y=1.82; g.add(cap); } // gandhi topi
+  const arm=new THREE.Group(); arm.position.set(.26,1.4,0); const a=new THREE.Mesh(new THREE.BoxGeometry(.09,.7,.09),stdMat(shirt,.85,0)); a.position.y=.35; arm.add(a);
+  if(i%2===0){ const pole=new THREE.Mesh(new THREE.BoxGeometry(.04,1.1,.04),woodMat); pole.position.y=.8; const bd2=new THREE.Mesh(new THREE.BoxGeometry(1.15,.55,.04),placardMats[i%placardMats.length]); bd2.position.y=1.45; arm.add(pole,bd2); }
+  g.add(arm); g.userData={arm,ph:Math.random()*6}; scene.add(g); return g;
+}
+function pickSite(){
+  const p=player;
+  for(let tries=0;tries<60;tries++){
+    const i=1+Math.floor(Math.random()*(N-1)), j=1+Math.floor(Math.random()*(N-2));
+    if(i===7||i===8) continue; const x=L[i], z=L[j], d=Math.hypot(x-p.x,z-p.z);
+    if(d<170||d>480) continue; if(NAKAS.some(n=>Math.hypot(n.x-x,n.z-z)<60)) continue;
+    return {x,z};
+  }
+  return {x:L[4],z:L[5]};
+}
+function buildSite(){
+  if(!placardMats){ placardMats=PLACARDS.map(([t,bg,fg])=>signMat(t,bg,fg)); andBanner=signMat('AUTO CHALAK-MALAK SANGHATANA · CHAKKA JAM','#ff7a00','#140b22'); }
+  const {x,z}=AND.site, c=R/2+2.6, n=LOW?10:16;
+  // protesters on all four footpath corners, facing the chowk
+  for(let k=0;k<n;k++){ const sx=k%4<2?-1:1, sz=k%2?1:-1, px=x+sx*(c+Math.random()*3), pz=z+sz*(c+Math.random()*3), m=makeProtester(k);
+    m.position.set(px,.3,pz); m.rotation.y=Math.atan2(x-px,z-pz); AND.ppl.push(m); }
+  // union autos parked along one arm, and the banner across the road
+  const grp=new THREE.Group(); scene.add(grp); AND.objs.push(grp);
+  for(let k=0;k<5;k++){ const m=makeModel('tauto',{hub:true}); m.root.position.set(x+R/2+5+k*3.4,.06,z+R/2-1.4); m.root.rotation.y=Math.PI/2; grp.add(m.root); }
+  for(let k=0;k<4;k++){ const m=makeModel('tauto',{hub:true}); m.root.position.set(x-R/2-1.4,.06,z-R/2-5-k*3.4); grp.add(m.root); }
+  const bp=new Parts(); const bx=x-R/2-6;
+  for(const s of [-1,1]) bp.add(new THREE.CylinderGeometry(.08,.1,6.4,6),metalMat,bx,3.2,z+s*(R/2+1.2));
+  bp.box(.15,1.5,R+1.6,andBanner,bx,5.4,z); bp.into(grp,true,false);
+}
+function clearSite(){
+  for(const m of AND.ppl) scene.remove(m); for(const m of AND.men) scene.remove(m); for(const o of AND.objs) scene.remove(o);
+  if(AND.van) scene.remove(AND.van); AND.ppl=[]; AND.men=[]; AND.objs=[]; AND.van=null; andBeam.visible=false;
+}
+function resetAndolan(){ clearSite(); Object.assign(AND,{state:'none',next:rr(75,110),choice:null,site:null,josh:0,police:false,detT:0,arrived:false,fined:false}); $('andolanBox').hidden=true; $('andolanChip').hidden=true; $('nareBar').hidden=true; }
+function startAndolan(){
+  AND.site=pickSite(); AND.name=pick(CHOWKS); buildSite(); andBeam.position.x=AND.site.x; andBeam.position.z=AND.site.z; andBeam.visible=true;
+  AND.state='choose'; AND.josh=0; AND.police=false; AND.detT=0; AND.arrived=false; AND.fined=false; AND.gaddarT=0;
+  $('andolanTxt').innerHTML='Bike taxi waale sasti sawari le jaa rahe hain, upar se <b>CNG mehenga</b> ho gaya aur meter abhi bhi purana. Union ne <b>'+AND.name+'</b> pe chakka jam bulaya hai: <i>"Meter badhao! CNG sasta karo! Rapido band karo!"</i> Tum kya karoge?';
+  G.prevState=G.state; G.state='paused'; $('andolanBox').hidden=false; engineSound(0,0,G.vtype,false); skidSound(0);
+  beep(660,.12,'square',.1); beep(880,.16,'square',.1,.14);
+}
+function chooseAndolan(c){
+  $('andolanBox').hidden=true; AND.choice=c; AND.state='active'; AND.t=c==='join'?120:100; G.state=G.prevState||'play'; audioInit();
+  if(c==='join'){ if(mission.state!=='none'){ if(mission.state==='ride') toast('Sawari ko utaar diya, andolan pehle!',2); passenger.visible=false; beacon.visible=false; mission.state='none'; }
+    toast('✊ Chalo '+AND.name+'! Naarangi roshni ki taraf',2.6); speak(hasHindiVoice()?'चलो, आंदोलन में!':'Chalo andolan mein!'); }
+  else if(c==='scab') toast('💰 Strike ka fayda: har sawari ka 2x paisa! Par union se bach ke',2.6);
+  else toast('Theek hai, apna dhanda. Par aaj kuch log auto se mana karenge',2.4);
+}
+function nara(i){
+  if(AND.state!=='active'||AND.choice!=='join') return;
+  if(!AND.arrived){ toast('Pehle '+AND.name+' pahuncho!',1.4); return; }
+  if(AND.cool>0) return; AND.cool=1.1;
+  const gain=(i===AND.last?4:12)*(AND.police?1.35:1); AND.last=i; AND.josh=Math.min(100,AND.josh+gain);
+  const hi=hasHindiVoice(); speak(hi?NARE_HI[i]:NARE[i],.9,1.1); setTimeout(()=>speak(hi?ECHO_HI[i]:ECHO[i],1.25,1.2),1000);
+  toast('📢 "'+NARE[i]+'"  ·  Sab: "'+ECHO[i]+'"',1.5); beep(330,.08,'sawtooth',.06); beep(392,.1,'sawtooth',.06,.1);
+  for(const m of AND.ppl) m.userData.cheer=1.2;
+  for(const b of document.querySelectorAll('#nareBar button')) b.classList.add('cool'); setTimeout(()=>{ for(const b of document.querySelectorAll('#nareBar button')) b.classList.remove('cool'); },1100);
+}
+function policeArrive(){
+  AND.police=true; AND.detainT=1.5; const {x,z}=AND.site;
+  const van=makeModel('bus',{hub:true,body:0x2a3f7a}); van.root.position.set(x+R/2+4,.07,z-R/2-6); van.root.rotation.y=0; scene.add(van.root); AND.van=van.root;
+  for(const s of [-1,1]){ const m=makeModel('police',{hub:true}); m.root.position.set(x+s*7,.06,z+(s>0?-3:3)); m.root.rotation.y=Math.PI/2+s*.4; scene.add(m.root); AND.objs.push(m.root); }
+  for(let k=0;k<4;k++){ const m=makeHavaldar(); m.position.set(x+(k-1.5)*3,0,z+(k%2?2:-2)); AND.men.push(m); }
+  toast('🚔 POLICE AA GAYI! Sabko detain kar rahe hain. Ek jagah ruke to tum bhi andar!',3); crashSound(3);
+}
+function endAndolan(msg,t){ if(msg) toast(msg,t||3); clearSite(); AND.state='none'; AND.next=rr(240,360); AND.choice=null; $('andolanChip').hidden=true; $('nareBar').hidden=true; if(mission.state==='none') mission.wait=2; }
+function andolanDetained(){
+  const fine=300; big('DETAIN!'); setTimeout(()=>{ if(G.state==='play') big(''); },1600); crashSound(8);
+  if(G.cash>=fine) addCash(-fine); else { F.udhaar+=fine-G.cash; store.set('udhaar',F.udhaar); addCash(-G.cash); }
+  if(THANA.b){ player.reset(THANA.x,THANA.z,Math.PI); G.camYaw=null; }
+  endAndolan('Police ne thane le jaa ke ₹'+fine+' ki zamaanat pe chhoda. Andolan adhoora reh gaya',3.2);
+}
+function updateAndolan(dt){
+  const p=player;
+  if(AND.state==='none'){ AND.next-=dt; if(AND.next<=0){ if(W.stars===0 && mission.state!=='ride' && G.state==='play') startAndolan(); else AND.next=12; } return; }
+  if(AND.state!=='active') return;
+  AND.t-=dt; AND.cool-=dt; const d=Math.hypot(AND.site.x-p.x,AND.site.z-p.z), sp=Math.hypot(p.vx,p.vz), tm=Math.max(0,Math.ceil(AND.t)), clock=Math.floor(tm/60)+':'+String(tm%60).padStart(2,'0');
+  // crowd: fists pumping, cheering after each nara, being led to the van once police are here
+  for(const m of AND.ppl){ if(m.userData.gone) continue; const u=m.userData; u.cheer=Math.max(0,(u.cheer||0)-dt);
+    u.arm.rotation.z=-.2+Math.sin(G.time*(u.cheer>0?14:5)+u.ph)*(u.cheer>0?.45:.18); m.position.y=.3+(u.cheer>0?Math.abs(Math.sin(G.time*10+u.ph))*.25:0);
+    if(u.led){ const tx=AND.van.position.x, tz=AND.van.position.z; const dx=tx-m.position.x, dz=tz-m.position.z, l=Math.hypot(dx,dz); if(l<1.5){ u.gone=true; m.visible=false; } else { m.position.x+=dx/l*dt*4; m.position.z+=dz/l*dt*4; m.rotation.y=Math.atan2(dx,dz); } } }
+  for(const m of AND.men){ m.userData.arm.rotation.z=Math.sin(G.time*9+m.position.x)*.9; }
+  andBeam.material.opacity=clamp((d-25)/70,.12,.8);
+  const chip=$('andolanChip'); chip.hidden=false; chip.classList.remove('warn');
+  if(AND.choice==='join'){
+    if(!AND.arrived && d<24){ AND.arrived=true; AND.policeT=30; toast('Andolan mein swagat! Neeche ke button se nare do'+(isTouch?'':' (1 2 3 4)'),3); speak(hasHindiVoice()?'आ गया भाई! ज़िंदाबाद!':'Aa gaya bhai! Zindabad!',1.2); }
+    if(AND.arrived){ AND.policeT-=dt; if(!AND.police && (AND.policeT<=0 || AND.josh>=55)) policeArrive(); }
+    $('nareBar').hidden=!(AND.arrived && d<34);
+    if(AND.police){
+      AND.detainT-=dt; if(AND.detainT<=0){ AND.detainT=1.6; const q=AND.ppl.find(m=>!m.userData.led); if(q) q.userData.led=true; }
+      if(d<20 && sp<3) AND.detT+=dt; else AND.detT=Math.max(0,AND.detT-dt*1.5);
+      if(AND.detT>4.5){ andolanDetained(); return; }
+    }
+    if(AND.josh>=100){ G.meter=1.2; addCash(200); big('ANDOLAN JEET GAYE!'); setTimeout(()=>{ if(G.state==='play') big(''); },2000); chime();
+      speak(hasHindiVoice()?'जीत गए! ज़िंदाबाद!':'Jeet gaye! Zindabad!',1.2); endAndolan('Sarkar jhuki! Meter 20% badha (is game mein) · Union inaam ₹200',3.6); return; }
+    if(AND.t<=0){ endAndolan(AND.arrived?'Andolan khatam. Josh kam pad gaya, agli baar zor se!':'Andolan khatam ho gaya, tum pahunche hi nahi',3); return; }
+    const warn=AND.detT>.3;
+    chip.classList.toggle('warn',warn);
+    chip.innerHTML=warn?'⚠ Police pakad rahi hai! Hilte raho · '+Math.max(0,4.5-AND.detT).toFixed(1)+'s'
+      :AND.arrived?'✊ '+AND.name+' · Josh <i><b style="width:'+AND.josh.toFixed(0)+'%"></b></i>'+AND.josh.toFixed(0)+'% · '+clock+(AND.police?' · 🚔':'')
+      :'✊ Andolan: '+AND.name+' · '+Math.round(d)+'m · '+clock;
+  } else {
+    if(AND.choice==='scab'){ AND.gaddarT-=dt;
+      if(d<40 && AND.gaddarT<=0){ AND.gaddarT=8; if(!AND.fined){ AND.fined=true; addCash(-100); toast('Union wale: "GADDAR! Strike mein dhanda?" ₹100 jurmana',2.8); } else toast(pick(['"Gaddar! Gaddar!"','"Sharam karo, strike todte ho!"','"Union se panga mat le!"']),2); }
+    }
+    if(AND.t<=0){ endAndolan(AND.choice==='scab'?'Strike khatam, 2x kamaai bhi khatam. Maze aa gaye!':'Andolan khatam, autos wapas road pe',2.6); return; }
+    chip.innerHTML=AND.choice==='scab'?'💰 2x KAMAAI · strike chal rahi hai · '+clock:'✊ Auto strike · '+AND.name+' · '+clock;
+  }
+}
+for(const b of document.querySelectorAll('[data-nara]')) b.addEventListener('pointerdown',e=>{ e.preventDefault(); nara(+b.dataset.nara); });
+$('btnJoin').onclick=()=>chooseAndolan('join'); $('btnScab').onclick=()=>chooseAndolan('scab'); $('btnSkip').onclick=()=>chooseAndolan('skip');
 
 // ================= mission (free mode) =================
 // famous spots: railway station and airport (public road in front of each)
@@ -3190,7 +3360,7 @@ function pickPoint(minD,maxD,allowBz){
 }
 function updateMission(dt){
   const p=player;
-  if(mission.state==='none'){ mission.wait-=dt; if(mission.wait<=0){ let q;
+  if(mission.state==='none'){ if(AND.state==='active'&&AND.choice==='join') return; mission.wait-=dt; if(mission.wait<=0){ let q;
       q=pickPoint(90,380,true);
       mission.pick=q; mission.state='seek'; passenger.visible=true; passenger.position.set(q.ex,q.bz?.06:.3,q.ez); passenger.rotation.y=Math.atan2(q.x-q.ex,q.z-q.ez); beacon.visible=true; beacon.position.set(q.x,0,q.z); beaconColor(0x2fff6a);
       mission.rival=rivalForPickup(q);
@@ -3201,6 +3371,7 @@ function updateMission(dt){
   if(mission.state==='seek'){
     passenger.userData.arm.rotation.z=Math.sin(G.time*8)*.6-.3;
     const d=Math.hypot(mission.pick.x-p.x,mission.pick.z-p.z);
+    if(d<7 && Math.abs(p.fwd)<7 && AND.state==='active' && Math.random()<(AND.choice==='scab'?.3:.22)){ toast(pick(DECLINE),2.6); passenger.visible=false; beacon.visible=false; mission.state='none'; mission.wait=1.5; return; }
     if(d<7 && Math.abs(p.fwd)<7){ let q;
       q=pickPoint(260,700,!mission.pick.bz); if(q.tag && q.tag===mission.pick.tag) q=randomRoadPoint();
       mission.drop=q; mission.state='ride'; passenger.visible=false; beacon.position.set(q.x,0,q.z); beaconColor(0xff9f1c);
@@ -3210,7 +3381,7 @@ function updateMission(dt){
   } else if(mission.state==='ride'){
     mission.timer-=dt; mission.fare+=Math.hypot(p.x-mission.lastX,p.z-mission.lastZ)*.07; mission.lastX=p.x; mission.lastZ=p.z;
     const d=Math.hypot(mission.drop.x-p.x,mission.drop.z-p.z);
-    if(d<8 && Math.abs(p.fwd)<8){ const tip=Math.min(20,Math.max(0,Math.round(mission.timer*1.2))); const dg=DOG.blessed?10:0; DOG.blessed=false; const pay=Math.round(mission.fare)+tip+dg; addCash(pay); chime(); toast('₹'+pay+' mile! ('+(tip?'tip ₹'+tip:'no tip')+(dg?' · Dogesh bhai ki mohar +₹10':'')+')',2.4); mission.state='none'; mission.wait=1.5; beacon.visible=false; }
+    if(d<8 && Math.abs(p.fwd)<8){ const tip=Math.min(20,Math.max(0,Math.round(mission.timer*1.2))); const dg=DOG.blessed?10:0; DOG.blessed=false; const x2=AND.state==='active'&&AND.choice==='scab'; const pay=Math.round(mission.fare*(G.meter||1)*(x2?2:1))+tip+dg; addCash(pay); chime(); toast('₹'+pay+' mile! ('+(x2?'2x strike kamaai · ':'')+(tip?'tip ₹'+tip:'no tip')+(dg?' · Dogesh bhai ki mohar +₹10':'')+')',2.4); mission.state='none'; mission.wait=1.5; beacon.visible=false; }
     else if(mission.timer<=0){ toast('Late ho gaye. Sawari utar gayi!',2.4); crashSound(4); mission.state='none'; mission.wait=2; beacon.visible=false; }
   }
 }
@@ -3245,6 +3416,7 @@ addEventListener('keydown',e=>{
   keys[e.code]=true;
   if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
   if(G.state==='menu'){ if(e.code==='Enter') startGame(); return; }
+  if(/^Digit[1-4]$/.test(e.code)) nara(+e.code.slice(5)-1);
   if(e.code==='KeyH') horn(); if(e.code==='KeyF'||e.code==='KeyK') doKick(); if(e.code==='KeyC') cycleCam(); if(e.code==='KeyR') resetPlayer(); if(e.code==='KeyT') cycleTOD();
   if(e.code==='Escape'||e.code==='KeyP') setPause(G.state!=='paused');
 });
@@ -3368,6 +3540,7 @@ function drawMinimap(){
   mctx.fillStyle='#ffffff'; mctx.beginPath(); mctx.arc(PLANE.x,AP.rz,6,0,7); mctx.fill();
   if(G.mode==='free'){ const r=4/zoom*1.6; for(const a of ais){ const hot=a===mission.rival; mctx.fillStyle=hot?'#ff2e88':'#ffcc00'; mctx.beginPath(); mctx.arc(a.x,a.z,hot?r*1.4:r,0,7); mctx.fill(); }
     const ph=(G.time*5|0)%2; for(const c of cops){ mctx.fillStyle=W.stars>0?(ph?'#ff2030':'#3c6bff'):'#7fa0ff'; mctx.beginPath(); mctx.arc(c.x,c.z,r*1.3,0,7); mctx.fill(); }
+    if(AND.state==='active'&&AND.site){ mctx.strokeStyle=ph?'#ff7a00':'#ffcc00'; mctx.lineWidth=5; mctx.beginPath(); mctx.arc(AND.site.x,AND.site.z,16,0,7); mctx.stroke(); }
     for(const n of NAKAS){ mctx.fillStyle=n.weak?(ph?'#ffcc00':'#ffffff'):(ph?'#ff2030':'#ffffff'); if(n.ax==='x') mctx.fillRect(n.x-2,n.z-10,4,20); else mctx.fillRect(n.x-10,n.z-2,20,4); }
     if(HELI.on){ mctx.strokeStyle='#fff2b0'; mctx.lineWidth=2/zoom*1.6; mctx.beginPath(); mctx.arc(HELI.x,HELI.z,42,0,7); mctx.stroke(); } }
   mctx.restore();
@@ -3513,13 +3686,14 @@ function playUpdate(dt){
   else if(drift.t>0){ drift.calm+=dt; if(drift.calm>.45){ if(drift.score>40){ const b=Math.round(drift.score/25); if(G.mode==='free') addCash(b); toast('DRIFT KING! '+Math.round(drift.score)+(G.mode==='free'?' +₹'+b:''),1.5); p.nitro=Math.min(1,p.nitro+drift.score/600); } drift={t:0,score:0,calm:0}; } }
   const cb=$('combo'); if(drift.score>15){ cb.textContent='DRIFT '+Math.round(drift.score); cb.classList.add('on'); } else cb.classList.remove('on');
   skidSound(!p.air&&Math.abs(p.fwd)>6?clamp((slip-2.5)/6,0,1):0);
-  if(G.mode==='free'){ updateMission(dt); if(G.state==='play') updateWanted(dt); }
+  if(G.mode==='free'){ updateMission(dt); if(G.state==='play'){ updateWanted(dt); updateAndolan(dt); } }
   const chase=W.stars>0 && W.md<150;
   sirenSound(chase?clamp(1-W.md/150,0,1):0);
   const cf=$('copFlash'); cf.style.opacity=chase&&W.md<70?.9:0; if(chase) cf.style.setProperty('--cf',(G.time*4|0)%2?'rgba(255,30,50,.3)':'rgba(40,90,255,.3)');
   // arrow
-  let tgt=null; if(G.mode==='race'&&!p.finished) tgt=route[p.cp]; else if(mission.state==='seek') tgt=mission.pick; else if(mission.state==='ride') tgt=mission.drop;
-  if(tgt){ arrow.visible=true; arrow.position.set(p.x,p.y+(p.type==='jeep'?3.6:3.1)+Math.sin(G.time*4)*.15,p.z); arrow.rotation.y=Math.atan2(tgt.x-p.x,tgt.z-p.z); arrow.userData.mat.color.copy(C(G.mode==='race'?0xff2e88:mission.state==='seek'?0x2fff6a:0xff9f1c)); } else arrow.visible=false;
+  const toAnd=G.mode==='free'&&AND.state==='active'&&AND.choice==='join'&&!AND.arrived;
+  let tgt=null; if(G.mode==='race'&&!p.finished) tgt=route[p.cp]; else if(toAnd) tgt=AND.site; else if(mission.state==='seek') tgt=mission.pick; else if(mission.state==='ride') tgt=mission.drop;
+  if(tgt){ arrow.visible=true; arrow.position.set(p.x,p.y+(p.type==='jeep'?3.6:3.1)+Math.sin(G.time*4)*.15,p.z); arrow.rotation.y=Math.atan2(tgt.x-p.x,tgt.z-p.z); arrow.userData.mat.color.copy(C(G.mode==='race'?0xff2e88:toAnd?0xff5a00:mission.state==='seek'?0x2fff6a:0xff9f1c)); } else arrow.visible=false;
   if(beacon.visible){ beacon.userData.ring.scale.setScalar(1+Math.sin(G.time*5)*.08); }
   for(const v of racers) if(!v.fly) updateVisual(v,dt);
   for(const c of cops) if(!c.fly) updateVisual(c,dt);
