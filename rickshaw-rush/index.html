@@ -177,6 +177,8 @@ h1 span{display:block;color:var(--cream)}
 .keys kbd{font-family:var(--body);font-weight:800;background:rgba(255,255,255,.1);border-radius:5px;padding:0 5px;color:var(--cream)}
 .cashline{font-size:13px;color:var(--mute)}
 .cashline b{color:var(--leaf);font-variant-numeric:tabular-nums}
+.share{display:block;width:100%;margin-top:12px;font:800 15px var(--body);padding:11px 14px;border-radius:12px;border:0;background:#25d366;color:#08240f;cursor:pointer;box-shadow:0 4px 0 #128c4a}
+.share:active{transform:translateY(2px);box-shadow:0 2px 0 #128c4a}
 body:not(.touch) .tonly,body:not(.touch) #topBtns .tonly,#topBtns button[hidden],.gfx[hidden]{display:none}
 #btnTilt.on{background:var(--saffron);color:var(--ink);border-color:var(--saffron)}
 body.tilt #joy .jl.up::after{content:' · TILT'}
@@ -260,7 +262,7 @@ body.tilt #joy .jl.up::after{content:' · TILT'}
       <button class="mode" data-mode="race" aria-pressed="false"><span class="nm">Race</span><span class="ds">2 laps, 3 rivals. Checkpoint pakdo, pehla number lao.</span></button>
     </div>
     <button class="go" id="btnGo">CHALO!</button>
-    <div class="cashline">Kamaai: <b id="cashMenu">₹0</b> · Best race: <b id="bestMenu">—</b> · <button id="btnGfx" class="gfx"></button> <button id="btnFsMenu" class="gfx">⛶ Full screen</button> <button id="btnTiltMenu" class="gfx tonly"></button></div>
+    <div class="cashline">Kamaai: <b id="cashMenu">₹0</b> · Best race: <b id="bestMenu">—</b> · <button id="btnGfx" class="gfx"></button> <button id="btnFsMenu" class="gfx">⛶ Full screen</button> <button class="gfx" data-share>📲 Share</button> <button id="btnTiltMenu" class="gfx tonly"></button></div>
     <div class="keys" id="keysHelp"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> chalao · <kbd>Shift</kbd> nitro · <kbd>Space</kbd> drift · <kbd>F</kbd> laat · <kbd>H</kbd> horn · <kbd>C</kbd> camera · <kbd>R</kbd> reset</div>
     <a class="hublink" href="../index.html">← ALL GAMES · CALMTYPE</a>
     <div id="rotateHint" hidden>Phone ko landscape (tedha) karo, zyada maza aayega.</div>
@@ -289,6 +291,7 @@ body.tilt #joy .jl.up::after{content:' · TILT'}
       <button class="btn2" id="btnRestart">Restart</button>
       <button class="btn2" id="btnMenu">Menu</button>
     </div>
+    <button class="share" data-share>📲 Dosto ko bhejo · WhatsApp</button>
   </div>
 </div>
 
@@ -302,6 +305,7 @@ body.tilt #joy .jl.up::after{content:' · TILT'}
       <button class="btn2" id="btnFree">Free City</button>
       <button class="btn2" id="btnMenu2">Menu</button>
     </div>
+    <button class="share" data-share>📲 Dosto ko challenge karo · WhatsApp</button>
   </div>
 </div>
 
@@ -3143,6 +3147,20 @@ async function setTilt(on){
   tiltUI();
 }
 $('btnTilt').onclick=()=>setTilt(!TILT.want); $('btnTiltMenu').onclick=()=>setTilt(!TILT.want); tiltUI();
+// share: the phone's own share sheet (WhatsApp, Insta, ...), or a WhatsApp link on desktop
+const SHARE_URL='https://calmtype.life/rickshaw-rush/?utm_source=share';
+function shareText(){
+  const rs=$('results').hidden?'':$('resTitle').textContent;
+  if(rs&&G.mode==='race') return 'Rickshaw Rush mein Pune ki auto race: "'+rs+'" 🛺🔥 Tum hara ke dikhao!';
+  if(G.cash>0) return 'Maine Rickshaw Rush mein Pune mein auto chala ke ₹'+G.cash.toLocaleString('en-IN')+' kamaaye 🛺 Tum zyada kamaa ke dikhao!';
+  return 'Pune ka apna auto rickshaw game 🛺 JM Road, Shaniwar Wada, police chase aur Dogesh bhai. Free hai, phone pe chalta hai!';
+}
+function shareGame(){
+  const text=shareText();
+  if(navigator.share&&isTouch){ navigator.share({title:'Rickshaw Rush',text,url:SHARE_URL}).catch(()=>{}); return; }
+  window.open('https://wa.me/?text='+encodeURIComponent(text+'\n'+SHARE_URL),'_blank','noopener');
+}
+for(const b of document.querySelectorAll('[data-share]')) b.onclick=shareGame;
 function cycleCam(){ G.camMode=(G.camMode+1)%3; }
 function cycleTOD(){ const o=['sunset','night','day']; applyTOD(o[(o.indexOf(G.tod)+1)%3]); }
 $('btnShopExit').onclick=closeShop; $('btnGo').onclick=startGame;
