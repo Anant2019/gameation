@@ -183,6 +183,14 @@ h1 span{display:block;color:var(--cream)}
 .cashline b{color:var(--leaf);font-variant-numeric:tabular-nums}
 .share{display:block;width:100%;margin-top:12px;font:800 15px var(--body);padding:11px 14px;border-radius:12px;border:0;background:#25d366;color:#08240f;cursor:pointer;box-shadow:0 4px 0 #128c4a}
 .share:active{transform:translateY(2px);box-shadow:0 2px 0 #128c4a}
+.adbtn{display:block;width:100%;margin-top:10px;font:800 15px var(--body);padding:10px 14px;border-radius:12px;border:0;background:#ffd23f;color:var(--ink);cursor:pointer;box-shadow:0 4px 0 #b38f00}
+.adbtn:active{transform:translateY(2px);box-shadow:0 2px 0 #b38f00}
+.adrow{display:grid;gap:0}
+#adOffer{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(70px + env(safe-area-inset-bottom,0px));z-index:6;pointer-events:auto;width:auto;margin:0;padding:8px 16px;font-size:14px;white-space:nowrap;animation:adPulse 1.4s ease-in-out infinite}
+body.touch #adOffer{bottom:calc(60px + env(safe-area-inset-bottom,0px));padding:6px 12px;font-size:12.5px}
+@keyframes adPulse{50%{transform:translateX(-50%) scale(1.06)}}
+#adCover{position:fixed;inset:0;z-index:30;display:grid;place-items:center;text-align:center;background:rgba(10,8,20,.92);color:var(--cream);font:800 22px var(--body)}
+#adCover small{display:block;margin-top:8px;font-size:14px;color:var(--mute)}
 #rotateGate{display:none;position:fixed;inset:0;z-index:15;place-items:center;text-align:center;background:var(--ink);color:var(--cream);font-family:var(--display);font-size:22px;padding:24px}
 #rotateGate b{display:block;font-size:56px;margin-bottom:12px;color:var(--saffron)}
 #rotateGate small{display:block;margin-top:10px;font:600 13px var(--body);color:var(--mute)}
@@ -220,6 +228,12 @@ body.tilt #joy .jl.up::after{content:' · TILT'}
   .shopbox{max-width:720px;gap:7px;padding:12px 14px;margin:8px}
   .shopbox h2{font-size:20px} .shopbox>p{margin:0;font-size:12px}
   .swatches{grid-template-columns:repeat(8,1fr);gap:5px} .sw{padding:4px;font-size:9.5px} .sw i{height:18px}
+  #pause .box,#results .box{max-width:600px;gap:8px;padding:12px 14px;margin:8px auto}
+  #pause .box h2,#results .box h2{font-size:22px} #pause .box>p{display:none}
+  .adrow{display:flex;flex-wrap:wrap;gap:6px;justify-content:center} .adrow .adbtn{width:auto;margin:0;padding:7px 11px;font-size:12.5px}
+  .box .adbtn,.box .share{margin-top:0;padding:8px 12px;font-size:13.5px}
+  .res{grid-template-columns:1fr 1fr} .res div{padding:3px 8px;font-size:13px} #results .box p{font-size:13px}
+  .box .btn2{padding:7px 14px;font-size:15px}
 }
 @media (max-width:420px){ .cards{grid-template-columns:1fr} .card{grid-template-columns:1fr 1fr;align-items:center} }
 @media (prefers-reduced-motion:reduce){ #toast,#bigText,#combo,#vignette,#copFlash{transition:none} #wanted.flash{animation:none;border-color:#ff2e4d} }
@@ -233,6 +247,7 @@ body.tilt #joy .jl.up::after{content:' · TILT'}
 <div id="camFlash"></div>
 
 <div id="hud" hidden>
+  <button class="adbtn" id="adOffer" hidden></button>
   <div id="hudTL" class="chip"></div>
   <div id="place" class="chip" hidden></div>
   <div id="wanted" class="chip" hidden><div class="stars"></div><div class="wsub"></div></div>
@@ -306,6 +321,7 @@ body.tilt #joy .jl.up::after{content:' · TILT'}
       <button class="btn2" id="btnMenu">Menu</button>
     </div>
     <div class="btnrow tonly"><button class="gfx" id="btnTod2">☀ Din / Raat</button><button class="gfx" id="btnSnd2">♪ Awaaz</button></div>
+    <div class="adrow" id="adPause"></div>
     <button class="share" data-share>📲 Dosto ko bhejo · WhatsApp</button>
   </div>
 </div>
@@ -320,10 +336,12 @@ body.tilt #joy .jl.up::after{content:' · TILT'}
       <button class="btn2" id="btnFree">Free City</button>
       <button class="btn2" id="btnMenu2">Menu</button>
     </div>
+    <button class="adbtn" id="adDouble" hidden>🎬 Ad dekho · inaam 2x</button>
     <button class="share" data-share>📲 Dosto ko challenge karo · WhatsApp</button>
   </div>
 </div>
 
+<div id="adCover" hidden><div>🎬 Ad chal raha hai…<small>Khatam hote hi game wapas shuru</small></div></div>
 <div id="rotateGate" aria-live="polite"><div><b>📱 ↻</b>Phone ko landscape (tedha) karo<small>Game ruka hua hai</small></div></div>
 <div id="loading">Shehar ban raha hai…</div>
 
@@ -3092,12 +3110,13 @@ function refreshMenu(){
   $('rotateHint').hidden=!(isTouch && innerHeight>innerWidth);
 }
 let preview=null; const PV={x:L[3]+4.5,z:L[3]-14};
+const menuPanel=$('menu').querySelector('.panel'); let camShift=0;
 function setPreview(k){ if(preview) preview.dispose(); preview=new Vehicle(k,paintOpts(k)); preview.reset(PV.x,PV.z,.6); preview.root.position.set(PV.x,0,PV.z); applyTag(preview); refreshMenu(); }
 
 // ================= game flow =================
 function clearRace(){ for(const a of ais) a.dispose(); ais=[]; racers=[]; }
 function startGame(){
-  audioInit();
+  audioInit(); camShift=0; camera.clearViewOffset(); adBetween();
   if(isTouch){ if(canFs&&!isFs()) goFull(true); if(TILT.want) setTilt(true); }
   $('menu').hidden=true; $('results').hidden=true; $('pause').hidden=true; $('hud').hidden=false; document.body.classList.add('ingame');
   if(preview){ preview.dispose(); preview=null; }
@@ -3173,17 +3192,18 @@ function showResults(){
   const subs=['Poore shehar mein tumhara naam hai.','Bas thoda sa reh gaya. Ek aur try?','Chalega, par Pappu hass raha hai.','Gaay bhi tumse tez thi. Phir se karo!'];
   $('resTitle').textContent=titles[pos-1]||'Finish';
   const best=store.get('best_'+G.vtype,null); let nb=false; if(!best||player.finishTime<best){ store.set('best_'+G.vtype,player.finishTime); nb=true; }
-  let prize=[250,100,40,0][pos-1]||0; addCash(prize);
+  let prize=[250,100,40,0][pos-1]||0; addCash(prize); G.lastPrize=prize; $('adDouble').hidden=!(prize>0&&ADS.ready);
   $('resSub').textContent=subs[pos-1]+' Time '+fmtT(player.finishTime)+(nb?' · naya best!':'')+(prize?' · Inaam ₹'+prize:'');
   $('resList').innerHTML=st.map((v,i)=>`<div class="${v===player?'me':''}"><span>${ord(i+1)}</span><span>${v.name}</span><span>${v.finished?fmtT(v.finishTime):'race mein'}</span></div>`).join('');
   $('results').hidden=false;
 }
 function goMenu(){
+  if(G.state!=='menu') adBetween();
   G.state='menu'; document.body.classList.remove('ingame'); $('hud').hidden=true; $('pause').hidden=true; $('results').hidden=true; $('menu').hidden=false;
   if(player){ player.dispose(); player=null; } resetDog(); clearRace(); clearCops(); resetWanted(); clearNakas(); beacon.visible=arrow.visible=passenger.visible=arch.visible=false;
   spawnCows(0); spawnTraffic(LOW?16:30); setPreview(G.vtype); engineSound(0,0,'car',false); skidSound(0); sirenSound(0); $('copFlash').style.opacity=0; big('');
 }
-function setPause(p){ if(p && (G.state==='play'||G.state==='countdown')){ G.prevState=G.state; G.state='paused'; $('pause').hidden=false; engineSound(0,0,G.vtype,false); skidSound(0); } else if(!p && G.state==='paused'){ G.state=G.prevState; $('pause').hidden=true; } }
+function setPause(p){ if(p && (G.state==='play'||G.state==='countdown')){ G.prevState=G.state; G.state='paused'; $('pause').hidden=false; refreshAdUI(); engineSound(0,0,G.vtype,false); skidSound(0); } else if(!p && G.state==='paused'){ G.state=G.prevState; $('pause').hidden=true; } }
 function resetPlayer(){
   if(!player) return;
   const q=nearestRoadPoint(player.x,player.z), fx=Math.sin(player.yaw), fz=Math.cos(player.yaw);
@@ -3341,6 +3361,87 @@ $('btnShopExit').onclick=closeShop; $('btnGo').onclick=startGame;
 $('btnRestart').onclick=()=>startGame(); $('btnMenu').onclick=goMenu; $('btnMenu2').onclick=goMenu;
 $('btnAgain').onclick=()=>{ G.mode='race'; for(const c of document.querySelectorAll('.mode')) c.setAttribute('aria-pressed',c.dataset.mode==='race'); startGame(); }; $('btnFree').onclick=()=>{ G.mode='free'; for(const c of document.querySelectorAll('.mode')) c.setAttribute('aria-pressed',c.dataset.mode==='free'); startGame(); };
 $('btnCam').onclick=cycleCam; $('btnTod').onclick=cycleTOD; $('btnTod2').onclick=cycleTOD; $('btnSnd2').onclick=()=>{ audioInit(); setSound(!SND.on); }; $('btnSnd').onclick=()=>{ audioInit(); setSound(!SND.on); }; $('btnReset').onclick=resetPlayer;
+// ================= ads =================
+// Ads come from whichever site hosts the game: the CrazyGames or GameDistribution SDK on those portals,
+// or Google's H5 game ads on calmtype once AdSense approves the site (put the ca-pub id in AD_CFG).
+// Anywhere else (itch, the Claude link, local) there is no provider and every ad button stays hidden.
+// ?adtest fakes a 3 second ad so the flow can be tried without a provider.
+const AD_CFG={ adsenseClient:'' };
+const ADS={kind:null,ready:false,busy:false,lastT:-1e9,playT:0,bonusT:-1e9,offerT:{},gp:null,gdDone:false};
+{
+  const h=location.hostname, q=location.search;
+  const load=(src,attrs={})=>new Promise((ok,no)=>{ const el=document.createElement('script'); el.src=src; el.async=true; for(const k in attrs) el.setAttribute(k,attrs[k]); el.onload=ok; el.onerror=no; document.head.appendChild(el); });
+  const gdId=(location.pathname.match(/\/([0-9a-f]{32})\//)||[])[1];
+  if(/[?&]adtest\b/.test(q)){ ADS.kind='test'; ADS.ready=true; }
+  else if(/(^|\.)crazygames\./.test(h)){
+    ADS.kind='crazy';
+    load('https://sdk.crazygames.com/crazygames-sdk-v3.js').then(()=>window.CrazyGames.SDK.init()).then(()=>{ ADS.ready=window.CrazyGames.SDK.environment!=='disabled'; }).catch(()=>{});
+  } else if(/gamedistribution\.com$/.test(h) && gdId){
+    ADS.kind='gd';
+    window.GD_OPTIONS={ gameId:gdId, onEvent:e=>{
+      if(e.name==='SDK_READY') ADS.ready=true;
+      else if(e.name==='SDK_REWARDED_WATCH_COMPLETE') ADS.gdDone=true;
+      else if(e.name==='SDK_GAME_PAUSE'){ if(SND.ctx) SND.ctx.suspend(); }
+      else if(e.name==='SDK_GAME_START'){ if(SND.ctx && !ADS.busy) SND.ctx.resume(); }
+    } };
+    load('https://html5.api.gamedistribution.com/main.min.js',{id:'gamedistribution-jssdk'}).catch(()=>{});
+  } else if(AD_CFG.adsenseClient && /(^|\.)calmtype\.life$/.test(h)){
+    ADS.kind='google';
+    window.adsbygoogle=window.adsbygoogle||[]; window.adBreak=window.adConfig=o=>adsbygoogle.push(o);
+    load('https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js',{'data-ad-client':AD_CFG.adsenseClient,'data-ad-frequency-hint':'120s',crossorigin:'anonymous'}).catch(()=>{});
+    adConfig({preloadAdBreaks:'on',sound:'on',onReady:()=>{ ADS.ready=true; }});
+  }
+}
+// the game stops and goes quiet while an ad plays
+function adStart(){ ADS.busy=true; ADS.prev=G.state; if(G.state==='play'||G.state==='countdown') G.state='ad'; engineSound(0,0,G.vtype,false); skidSound(0); sirenSound(0); if(SND.ctx) SND.ctx.suspend(); }
+function adEnd(){ ADS.busy=false; ADS.lastT=performance.now(); ADS.playT=0; $('adCover').hidden=true; if(G.state==='ad') G.state=ADS.prev; if(SND.ctx && !document.hidden) SND.ctx.resume(); }
+function showAd(type,name){ return new Promise(res=>{
+  if(!ADS.ready||ADS.busy) return res(false);
+  adStart(); let fin=false; const done=ok=>{ if(fin) return; fin=true; adEnd(); res(!!ok); };
+  try{
+    if(ADS.kind==='test'){ $('adCover').hidden=false; setTimeout(()=>done(true),3000); }
+    else if(ADS.kind==='crazy') window.CrazyGames.SDK.ad.requestAd(type==='reward'?'rewarded':'midgame',{adFinished:()=>done(true),adError:()=>done(false)});
+    else if(ADS.kind==='gd'){ ADS.gdDone=false; window.gdsdk.showAd(type==='reward'?'rewarded':'interstitial').then(()=>setTimeout(()=>done(type!=='reward'||ADS.gdDone),300)).catch(()=>done(false)); }
+    else if(ADS.kind==='google'){
+      const o={type:type==='reward'?'reward':'next',name,adBreakDone:i=>done(type!=='reward'&&i.breakStatus==='viewed')};
+      if(type==='reward'){ o.beforeReward=show=>show(); o.adViewed=()=>done(true); o.adDismissed=()=>done(false); }
+      adBreak(o);
+    } else done(false);
+  }catch(e){ done(false); }
+}); }
+// a short break between rounds, never more than once every 3 minutes and only after 2 minutes of driving
+function adBetween(){ if(ADS.ready && !ADS.busy && ADS.playT>120 && performance.now()-ADS.lastT>180000) showAd('next','round'); }
+const AD_REWARDS={
+  fuel:{label:()=>'🎬 Ad dekho · '+fuelName()+' full muft', ok:()=>G.mode==='free'&&F.fuel<.9,
+    give:()=>{ Object.assign(F,{fuel:1,warned:false,empty:false}); toast('⛽ '+fuelName()+' full! Ad dekhne ka shukriya 🙏',2.4); chime(); }},
+  police:{label:()=>'🎬 Ad dekho · police gayab', ok:()=>G.mode==='free'&&W.stars>0,
+    give:()=>{ sprayEscape(); toast('Ad dekh liya, police ka peecha chhoot gaya 😎',2.4); }},
+  cash:{label:()=>'🎬 Ad dekho · ₹300 bonus', ok:()=>performance.now()-ADS.bonusT>180000,
+    give:()=>{ ADS.bonusT=performance.now(); addCash(300); toast('₹300 bonus mil gaya! 💸',2.2); chime(); }},
+};
+async function adReward(k){ const r=AD_REWARDS[k]; if(!r.ok()) return; const ok=await showAd('reward',k); if(ok) r.give(); else toast('Abhi ad nahi mila. Thodi der baad try karo',2.2); refreshAdUI(); }
+function refreshAdUI(){
+  const el=$('adPause'); el.innerHTML='';
+  if(!ADS.ready) return;
+  for(const k of ['police','fuel','cash']){ const r=AD_REWARDS[k]; if(!r.ok()) continue;
+    const b=document.createElement('button'); b.className='adbtn'; b.textContent=r.label(); b.onclick=async()=>{ await adReward(k); }; el.appendChild(b); }
+}
+// in the city, offer an ad right when it helps: tank empty, or 3+ police stars
+function adTick(dt){
+  const gp=G.state==='play';
+  if(gp) ADS.playT+=dt;
+  if(ADS.kind==='crazy' && ADS.ready && gp!==ADS.gp){ ADS.gp=gp; try{ gp?CrazyGames.SDK.game.gameplayStart():CrazyGames.SDK.game.gameplayStop(); }catch(e){} }
+  const el=$('adOffer');
+  let k=null; if(ADS.ready && gp && G.mode==='free' && !ADS.busy){ if(F.empty) k='fuel'; else if(W.stars>=3) k='police'; }
+  if(k!==el.dataset.k){ el.dataset.k=k||''; el.hidden=!k; if(k){ el.textContent=AD_REWARDS[k].label();
+    // sit just above the bottom chips (on phones the fuel and speed chips share the bottom centre)
+    const top=Math.min(...(isTouch?['fuelChip','speedo']:['fuelChip']).map(id=>{ const r=$(id).getBoundingClientRect(); return r.height?r.top:innerHeight; }));
+    el.style.bottom=Math.round(innerHeight-top+8)+'px'; } }
+}
+$('adOffer').onclick=()=>{ const k=$('adOffer').dataset.k; if(k) adReward(k); };
+$('adDouble').onclick=async()=>{ const b=$('adDouble'); b.hidden=true; const ok=await showAd('reward','double');
+  if(ok){ addCash(G.lastPrize); $('resSub').textContent+=' · 2x ho gaya! ₹'+G.lastPrize*2; chime(); } else { b.hidden=false; toast('Abhi ad nahi mila. Thodi der baad try karo',2.2); } };
+
 document.addEventListener('visibilitychange',()=>{ if(document.hidden){ setPause(true); if(SND.ctx) SND.ctx.suspend(); } else if(SND.ctx) SND.ctx.resume(); });
 function playerInput(dt){
   const left=keys.KeyA||keys.ArrowLeft||touch.left, right=keys.KeyD||keys.ArrowRight||touch.right;
@@ -3577,7 +3678,7 @@ function frame(dt){
   cullT-=dt; if(cullT<=0){ cullT=.25; cullCity(); }
   G.time+=dt; hornCool-=dt; rantCool-=dt; pedCool-=dt; kickCool-=dt;
   if(toastT>0){ toastT-=dt; if(toastT<=0) $('toast').classList.remove('on'); }
-  const live=G.state!=='paused' && G.state!=='shop';
+  const live=G.state!=='paused' && G.state!=='shop' && G.state!=='ad'; adTick(dt);
   if(live){
     updateTraffic(dt,racers.length?racers.concat(cops):(preview?[preview]:[]));
     updateCows(dt); updatePeds(dt); updateWalkers(dt); updateHeli(dt); updateMela(dt); updateMetro(dt); updateGadis(dt); updateTrain(dt); updatePlane(dt); updateBarriers(dt); updateLightMats();
@@ -3585,9 +3686,12 @@ function frame(dt){
   } else sirenSound(0);
   if(G.state==='menu'){
     const a=G.time*.22; const pv=preview; if(pv){ pv.root.rotation.y=.6; pv.root.position.set(PV.x,0,PV.z); }
-    camera.position.set(PV.x+Math.sin(a)*8.5,3+Math.sin(G.time*.3)*.6,PV.z+Math.cos(a)*8.5); camera.lookAt(PV.x,.9,PV.z);
+    const od=innerHeight<500?6.8:8.5; camera.position.set(PV.x+Math.sin(a)*od,2.6+Math.sin(G.time*.3)*.5,PV.z+Math.cos(a)*od); camera.lookAt(PV.x,.9,PV.z);
     if(camera.fov!==55){ camera.fov=55; camera.updateProjectionMatrix(); }
-  } else if(live && player){ playUpdate(dt); }
+    // the menu panel covers the middle of a phone screen, so shift the picture to put the auto in the free space beside it
+    const pr=menuPanel.getBoundingClientRect().right, W=innerWidth, H=innerHeight, dx=pr>0&&pr<W-60?Math.round((pr+W)/2-W/2):0;
+    if(dx!==camShift){ camShift=dx; if(dx) camera.setViewOffset(W,H,-dx,0,W,H); else camera.clearViewOffset(); }
+  } else if(live && player){ if(camShift){ camShift=0; camera.clearViewOffset(); } playUpdate(dt); }
   updateParticles(live?dt:0);
   riverTex.offset.y-=dt*.035;
   const f=player&&G.state!=='menu'?player:{x:PV.x,z:PV.z};
@@ -3596,7 +3700,7 @@ function frame(dt){
   sky.position.copy(camera.position); stars.position.copy(camera.position);
 }
 
-addEventListener('resize',()=>{ renderer.setSize(innerWidth,innerHeight); camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); refreshMenu();
+addEventListener('resize',()=>{ camShift=-1; renderer.setSize(innerWidth,innerHeight); camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); refreshMenu();
   if(isTouch && innerHeight>innerWidth && G.state==='play') setPause(true); });
 
 // ================= boot =================
