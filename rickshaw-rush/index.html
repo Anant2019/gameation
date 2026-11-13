@@ -1021,7 +1021,7 @@ function buildRiverBlock(b){
 const RV={};
 function dressRiver(b){
   if(!RV.sand){ RV.sand=stdMat(0x9c8a66,1,0); RV.reed=stdMat(0x5f7d33,.9,0); RV.hya=stdMat(0x2c5a1e,.95,0,{side:THREE.DoubleSide}); RV.flower=stdMat(0xb48ad8,.8,0); RV.rock=stdMat(0x6a655c,.95,0); RV.bird=stdMat(0xf6f4ee,.7,0); RV.beak=stdMat(0xe0a020,.6,0); RV.stain=stdMat(0x3c4a32,1,0); RV.rope=stdMat(0xe8e0c8,.9,0);
-    RV.murals=[['MULA-MUTHA','#1f6f8b','#ffffff'],['NADI SWACHH THEVA','#2f9e44','#ffffff'],['SAVE OUR RIVER','#ff7a00','#140b22'],['PMC · NADI SUDHAR','#5a2d0c','#ffd98a'],['PUNE ❤ MUTHA','#ff2e88','#ffffff']].map(([t,bg,fg])=>signMat(t,bg,fg));
+    RV.murals=[['MULA-MUTHA','#1f6f8b','#ffffff'],['NADI SWACHH THEVA','#2f9e44','#ffffff'],['SAVE OUR RIVER','#ff7a00','#140b22'],['NADI SUDHAR ABHIYAN','#5a2d0c','#ffd98a'],['PUNE ❤ MUTHA','#ff2e88','#ffffff']].map(([t,bg,fg])=>signMat(t,bg,fg));
     RV.cloth=[0xff2e88,0xffcc00,0x19c3b3,0xffffff,0xff7a00,0x2f6fd8].map(c=>stdMat(c,.8,0,{side:THREE.DoubleSide})); }
   let sd=b.j*7919+13; const rnd=()=>(sd=(sd*16807)%2147483647)/2147483647;
   const ghat=b.j%3===1, side=ghat?1:(b.j%2?1:-1), wall=side>0?b.x1-1.2:b.x0+1.2, bx=wall-side*2.6, wy=RIVER_Y;
@@ -1589,13 +1589,13 @@ const BUSSTAND={};
     for(let x=r.x0+26;x<r.x1-10;x+=9) cp.box(2,.45,.6,woodMat,x,.6,z); }
   cp.box(22,9,14,cream,r.x0+11,4.5,cz+6); addSolid(r.x0,r.x0+22,cz-1,cz+13,'#c8102e');
   cp.box(20,2.4,.4,signMat('SWARGATE ST STAND','#c8102e','#ffcc00'),r.x0+11,7.6,cz-1.3); cp.box(14,1.4,.4,signMat('TICKET · AARAKSHAN','#1f3a8a','#ffffff'),r.x0+11,3,cz-1.3);
-  cp.box(16,2,.4,signMat('PMPML · SWARGATE','#1a6b3a','#ffffff'),cx+20,8,r.z0+.6); for(const s of [-1,1]) cp.box(.5,9,.5,metalMat,cx+20+s*8,4.5,r.z0+.6);
+  cp.box(16,2,.4,signMat('CITY BUS · SWARGATE','#1a6b3a','#ffffff'),cx+20,8,r.z0+.6); for(const s of [-1,1]) cp.box(.5,9,.5,metalMat,cx+20+s*8,4.5,r.z0+.6);
   BUSSTAND.r=r; BUSSTAND.parked=[];
   for(let k=0;k<3;k++) for(let m=0;m<4;m++){ if(srand()<.25) continue; const x=r.x0+30+m*20, z=r.z0+18+k*14+7;
     BUSSTAND.parked.push({x,z,pm:srand()<.4}); addSolid(x-5.4,x+5.4,z-1.4,z+1.4,'#c8102e'); }
 }
 // PMPML bus stops along the footpaths
-{ const sh=stdMat(0x1a6b3a,.5,.2), stop=signMat('PMPML BUS STOP','#1a6b3a','#ffffff'); let n=0;
+{ const sh=stdMat(0x1a6b3a,.5,.2), stop=signMat('BUS STOP','#1a6b3a','#ffffff'); let n=0;
   for(const col of blocks) for(const b of col){ if(b.type!=='bld' || (b.i*7+b.j*3)%5) continue;
     const side=(b.i+b.j)%4, nx=[1,-1,0,0][side], nz=[0,0,1,-1][side], x=b.cx+nx*(B/2-1.9)+(nz?-5:0), z=b.cz+nz*(B/2-1.9)+(nx?-5:0), ry=nx?Math.PI/2:0;
     cp.box(5.2,.18,2.2,sh,x,2.9,z,0,ry,0); cp.box(5,2.4,.1,MAT.glass,x-nx*1,1.6,z-nz*1,0,ry,0); cp.box(4.4,.45,.6,woodMat,x-nx*.5,.65,z-nz*.5,0,ry,0);
@@ -1615,7 +1615,7 @@ function buildMetroLine(o){
   for(const s of [-2.2,-.8,.8,2.2]) BX(lenW,.14,.14,metalMat,mid,y+.8,c0+s);
   for(const st of o.stations){ const a=st.at;
     BX(54,1,22,conc,a,y-.3,c0); BX(54,7,22,stdMat(0xf4f4f4,.4,.1),a,y+4.3,c0);
-    for(const s of [-1,1]){ BX(50,2.6,.3,MAT.glass,a,y+4.5,c0+s*11.1); BX(26,2.2,.4,signMat('PUNE METRO · '+st.name,o.css,'#ffffff'),a,y+9,c0+s*11.3); }
+    for(const s of [-1,1]){ BX(50,2.6,.3,MAT.glass,a,y+4.5,c0+s*11.1); BX(26,2.2,.4,signMat('METRO · '+st.name,o.css,'#ffffff'),a,y+9,c0+s*11.3); }
     const roof=new THREE.CylinderGeometry(11.5,11.5,56,20,1,true,-Math.PI/2,Math.PI); roof.scale(1,.35,1); if(!along) roof.rotateZ(Math.PI/2); else roof.rotateX(Math.PI/2);
     { const [x,yy,z]=P3(a,c0,y+7.8); cp.add(roof,stdMat(o.color,.4,.2,{side:THREE.DoubleSide}),x,yy,z); }
     for(const s of [-1,1]) for(const da of [-20,0,20]){ const [x,,z]=P3(a+da,c0+s*(R/2+2.2),0); cp.add(new THREE.CylinderGeometry(1,1.2,y-.8,10),conc,x,(y-.8)/2,z); obstacles.push({x,z,r:1.3}); }
@@ -3364,6 +3364,7 @@ $('btnCam').onclick=cycleCam; $('btnTod').onclick=cycleTOD; $('btnTod2').onclick
 // ================= ads =================
 // Ads come from whichever site hosts the game: the CrazyGames or GameDistribution SDK on those portals,
 // or Google's H5 game ads on calmtype once AdSense approves the site (put the ca-pub id in AD_CFG).
+// In the Android app, native.js sets window.rrNativeAds (AdMob).
 // Anywhere else (itch, the Claude link, local) there is no provider and every ad button stays hidden.
 // ?adtest fakes a 3 second ad so the flow can be tried without a provider.
 const AD_CFG={ adsenseClient:'' };
@@ -3373,6 +3374,7 @@ const ADS={kind:null,ready:false,busy:false,lastT:-1e9,playT:0,bonusT:-1e9,offer
   const load=(src,attrs={})=>new Promise((ok,no)=>{ const el=document.createElement('script'); el.src=src; el.async=true; for(const k in attrs) el.setAttribute(k,attrs[k]); el.onload=ok; el.onerror=no; document.head.appendChild(el); });
   const gdId=(location.pathname.match(/\/([0-9a-f]{32})\//)||[])[1];
   if(/[?&]adtest\b/.test(q)){ ADS.kind='test'; ADS.ready=true; }
+  else if(window.rrNativeAds){ ADS.kind='native'; window.rrNativeAds.init(()=>{ ADS.ready=true; }); }
   else if(/(^|\.)crazygames\./.test(h)){
     ADS.kind='crazy';
     load('https://sdk.crazygames.com/crazygames-sdk-v3.js').then(()=>window.CrazyGames.SDK.init()).then(()=>{ ADS.ready=window.CrazyGames.SDK.environment!=='disabled'; }).catch(()=>{});
@@ -3400,6 +3402,7 @@ function showAd(type,name){ return new Promise(res=>{
   adStart(); let fin=false; const done=ok=>{ if(fin) return; fin=true; adEnd(); res(!!ok); };
   try{
     if(ADS.kind==='test'){ $('adCover').hidden=false; setTimeout(()=>done(true),3000); }
+    else if(ADS.kind==='native') window.rrNativeAds.show(type==='reward'?'reward':'inter').then(done,()=>done(false));
     else if(ADS.kind==='crazy') window.CrazyGames.SDK.ad.requestAd(type==='reward'?'rewarded':'midgame',{adFinished:()=>done(true),adError:()=>done(false)});
     else if(ADS.kind==='gd'){ ADS.gdDone=false; window.gdsdk.showAd(type==='reward'?'rewarded':'interstitial').then(()=>setTimeout(()=>done(type!=='reward'||ADS.gdDone),300)).catch(()=>done(false)); }
     else if(ADS.kind==='google'){
@@ -3442,6 +3445,8 @@ $('adOffer').onclick=()=>{ const k=$('adOffer').dataset.k; if(k) adReward(k); };
 $('adDouble').onclick=async()=>{ const b=$('adDouble'); b.hidden=true; const ok=await showAd('reward','double');
   if(ok){ addCash(G.lastPrize); $('resSub').textContent+=' · 2x ho gaya! ₹'+G.lastPrize*2; chime(); } else { b.hidden=false; toast('Abhi ad nahi mila. Thodi der baad try karo',2.2); } };
 
+// Android app back button (native.js): pause, resume, close the shop or go to the menu; false on the menu = exit
+window.rrBack=()=>{ const s=G.state; if(s==='play'||s==='countdown') setPause(true); else if(s==='paused') setPause(false); else if(s==='shop') closeShop(); else if(s==='menu') return false; else if(s!=='ad') goMenu(); return true; };
 document.addEventListener('visibilitychange',()=>{ if(document.hidden){ setPause(true); if(SND.ctx) SND.ctx.suspend(); } else if(SND.ctx) SND.ctx.resume(); });
 function playerInput(dt){
   const left=keys.KeyA||keys.ArrowLeft||touch.left, right=keys.KeyD||keys.ArrowRight||touch.right;
