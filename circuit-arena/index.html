@@ -111,10 +111,34 @@ button,select,input{font:inherit;color:inherit}
 .btn.ic{min-width:38px;font-size:17px;line-height:1;padding:6px 10px}
 .toolbar select{padding:7px 8px;border-radius:6px;border:1px solid var(--line);background:var(--panel);font-size:13px;max-width:180px}
 .tsep{flex:1}
-.benchwrap{border:1px solid var(--line);border-radius:8px;background:var(--bench);overflow:hidden}
+.benchwrap{border:1px solid var(--line);border-radius:8px;background:var(--bench);overflow:hidden;position:relative}
+#v3d{position:absolute;inset:0;z-index:6;background:#101416;container-type:size}
+#v3d.full{position:fixed;inset:0;z-index:60;border-radius:0}
+.v3d-ui{position:absolute;inset:0;pointer-events:none;font:600 13px var(--sans,system-ui)}
+.v3d-bar{position:absolute;top:10px;right:10px;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;pointer-events:auto}
+.v3d-bar button{min-height:36px;padding:0 12px;border-radius:10px;border:1px solid rgba(255,255,255,.18);background:rgba(16,20,22,.72);color:#e8eef0;font:inherit;cursor:pointer;backdrop-filter:blur(6px)}
+.v3d-bar button:hover,.v3d-bar button[aria-pressed="true"]{background:#E3884B;color:#1a0f07;border-color:#E3884B}
+.v3d-hint{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);background:rgba(16,20,22,.72);color:#e8eef0;padding:7px 12px;border-radius:999px;transition:opacity .8s;white-space:nowrap}
+.btn.v3d{background:linear-gradient(135deg,#2a3b46,#1b2a33);color:#e8eef0;border-color:#3f5866}
+.btn.v3d[aria-pressed="true"]{background:#E3884B;color:#1a0f07;border-color:#E3884B}
+@container (max-width:560px){.v3d-bar{top:6px;right:6px;gap:4px}.v3d-bar button{min-height:30px;padding:0 8px;font-size:12px;border-radius:8px}.v3d-bar button span{display:none}.v3d-hint{font-size:11px}}
 #bench{display:block;width:100%;aspect-ratio:960/560;height:auto;touch-action:none;user-select:none;-webkit-user-select:none}
 #world{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:8px;background:var(--bench)}
 #world[hidden]{display:none}
+#w3d{position:relative;width:100%;aspect-ratio:16/7;max-height:54vh;min-height:200px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#9cb6cc;container-type:inline-size}
+.side #w3d{flex:none}
+.w3d-hud{position:absolute;inset:0;pointer-events:none;font:600 13px var(--sans,system-ui);color:#fff}
+.w3d-stats{position:absolute;left:10px;top:10px;max-width:calc(100% - 20px);background:rgba(10,14,16,.62);backdrop-filter:blur(6px);padding:7px 11px;border-radius:10px;line-height:1.45}
+.w3d-stats b{color:#ffd29a}
+.w3d-big{position:absolute;left:50%;top:22%;transform:translateX(-50%);font:800 28px var(--display,system-ui);letter-spacing:2px;text-shadow:0 2px 12px rgba(0,0,0,.6)}
+.w3d-big.bad{color:#ff5a46}
+.w3d-load{position:absolute;inset:0;display:grid;place-items:center;background:rgba(10,14,16,.55);font-size:15px}
+.w3d-bar{position:absolute;right:10px;bottom:10px;display:flex;gap:6px;pointer-events:auto}
+.w3d-bar button{min-height:34px;padding:0 11px;border-radius:10px;border:1px solid rgba(255,255,255,.25);background:rgba(10,14,16,.6);color:#fff;font:inherit;cursor:pointer;backdrop-filter:blur(6px)}
+.w3d-bar button[aria-pressed="true"],.w3d-bar button:hover{background:#E3884B;color:#1a0f07;border-color:#E3884B}
+@container (max-width:560px){.w3d-stats{font-size:11px;padding:5px 8px}.w3d-big{font-size:20px}.w3d-bar button{min-height:30px;padding:0 8px;font-size:12px}}
+@media (orientation:landscape) and (max-height:560px){#w3d{aspect-ratio:3/1;max-height:40vh;min-height:120px}}
+#w3d.full{position:fixed;inset:0;z-index:60;max-height:none;min-height:0;aspect-ratio:auto;border-radius:0;border:0}
 .status{font-family:var(--f-mono);font-size:12px;color:var(--muted);min-height:18px}
 .status b{color:var(--ink);font-weight:500}
 .tips{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;justify-content:space-between}
@@ -400,6 +424,11 @@ table.conn td{padding:6px;border-bottom:1px solid var(--line);vertical-align:top
 .hero h2{font-family:var(--f-display);font-size:34px;margin:0 0 6px}
 .hero p{margin:0;color:var(--muted);max-width:56ch}
 .heroart{width:100%;height:auto;max-height:180px}
+.heroimg{position:relative;display:block;width:100%;padding:0;border:0;border-radius:12px;overflow:hidden;cursor:pointer;background:#0E1613;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+.heroimg img{display:block;width:100%;height:180px;object-fit:cover;transition:transform .6s}
+.heroimg:hover img,.heroimg:focus-visible img{transform:scale(1.05)}
+.heroimg span{position:absolute;left:8px;bottom:8px;background:rgba(16,20,22,.82);color:#fff;padding:6px 11px;border-radius:999px;font:600 12px var(--sans,system-ui)}
+.newtag{background:#E3884B;color:#1a0f07;border-radius:6px;padding:1px 6px;margin-right:4px;font-size:.85em}
 .hstats{margin-top:10px!important;font-family:var(--f-mono);font-size:12px}
 .hgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-bottom:14px}
 .htile{display:flex;flex-direction:column;align-items:flex-start;gap:6px;text-align:left;padding:14px;border:1px solid var(--line);border-radius:10px;background:var(--panel);cursor:pointer;min-height:112px}
@@ -414,8 +443,8 @@ table.conn td{padding:6px;border-bottom:1px solid var(--line);vertical-align:top
 .tog i{position:absolute;top:4px;left:4px;width:24px;height:24px;border-radius:50%;background:var(--panel);transition:left .15s}
 .tog[aria-pressed="true"]{background:var(--good);border-color:var(--good)}.tog[aria-pressed="true"] i{left:26px}
 .ver{margin:10px 0 0;font-size:12px;color:var(--muted)}
-@media (max-width:700px){.hero{grid-template-columns:minmax(0,1fr)}.heroart{display:none}.hero h2{font-size:28px}}
-@media (orientation:landscape) and (max-height:560px){.hero{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)}.hero h2{font-size:24px}.heroart{max-height:120px}.hgrid{grid-template-columns:repeat(4,minmax(0,1fr))}.htile{min-height:90px;padding:10px}}
+@media (max-width:700px){.hero{grid-template-columns:minmax(0,1fr)}.heroart{display:none}.heroimg img{height:150px}.hero h2{font-size:28px}}
+@media (orientation:landscape) and (max-height:560px){.hero{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)}.hero h2{font-size:24px}.heroart{max-height:120px}.heroimg img{height:120px}.hgrid{grid-template-columns:repeat(4,minmax(0,1fr))}.htile{min-height:90px;padding:10px}}
 /* IC editor */
 .iccard{max-width:880px!important;display:flex;flex-direction:column;gap:8px}
 .ichead{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
@@ -542,6 +571,7 @@ table.conn td{padding:6px;border-bottom:1px solid var(--line);vertical-align:top
     </div>
     <div class="toolbar">
       <button class="btn ai" id="bAI">✨ AI</button>
+      <button class="btn v3d" id="b3D" aria-pressed="false">🧊 3D View</button>
       <span id="sbTools" hidden style="display:contents">
         <select id="exSel" aria-label="Load an example"></select>
         <button class="btn" id="bEmpty">Empty</button>
@@ -563,7 +593,9 @@ table.conn td{padding:6px;border-bottom:1px solid var(--line);vertical-align:top
       <button class="btn ic" id="bHelp" aria-label="How to play">?</button>
     </div>
     <svg id="world" viewBox="0 0 960 320" hidden aria-label="Test world"></svg>
+    <div id="w3d" hidden aria-label="3D test world"></div>
     <div class="benchwrap">
+      <div id="v3d" hidden aria-label="3D view of the circuit"></div>
       <svg id="bench" viewBox="0 0 960 560" role="img" aria-label="Breadboard workbench">
         <defs>
           <pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="1.3" fill="var(--grid)"/></pattern>
@@ -623,22 +655,13 @@ table.conn td{padding:6px;border-bottom:1px solid var(--line);vertical-align:top
 <section class="view gutter" id="v-home">
   <div class="hero panel">
     <div class="herotext">
-      <p class="eyebrow">Electronics · IoT · Neuroscience</p>
+      <p class="eyebrow"><b class="newtag">NEW</b> Real 3D arena · Electronics · IoT · Neuroscience</p>
       <h2>Circuit Arena</h2>
       <p>Wire real parts, write code for chips, and watch robots, drones, phones and brain-controlled gadgets come alive.</p>
-      <div class="row"><button class="btn aihero" data-go="ai">✨ Build with AI</button><button class="btn primary" data-go="continue">Continue</button><button class="btn" data-go="sandbox">Open Sandbox</button><button class="btn" data-go="search">Search</button></div>
+      <div class="row"><button class="btn aihero" data-go="ai">✨ Build with AI</button><button class="btn v3d" data-go="3d">🏎️ 3D Arena</button><button class="btn primary" data-go="continue">Continue</button><button class="btn" data-go="sandbox">Open Sandbox</button><button class="btn" data-go="search">Search</button></div>
       <p class="hstats" id="hStats"></p>
     </div>
-    <svg class="heroart" viewBox="0 0 220 140" aria-hidden="true"><rect x="0" y="0" width="220" height="140" rx="12" fill="#0E1613"/>
-      <g fill="#24332C"><circle cx="14" cy="12" r="1.2"/><circle cx="14" cy="30" r="1.2"/><circle cx="14" cy="48" r="1.2"/><circle cx="14" cy="66" r="1.2"/><circle cx="14" cy="84" r="1.2"/><circle cx="14" cy="102" r="1.2"/><circle cx="14" cy="120" r="1.2"/><circle cx="14" cy="138" r="1.2"/><circle cx="32" cy="12" r="1.2"/><circle cx="32" cy="30" r="1.2"/><circle cx="32" cy="48" r="1.2"/><circle cx="32" cy="66" r="1.2"/><circle cx="32" cy="84" r="1.2"/><circle cx="32" cy="102" r="1.2"/><circle cx="32" cy="120" r="1.2"/><circle cx="32" cy="138" r="1.2"/><circle cx="50" cy="12" r="1.2"/><circle cx="50" cy="30" r="1.2"/><circle cx="50" cy="48" r="1.2"/><circle cx="50" cy="66" r="1.2"/><circle cx="50" cy="84" r="1.2"/><circle cx="50" cy="102" r="1.2"/><circle cx="50" cy="120" r="1.2"/><circle cx="50" cy="138" r="1.2"/><circle cx="68" cy="12" r="1.2"/><circle cx="68" cy="30" r="1.2"/><circle cx="68" cy="48" r="1.2"/><circle cx="68" cy="66" r="1.2"/><circle cx="68" cy="84" r="1.2"/><circle cx="68" cy="102" r="1.2"/><circle cx="68" cy="120" r="1.2"/><circle cx="68" cy="138" r="1.2"/><circle cx="86" cy="12" r="1.2"/><circle cx="86" cy="30" r="1.2"/><circle cx="86" cy="48" r="1.2"/><circle cx="86" cy="66" r="1.2"/><circle cx="86" cy="84" r="1.2"/><circle cx="86" cy="102" r="1.2"/><circle cx="86" cy="120" r="1.2"/><circle cx="86" cy="138" r="1.2"/><circle cx="104" cy="12" r="1.2"/><circle cx="104" cy="30" r="1.2"/><circle cx="104" cy="48" r="1.2"/><circle cx="104" cy="66" r="1.2"/><circle cx="104" cy="84" r="1.2"/><circle cx="104" cy="102" r="1.2"/><circle cx="104" cy="120" r="1.2"/><circle cx="104" cy="138" r="1.2"/><circle cx="122" cy="12" r="1.2"/><circle cx="122" cy="30" r="1.2"/><circle cx="122" cy="48" r="1.2"/><circle cx="122" cy="66" r="1.2"/><circle cx="122" cy="84" r="1.2"/><circle cx="122" cy="102" r="1.2"/><circle cx="122" cy="120" r="1.2"/><circle cx="122" cy="138" r="1.2"/><circle cx="140" cy="12" r="1.2"/><circle cx="140" cy="30" r="1.2"/><circle cx="140" cy="48" r="1.2"/><circle cx="140" cy="66" r="1.2"/><circle cx="140" cy="84" r="1.2"/><circle cx="140" cy="102" r="1.2"/><circle cx="140" cy="120" r="1.2"/><circle cx="140" cy="138" r="1.2"/><circle cx="158" cy="12" r="1.2"/><circle cx="158" cy="30" r="1.2"/><circle cx="158" cy="48" r="1.2"/><circle cx="158" cy="66" r="1.2"/><circle cx="158" cy="84" r="1.2"/><circle cx="158" cy="102" r="1.2"/><circle cx="158" cy="120" r="1.2"/><circle cx="158" cy="138" r="1.2"/><circle cx="176" cy="12" r="1.2"/><circle cx="176" cy="30" r="1.2"/><circle cx="176" cy="48" r="1.2"/><circle cx="176" cy="66" r="1.2"/><circle cx="176" cy="84" r="1.2"/><circle cx="176" cy="102" r="1.2"/><circle cx="176" cy="120" r="1.2"/><circle cx="176" cy="138" r="1.2"/><circle cx="194" cy="12" r="1.2"/><circle cx="194" cy="30" r="1.2"/><circle cx="194" cy="48" r="1.2"/><circle cx="194" cy="66" r="1.2"/><circle cx="194" cy="84" r="1.2"/><circle cx="194" cy="102" r="1.2"/><circle cx="194" cy="120" r="1.2"/><circle cx="194" cy="138" r="1.2"/><circle cx="212" cy="12" r="1.2"/><circle cx="212" cy="30" r="1.2"/><circle cx="212" cy="48" r="1.2"/><circle cx="212" cy="66" r="1.2"/><circle cx="212" cy="84" r="1.2"/><circle cx="212" cy="102" r="1.2"/><circle cx="212" cy="120" r="1.2"/><circle cx="212" cy="138" r="1.2"/></g>
-      <circle cx="176" cy="44" r="46" fill="url(#gHeroGlow)" class="hled"/>
-      <path d="M34 100V56H86M118 56H166V66M182 66V104H34" fill="none" stroke="#C0392B" stroke-width="4" stroke-linecap="round"/><path d="M182 66V104H34" fill="none" stroke="#2B2F2D" stroke-width="4" stroke-linecap="round"/>
-      <path class="hflow" d="M34 100V56H86M118 56H166V66M182 66V104H34"/>
-      <rect x="14" y="96" width="40" height="30" rx="4" fill="#1F2321"/><path d="M14 106v-6a4 4 0 0 1 4-4h32a4 4 0 0 1 4 4v6z" fill="#B4572A"/><rect x="14" y="96" width="40" height="30" rx="4" fill="url(#gGloss)"/><text x="34" y="121" text-anchor="middle" font-family="Oxanium,sans-serif" font-weight="700" font-size="10" fill="#fff">9V</text>
-      <path d="M86 51q0-4 5-4h3q3 0 4 2h8q1-2 4-2h3q5 0 5 4v10q0 4-5 4h-3q-3 0-4-2h-8q-1 2-4 2h-3q-5 0-5-4z" fill="#E3C9A0"/><rect x="92" y="47" width="3" height="18" fill="#E67E22"/><rect x="99" y="49" width="3" height="14" fill="#E67E22"/><rect x="105" y="49" width="3" height="14" fill="#8B4513"/><rect x="112" y="47" width="2.5" height="18" fill="#C9A227"/><path d="M86 51q0-4 5-4h3q3 0 4 2h8q1-2 4-2h3q5 0 5 4v10q0 4-5 4h-3q-3 0-4-2h-8q-1 2-4 2h-3q-5 0-5-4z" fill="url(#gGloss)"/>
-      <path d="M163 66V44A13 13 0 0 1 189 44V66Z" fill="#FF6A4A" class="hled"/><circle cx="176" cy="46" r="11" fill="url(#gCore)" class="hled"/><path d="M167 63V45A9 9 0 0 1 173 36" stroke="#fff" stroke-opacity=".6" stroke-width="2.5" fill="none" stroke-linecap="round"/><rect x="160" y="64" width="32" height="4" rx="1" fill="#FF6A4A"/>
-      <rect x="76" y="80" width="56" height="20" rx="3" fill="#1E2321"/><rect x="76" y="80" width="56" height="9" rx="3" fill="#fff" opacity=".07"/><text x="104" y="94" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="7" fill="#B8C2BC">NE555</text><circle cx="126" cy="86" r="2" fill="#5CFF8A" class="hblink"/>
-    </svg>
+    <button class="heroimg" data-go="3d" aria-label="See a circuit in 3D"><img src="hero3d.webp" alt="3D car arena with concrete barriers, crates and a robot car" width="960" height="420"><span>🏎️ Drive it in 3D</span></button>
   </div>
   <div class="hgrid" id="hGrid"></div>
   <section class="panel settings" aria-label="Settings">
@@ -649,7 +672,7 @@ table.conn td{padding:6px;border-bottom:1px solid var(--line);vertical-align:top
     <div class="setrow"><span>Graphics</span><div class="chips" id="setGfx"><button class="chip" data-gfx="auto">Auto</button><button class="chip" data-gfx="high">High</button><button class="chip" data-gfx="lite">Smooth</button></div></div>
     <div class="setrow"><span>Workbench tips</span><button class="btn sm" id="setTips">Show again</button></div>
     <div class="setrow"><span>Progress (stars and best scores)</span><button class="btn sm danger" id="setReset">Reset</button></div>
-    <p class="ver">Circuit Arena 1.4 · works offline</p>
+    <p class="ver">Circuit Arena 1.5 · works offline</p>
     <p class="ver"><a href="../" style="color:var(--copper);font-weight:600;text-decoration:none">More free games at calmtype.life →</a> · <a href="projects/" style="color:var(--copper)">Project guides with code</a> · <a href="privacy/" style="color:var(--muted)">Privacy</a></p>
   </section>
 </section>
@@ -2138,7 +2161,7 @@ function thumb(type,props,cls){const d=PD[type];const p={id:0,type,on:type==='sw
     const [tx,ty,an]=s==='top'?[x,-10,'middle']:s==='bottom'?[x,y+18,'middle']:s==='left'?[x-10,y+3,'end']:[x+10,y+3,'start'];lab+=`<text x="${tx}" y="${ty}" text-anchor="${an}" class="plab">${n}</text>`});
   return `<svg class="${cls||'thumb'}" viewBox="-40 -26 ${d.w+80} ${d.h+52}" aria-hidden="true">${bodySVG(p)}${lab}${dots}</svg>`}
 let pCat='All',cCat='All';
-function setView(v){view=v;if(v==='home')renderHome();['home','play','build','projects','parts'].forEach(k=>{$('#v-'+k).hidden=k!==v});
+function setView(v){view=v;if(v!=='play'&&typeof v3d!=='undefined'&&v3d)set3D(false);if(v==='home')renderHome();['home','play','build','projects','parts'].forEach(k=>{$('#v-'+k).hidden=k!==v});
   document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected',t.dataset.view===v));$('.stats').hidden=v!=='play';
   if(v==='build')renderBuild();if(v==='projects'){$('#pDetail').hidden=true;$('#pList').hidden=false;renderProjects()}
   if(v==='parts'){$('#cDetail').hidden=true;$('#cList').hidden=false;renderParts()}
@@ -2725,8 +2748,22 @@ function drainBatteries(aw,dt){if(!aw)return;const scale=aw.scale;const hosts=S.
     hosts.forEach(hp=>{if(hp.st.charging&&S.netOf(b,'+')===S.netOf(hp,'BAT+'))soc+=HOSTS[PD[hp.type].host].rate*dt*scale/C});b.props.soc=clamp(soc,0,1)})}
 
 /* ---------- World rendering ---------- */
+const w3dBtn=xr=>`<g data-w3d style="cursor:pointer"><rect x="${xr-84}" y="${284}" width="72" height="28" rx="8" fill="#E3884B"/><text x="${xr-48}" y="${303}" text-anchor="middle" class="sc-txt" style="fill:#1a0f07;font-weight:700">🧊 3D</text></g>`;
 function hwTable(rows,x0){let g='';rows.forEach(([a,b],i)=>{const ok=b==='OK'||b==='ON'||b==='Yes';g+=`<text x="${x0}" y="${40+i*24}" class="sc-txt">${a}</text><text x="${x0+150}" y="${40+i*24}" class="sc-txt" style="fill:${ok?'var(--good)':b==='Burnt'?'var(--bad)':'var(--muted)'}">${b}</text>`});return g}
-function renderWorld(aw){const el=$('#world');if(!aw){el.setAttribute('hidden','');return}el.removeAttribute('hidden');const w=S.w;let g='';
+// Car arena and drone sky are drawn in 3D (real sky, scanned props) when WebGL works; the SVG stays as the fallback.
+var w3d=null,w3dBusy=false,w3dOff=false;try{w3dOff=store.get('circuitArena.world3d')==='off'}catch(e){}
+function world3D(aw){const box=$('#w3d');const want=!w3dOff&&!!aw&&(aw.type==='car'||aw.type==='drone');
+  if(!want){if(w3d){try{w3d.close()}catch(e){}w3d=null}if(!box.hidden)box.hidden=true;return false}
+  if(box.hidden)box.hidden=false;$('#world').setAttribute('hidden','');
+  if(!w3d&&!w3dBusy){w3dBusy=true;import('./arena3d.js').then(m=>{
+      w3d=m.open(box,{S,activeWorld,OBST,quality:store.get('circuitArena.w3dq')||undefined,
+        onQuality:q=>{try{store.set('circuitArena.w3dq',q)}catch(e){}},
+        onExit:()=>{w3dOff=true;try{store.set('circuitArena.world3d','off')}catch(e){}world3D(null)},
+        battery:()=>{const b=S.parts.find(p=>p.type==='battery');return b?Math.round((b.props.soc??1)*100):0}})})
+    .catch(()=>{w3dOff=true;box.hidden=true;flash('The 3D arena needs WebGL, which this device or browser does not support.')})
+    .finally(()=>{w3dBusy=false})}
+  return true}
+function renderWorld(aw){const el=$('#world');if(world3D(aw))return;if(!aw){el.setAttribute('hidden','');return}el.removeAttribute('hidden');const w=S.w;let g='';
   const narrow=isPhone()&&el.getBoundingClientRect().width<700;const VW=narrow?520:960;
   const HX=narrow?(aw.type==='car'?clamp(w.x-260,0,440):aw.type==='drone'?400:aw.type==='watch'?355:['cloud','bio','neuron'].includes(aw.type)?0:380):0;
   const bat=S.parts.find(p=>p.type==='battery');const soc=bat?Math.round((bat.props.soc??1)*100):0;
@@ -2739,7 +2776,8 @@ function renderWorld(aw){const el=$('#world');if(!aw){el.setAttribute('hidden','
       <rect x="-28" y="-16" width="56" height="32" rx="6" fill="${w.crash>0?'var(--bad)':'var(--copper)'}" stroke="var(--edge)"/><rect x="18" y="-12" width="6" height="24" rx="2" fill="${us?'var(--mod)':'#FFE07A'}"/></g>`;
     g+=`<rect x="${HX+8}" y="262" width="320" height="48" rx="6" fill="var(--panel)" opacity=".88"/><text x="${HX+16}" y="282" class="sc-txt">Speed ${(Math.abs(w.wl+w.wr)/2*1.4).toFixed(2)} m/s · driven ${w.odo.toFixed(1)} m · battery ${soc}%</text><text x="${HX+16}" y="302" class="sc-txt">No-crash streak ${w.clean.toFixed(1)} m${us?' · sensor '+Math.round(S.env.distance)+' cm':''}</text>`;
     if(w.crash>0)g+=`<text x="${w.x}" y="${w.y-34}" text-anchor="middle" class="sc-big" style="fill:var(--bad)">CRASH!</text>`;
-    if(!aw.auto)g+=`<text x="${HX+VW-16}" y="22" text-anchor="end" class="sc-txt">${narrow?'Drive from the Controls tab':'Drive with arrow keys or W A S D'}</text>`}
+    if(!aw.auto)g+=`<text x="${HX+VW-16}" y="22" text-anchor="end" class="sc-txt">${narrow?'Drive from the Controls tab':'Drive with arrow keys or W A S D'}</text>`;
+    g+=w3dBtn(HX+VW)}
   if(aw.type==='drone'){const y=270-w.alt/30*240;const bl=S.parts.filter(p=>p.type==='bldc');const spinning=bl.some(b=>b.st.on);const DX=narrow?HX+170:480,UX=narrow?HX+300:700,RX=narrow?HX+30:40;
     g=`<rect x="0" y="0" width="960" height="320" fill="var(--bench)"/><rect x="0" y="290" width="960" height="30" fill="var(--grid)"/>`;
     for(let m=0;m<=30;m+=5)g+=`<line x1="${RX}" y1="${270-m/30*240}" x2="${RX+12}" y2="${270-m/30*240}" stroke="var(--muted)"/><text x="${RX+16}" y="${274-m/30*240}" class="sc-txt">${m} m</text>`;
@@ -2752,7 +2790,7 @@ function renderWorld(aw){const el=$('#world');if(!aw){el.setAttribute('hidden','
       <text x="${UX}" y="50" class="sc-txt">Alt ${w.alt.toFixed(1)} m · ${w.vz>=0?'+':''}${w.vz.toFixed(1)} m/s</text>
       <text x="${UX}" y="66" class="sc-txt">Thrust ${Math.round(w.T||0)} g / weight ${Math.round(w.weight)} g</text>
       <text x="${UX}" y="82" class="sc-txt">T:W ${tw.toFixed(2)} ${tw<1?'(cannot lift)':tw<1.6?'(sluggish)':tw<2.5?'(good)':'(racer!)'}</text>
-      <text x="${UX}" y="98" class="sc-txt">Battery ${soc}%${w.ftime?' · ~'+w.ftime.toFixed(1)+' min flight':''}</text>`}
+      <text x="${UX}" y="98" class="sc-txt">Battery ${soc}%${w.ftime?' · ~'+w.ftime.toFixed(1)+' min flight':''}</text>`+w3dBtn(HX+VW)}
   if(aw.type==='phone'){const ph=S.parts.find(p=>p.type==='phone');const on=ph&&ph.st.on&&!ph.burnt;const hw=(ph&&ph.st.hw)||{};const boot=ph?ph.st.bootT||0:0;
     g=`<rect x="0" y="0" width="960" height="320" fill="var(--bench)"/><rect x="400" y="8" width="160" height="304" rx="22" fill="#1A1E25" stroke="var(--edge)" stroke-width="2"/><rect x="410" y="22" width="140" height="270" rx="10" fill="${on&&hw.DISP?'#0E1A2E':'#050607'}"/>`;
     if(on&&hw.DISP){if(boot<2)g+=`<text x="480" y="160" text-anchor="middle" class="sc-big" style="fill:#EEF4EF">ArenaOS</text><rect x="440" y="180" width="${80*boot/2}" height="3" fill="#EEF4EF"/>`;
@@ -2785,6 +2823,7 @@ function renderWorld(aw){const el=$('#world');if(!aw){el.setAttribute('hidden','
   setHTML(el,g);el.setAttribute('viewBox',`${HX} 0 ${VW} 320`)}
 $('#world').addEventListener('click',e=>{const ctl=e.target.closest('[data-ctl]');if(ctl&&S.cloud){const c=S.cloud.ctl[ctl.dataset.ctl];if(!c)return;
     if(c.type==='slider'){const sv=$('#world');const pt=sv.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;const q=pt.matrixTransform(sv.getScreenCTM().inverse());c.v=Math.round(c.min+clamp((q.x-+ctl.dataset.x0)/+ctl.dataset.w,0,1)*(c.max-c.min))}else c.v=c.v?0:1;SFX.wire();return}
+  if(e.target.closest('[data-w3d]')){w3dOff=false;try{store.set('circuitArena.world3d','on')}catch(err){}return}
   const a=e.target.closest('[data-app]');if(!a)return;if(a.dataset.app==='watch'){S.w.screen++;return}S.w.app=a.dataset.app==='home'?null:a.dataset.app;S.w.t=0});
 
 function cloudWorld(VW){const C=S.cloud||{send:{},ctl:{}};const esp=S.parts.find(p=>p.type==='esp32');const rt=(esp&&esp.rt)||{};const online=rt.wifiT!=null&&rt.t-rt.wifiT>1500;
@@ -3237,7 +3276,18 @@ function openAI(tab){$('#aiIdeas').innerHTML=AI_IDEAS.map(x=>`<button class="chi
 function aiBusy(btn,on){btn.disabled=on;btn.classList.toggle('aibusy',on)}
 // On small screens the answer sits below the fold: bring each new message into view (not every tick of the timer).
 new MutationObserver(()=>{const m=$('#aiMsg');if(!$('#aiModal').hidden&&m.textContent.trim()&&!/\(\d+ s\)$/.test(m.textContent))m.scrollIntoView({block:'nearest',behavior:'smooth'})}).observe($('#aiMsg'),{childList:true,characterData:true,subtree:true});
-$('#bAI').onclick=()=>openAI('build');$('#bAITop').onclick=()=>openAI('build');$('#aiClose').onclick=()=>{$('#aiModal').hidden=true};
+$('#bAI').onclick=()=>openAI('build');
+// 3D view: a live, lit 3D model of the bench. The 2D bench stays the editor; this view follows it.
+var v3d=null,v3dBusy=false;
+async function set3D(on){
+  if(v3dBusy)return;const box=$('#v3d'),b=$('#b3D');
+  if(!on){if(v3d){try{v3d.close()}catch(e){}v3d=null}box.hidden=true;b.setAttribute('aria-pressed','false');b.textContent='🧊 3D View';return}
+  v3dBusy=true;box.hidden=false;b.setAttribute('aria-pressed','true');b.textContent='✏️ 2D Edit';box.innerHTML='<div class="v3d-hint" style="top:50%;bottom:auto">Loading 3D…</div>';
+  try{const mod=await import('./bench3d.js');box.innerHTML='';
+    v3d=mod.open(box,{S,PD,portPos,wireKind,KEYPAD});SFX.wire&&SFX.wire()}
+  catch(e){box.hidden=true;b.setAttribute('aria-pressed','false');b.textContent='🧊 3D View';v3d=null;flash('3D view needs WebGL, which this device or browser does not support.')}
+  finally{v3dBusy=false}}
+$('#b3D').onclick=()=>set3D(!v3d);$('#bAITop').onclick=()=>openAI('build');$('#aiClose').onclick=()=>{$('#aiModal').hidden=true};
 document.querySelector('#aiModal').addEventListener('click',e=>{
   const pv=e.target.closest('[data-aiprov]');if(pv){aiProv=pv.dataset.aiprov;aiKeyUI();return}
   const kb=e.target.closest('[data-aikey]');if(kb){const a=kb.dataset.aikey;
@@ -3530,6 +3580,7 @@ function renderHome(){const done=LEVELS.filter(l=>best[l.id]).length,starsN=LEVE
   $('#hGrid').innerHTML=HOME_TILES.map(([k,d,t,sub])=>`<button class="htile" data-go="${k}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg><b>${t}</b><span>${sub}</span></button>`).join('');
   $('#setSound').setAttribute('aria-pressed',String(!muted));$('#setVib').setAttribute('aria-pressed',String(vibOn))}
 function goHome(k){const exByTitle=t=>EXAMPLES.findIndex(x=>x.id===t);
+  if(k==='3d'){w3dOff=false;try{store.set('circuitArena.world3d','on')}catch(e){}setView('play');loadLevel(SB);requestAnimationFrame(()=>{const sEl=$('#exSel');sEl.value=String(exByTitle('car'));sEl.dispatchEvent(new Event('change'))});return}
   if(k==='ai'){openAI('build');return}
   if(k==='continue'){setView('play');return}
   if(k==='search'){openPal();return}
@@ -3546,7 +3597,7 @@ $('#setTips').onclick=()=>{try{store.set('circuitArena.tips','1');store.set('cir
 let resetArm=0;$('#setReset').onclick=()=>{if(Date.now()-resetArm>3000){resetArm=Date.now();$('#setReset').textContent='Tap again to reset';setTimeout(()=>{$('#setReset').textContent='Reset'},3000);return}
   best={};saveBest();resetArm=0;$('#setReset').textContent='Reset';renderLevels();renderHome();flash('Progress reset.')};
 // Android back button (called by the native app): close the top layer, then go Home, then let the app exit
-window.CA={back(){if(document.body.classList.contains('creator')){setCreator(false);return true}for(const id of ['#palette','#icModal','#codeModal','#aiModal','#shareModal','#reportModal','#bioModal','#modal']){if(!$(id).hidden){$(id).hidden=true;return true}}
+window.CA={back(){const wf=$('#w3d.full');if(wf){wf.classList.remove('full');return true}if(v3d){if(!v3d.exitFull())set3D(false);return true}if(document.body.classList.contains('creator')){setCreator(false);return true}for(const id of ['#palette','#icModal','#codeModal','#aiModal','#shareModal','#reportModal','#bioModal','#modal']){if(!$(id).hidden){$(id).hidden=true;return true}}
   if(view==='projects'&&!$('#pDetail').hidden){$('#pDetail').hidden=true;$('#pList').hidden=false;return true}
   if(view==='parts'&&!$('#cDetail').hidden){$('#cDetail').hidden=true;$('#cList').hidden=false;return true}
   if(pending||sel){pending=null;sel=null;return true}
