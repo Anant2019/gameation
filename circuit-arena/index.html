@@ -3281,7 +3281,8 @@ function learnSteps(t,def){const inf=PARTINFO[t]||{},nm=i=>pnm(def.parts[i][0]),
   steps.push({k:'intro',title:`Learn the ${pnm(t)}`,text:(inf.d||'')+' You will build a small circuit with it, one step at a time.'});
   // power and the main part first, then the rest in the demo's order
   const order=def.parts.map((q,i)=>i).sort((a,b)=>(PD[def.parts[a][0]].cat==='Power'?0:def.parts[a][0]===t?1:2)-(PD[def.parts[b][0]].cat==='Power'?0:def.parts[b][0]===t?1:2));
-  order.forEach(i=>{const ty=def.parts[i][0],d=PD[ty];steps.push({k:'part',i,title:`Add ${article(pnm(ty))} ${pnm(ty)}`,
+  const cnt={},seenT={};def.parts.forEach(q=>cnt[q[0]]=(cnt[q[0]]||0)+1);
+  order.forEach(i=>{const ty=def.parts[i][0],d=PD[ty];seenT[ty]=(seenT[ty]||0)+1;steps.push({k:'part',i,title:`Add ${article(pnm(ty))} ${pnm(ty)}${cnt[ty]>1?` (${seenT[ty]} of ${cnt[ty]})`:''}`,
     text:`Tap <b>${esc(d.short||d.name)}</b> in the parts list${isPhone()?'':' (or drag it onto the bench)'}. ${esc(((PARTINFO[ty]||{}).d||'').split('. ')[0].replace(/\.$/,''))}.`})});
   (def.conns||[]).forEach(([i,pi,j,pj])=>{const m=((PARTINFO[def.parts[i][0]]||{}).p||{})[pi],n=((PARTINFO[def.parts[j][0]]||{}).p||{})[pj];
     steps.push({k:'wire',c:[i,pi,j,pj],title:`Wire ${nm(i)} ${pi} → ${nm(j)} ${pj}`,text:`Tap the glowing <b>${esc(pi)}</b> pin on the ${esc(nm(i))}, then the glowing <b>${esc(pj)}</b> pin on the ${esc(nm(j))}.${m||n?` <span class="dm">${esc([m&&pi+': '+m,n&&pj+': '+n].filter(Boolean).join(' · '))}</span>`:''}`})});
