@@ -60,7 +60,7 @@ function texBox(w, h, d, tex, sideColor, rough = .55) {
 // A PCB top: glossy solder mask, copper traces under the mask, vias, pads, silkscreen outlines, pin names and a label.
 // pins: optional [{n,x,z,side}] in board units so the silkscreen names sit next to each header pin.
 function pcbTex(color, W, D, label, seed = 1, sub = '', at = null, pins = null) {
-  const TW = 1024, TH = Math.max(128, Math.round(TW * D / W));
+  const TW = W > 1.4 ? 2048 : 1024, TH = Math.max(128, Math.round(TW * D / W));
   return canvasTex(TW, TH, (g, w, h) => {
     const px = w / W;
     g.fillStyle = color; g.fillRect(0, 0, w, h);
@@ -79,6 +79,10 @@ function pcbTex(color, W, D, label, seed = 1, sub = '', at = null, pins = null) 
       g.fillStyle = 'rgba(255,255,255,.7)'; g.font = `600 13px ${FONT}`; g.fillText(['R', 'C', 'U', 'D', 'L', 'Q'][i % 6] + (1 + Math.floor(r() * 30)), x, y - 4); }
     // mounting holes: gold ring, dark hole
     for (const [x, y] of [[18, 18], [w - 18, 18], [18, h - 18], [w - 18, h - 18]]) { g.fillStyle = '#d4bd72'; g.beginPath(); g.arc(x, y, 12, 0, 7); g.fill(); g.fillStyle = '#141414'; g.beginPath(); g.arc(x, y, 6.5, 0, 7); g.fill(); }
+    // plated through-hole pads: gold ring, dark hole, a bright solder dome
+    if (pins) for (const q of pins) { const x = (q.x / W + .5) * w, y = (q.z / D + .5) * h, R = Math.max(7, .045 * px);
+      g.fillStyle = '#d9bf6a'; g.beginPath(); g.arc(x, y, R, 0, 7); g.fill(); const sg = g.createRadialGradient(x - R * .3, y - R * .3, 1, x, y, R * .8); sg.addColorStop(0, '#f4f6f7'); sg.addColorStop(1, '#8d9396');
+      g.fillStyle = sg; g.beginPath(); g.arc(x, y, R * .72, 0, 7); g.fill(); }
     // pin names beside the headers
     if (pins) { g.fillStyle = 'rgba(255,255,255,.92)'; g.textAlign = 'center'; const fs = Math.max(11, Math.min(18, (w / Math.max(8, pins.length)) * .5)); g.font = `700 ${fs}px ${FONT}`;
       for (const q of pins) { const x = (q.x / W + .5) * w, y = (q.z / D + .5) * h; const off = 28;
@@ -181,6 +185,7 @@ function shieldTex(text, sub) { return canvasTex(512, 384, (g, w, h) => { g.fill
 function antennaTex() { return canvasTex(256, 128, (g, w, h) => { g.fillStyle = '#16191b'; g.fillRect(0, 0, w, h); g.strokeStyle = '#a8925a'; g.lineWidth = 7; g.beginPath(); g.moveTo(20, h - 14);
   for (let i = 0; i < 6; i++) { const x = 34 + i * 34; g.lineTo(x, h - 14); g.lineTo(x, 20); g.lineTo(x + 17, 20); g.lineTo(x + 17, h - 14); } g.stroke(); }, 'antenna'); }
 
+const MALE_BOARD = /^(nano|esp32|pico)$/, HDR_LIFT = .11;
 function boardModel(p, d, W, D) {
   const g = new THREE.Group(); const t = p.type, ps = portsLocal(d, W, D);
   const names = { arduino: ['UNO', 'ARDUINO'], nano: ['NANO', 'ARDUINO'], mega: ['MEGA 2560', 'ARDUINO'], rpi: ['Raspberry Pi 4 Model B', '© Raspberry Pi'], pi5: ['Raspberry Pi 5', '© Raspberry Pi'],
@@ -189,8 +194,8 @@ function boardModel(p, d, W, D) {
   const color = t === 'esp32' ? '#14181b' : d.sw;
   const labelAt = ard ? [.36, .62] : pi ? [.08, .62] : [.3, .62];
   g.add(pcbBox(W, D, pcbTex(color, W, D, names[0], p.id + 3, names[1], labelAt, ps), shade(color, .65)));
-  const female = t === 'arduino' || t === 'mega';
-  for (const side of ['top', 'bottom', 'left', 'right']) { const row = ps.filter(q => q.side === side).map(q => [q.x, q.z]); if (row.length) headerRow(g, row, female ? .085 : .07, female); }
+  const female = t === 'arduino' || t === 'mega', male = MALE_BOARD.test(t);
+  if (!male) for (const side of ['top', 'bottom', 'left', 'right']) { const row = ps.filter(q => q.side === side).map(q => [q.x, q.z]); if (row.length) headerRow(g, row, female ? .085 : .07, female); }
   const avoid = [];
   if (t === 'arduino' || t === 'mega') {
     usbB(g, -W / 2 + .14, -D * .2); avoid.push([-W / 2 + .14, -D * .2, .5, .42]);
@@ -229,6 +234,16 @@ function boardModel(p, d, W, D) {
     avoid.push([-W * .08, -D * .02, .4, .4], [W * .12, -D * .02, .3, .3], [W / 2 - .2, 0, .44, D], [-W * .2, D / 2 - .1, .5, .2]);
   }
   smdScatter(g, W, D, p.id + t.length, Math.round(W * D * 18), avoid);
+  if (male) {
+    // lift the board onto its pins: black plastic spacers under the board, long gold pins down to the bench, short tips and solder on top
+    g.children.forEach(c => { c.position.y += HDR_LIFT; });
+    for (const side of ['top', 'bottom']) { const row = ps.filter(q => q.side === side); if (!row.length) continue; const xs = row.map(q => q.x);
+      g.add(box(Math.max(...xs) - Math.min(...xs) + .1, .03, .09, mat('malehdr', () => std(0x141517, .5)), (Math.max(...xs) + Math.min(...xs)) / 2, HDR_LIFT - .03, row[0].z)); }
+    g.add(instances(new THREE.BoxGeometry(.016, HDR_LIFT + .04, .016), goldPin(), ps.map(q => [q.x, (HDR_LIFT + .04) / 2, q.z])));
+    // solder joints: a low shiny dome around each pin tip
+    const dome = new THREE.SphereGeometry(.027, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2); dome.scale(1, .55, 1);
+    g.add(instances(dome, mat('solder', () => std(0xd5d9dc, .18, 1)), ps.map(q => [q.x, HDR_LIFT + PCB, q.z])));
+  }
   return g;
 }
 
@@ -958,7 +973,7 @@ export function open(container, api) {
     const d = PD[A.p.type], pl = place.get(A.p.id) || { c: new THREE.Vector3(), lift: 0 };
     return new THREE.Vector3(pl.c.x + (A.q[1] - d.w / 2) / U, pinHeight(A) + pl.lift, pl.c.z + (A.q[2] - d.h / 2) / U);
   }
-  function pinHeight(A) { const d = PD[A.p.type]; return d.board || /^(ultrasonic|lcd|relay|driver|ldr|temp|pir)$/.test(A.p.type) || d.gen ? PCB + .085 + .02 : .1; }
+  function pinHeight(A) { const d = PD[A.p.type]; if (MALE_BOARD.test(A.p.type)) return HDR_LIFT + PCB + .05; return d.board || /^(ultrasonic|lcd|relay|driver|ldr|temp|pir)$/.test(A.p.type) || d.gen ? PCB + .085 + .02 : .1; }
   function sideDir(s) { return s === 'top' ? new THREE.Vector3(0, 0, -1) : s === 'bottom' ? new THREE.Vector3(0, 0, 1) : s === 'left' ? new THREE.Vector3(-1, 0, 0) : new THREE.Vector3(1, 0, 0); }
   function fitSun() {
     const r = Math.max(bounds.w, bounds.d) / 2 + 1.2;
@@ -988,14 +1003,14 @@ export function open(container, api) {
       if (p.b === 2 || p.sh) pan(dx, dy); else { want.theta -= dx * .0065; want.phi = Math.max(.02, Math.min(1.45, want.phi - dy * .0055)); }
     } else if (ptrs.size === 2) {
       const [a, b] = [...ptrs.values()]; const dist = Math.hypot(a.x - b.x, a.y - b.y), mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-      if (pinch) { want.r = Math.max(1.5, Math.min(40, want.r * pinch.dist / Math.max(1, dist))); pan((mid.x - pinch.mid.x), (mid.y - pinch.mid.y)); }
+      if (pinch) { want.r = Math.max(.45, Math.min(40, want.r * pinch.dist / Math.max(1, dist))); pan((mid.x - pinch.mid.x), (mid.y - pinch.mid.y)); }
       pinch = { dist, mid };
     }
   });
   const up = e => { ptrs.delete(e.pointerId); pinch = null; if (!ptrs.size) el.style.cursor = 'grab'; };
   el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
   el.addEventListener('contextmenu', e => e.preventDefault());
-  el.addEventListener('wheel', e => { e.preventDefault(); want.r = Math.max(1.5, Math.min(40, want.r * Math.exp(e.deltaY * .0012))); }, { passive: false });
+  el.addEventListener('wheel', e => { e.preventDefault(); want.r = Math.max(.45, Math.min(40, want.r * Math.exp(e.deltaY * .0012))); }, { passive: false });
   el.addEventListener('dblclick', () => fit());
   function pan(dx, dy) {
     const k = want.r * .0016; const right = new THREE.Vector3(Math.cos(want.theta), 0, -Math.sin(want.theta)); const fwd = new THREE.Vector3(Math.sin(want.theta), 0, Math.cos(want.theta));

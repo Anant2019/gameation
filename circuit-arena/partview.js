@@ -100,14 +100,14 @@ export function open(container, api) {
     turn.userData.tRot = turn.rotation.y + angDiff(ang, view.tYaw); idle = -4; if (spots[i].card.scrollIntoView && narrow) spots[i].card.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' }); }
   const angDiff = (a, b) => { let x = b - a; while (x > Math.PI) x -= 2 * Math.PI; while (x < -Math.PI) x += 2 * Math.PI; return x; };
   const ptrs = new Map(); let pinch = 0;
-  renderer.domElement.addEventListener('pointerdown', e => { ptrs.set(e.pointerId, [e.clientX, e.clientY]); renderer.domElement.setPointerCapture(e.pointerId); idle = -3; });
+  renderer.domElement.addEventListener('pointerdown', e => { ptrs.set(e.pointerId, [e.clientX, e.clientY]); try { renderer.domElement.setPointerCapture(e.pointerId); } catch (x) { } idle = -3; });
   renderer.domElement.addEventListener('pointermove', e => { const o = ptrs.get(e.pointerId); if (!o) return;
     if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; const d0 = Math.hypot(a[0] - b[0], a[1] - b[1]); ptrs.set(e.pointerId, [e.clientX, e.clientY]); const [c, f] = [...ptrs.values()]; const d1 = Math.hypot(c[0] - f[0], c[1] - f[1]);
-      if (pinch) view.tR = clamp(view.tR * d0 / Math.max(1, d1), 2.2, 12); pinch = 1; return; }
+      if (pinch) view.tR = clamp(view.tR * d0 / Math.max(1, d1), 1.1, 12); pinch = 1; return; }
     view.tYaw -= (e.clientX - o[0]) * .008; view.tPitch = clamp(view.tPitch + (e.clientY - o[1]) * .006, .08, 1.35); ptrs.set(e.pointerId, [e.clientX, e.clientY]); idle = -3; });
   const up = e => { ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch = 0; };
   renderer.domElement.addEventListener('pointerup', up); renderer.domElement.addEventListener('pointercancel', up);
-  renderer.domElement.addEventListener('wheel', e => { e.preventDefault(); view.tR = clamp(view.tR * (1 + Math.sign(e.deltaY) * .1), 2.2, 12); idle = -3; }, { passive: false });
+  renderer.domElement.addEventListener('wheel', e => { e.preventDefault(); view.tR = clamp(view.tR * (1 + Math.sign(e.deltaY) * .1), 1.1, 12); idle = -3; }, { passive: false });
   ui.querySelector('.pv-reset').addEventListener('click', () => { Object.assign(view, { tYaw: -.6, tPitch: .55, tR: R0 }); turn.userData.tRot = 0; active = -1; spots.forEach(s => { s.card.classList.remove('on'); s.dot.classList.remove('on'); }); });
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 

@@ -255,6 +255,26 @@ details.hint p{margin:6px 0 0;color:var(--muted)}
 .prop select,.prop input[type=number]{background:var(--bench);border:1px solid var(--line);border-radius:4px;padding:4px 6px;font-family:var(--f-mono);font-size:12px;min-width:0;max-width:100%}
 .prop input[type=number]{width:96px}
 .swatches{display:flex;flex-wrap:wrap;gap:7px}
+.coach{position:fixed;z-index:40;right:16px;bottom:16px;width:min(360px,calc(100vw - 32px));background:#fbfcfa;color:#18201c;border:1px solid #d9dfd8;border-radius:12px;padding:14px 16px 12px;box-shadow:0 14px 40px rgba(0,0,0,.35);font:500 14px/1.45 var(--sans,system-ui);animation:coachIn .25s ease-out}
+.coach[hidden]{display:none}
+@keyframes coachIn{from{transform:translateY(12px);opacity:0}}
+.coach .eyebrow{color:#2a7a6c;letter-spacing:.08em;font-size:11px}
+.coach-top{display:flex;justify-content:space-between;align-items:center}
+.coach-x{border:0;background:none;font-size:22px;line-height:1;color:#57605a;cursor:pointer;min-width:32px;min-height:32px}
+.coach h3{margin:4px 0 6px;font-size:17px;color:#111}
+.coach p{margin:0 0 10px;color:#2f3833}.coach .dm{display:block;margin-top:6px;color:#5d6a63;font-size:12.5px}
+.coach-turn{border:1px solid #cfe6df;background:#eef7f4;border-radius:8px;padding:7px 10px;font-weight:600;color:#2a7a6c;margin-bottom:10px}
+.coach-turn.ok{background:#e6f6ea;border-color:#9fd8ad;color:#1f8a3c;animation:coachOk .4s}
+@keyframes coachOk{50%{transform:scale(1.03)}}
+.coach-bar{height:4px;border-radius:2px;background:#e3e8e3;margin-bottom:10px;overflow:hidden}.coach-bar i{display:block;height:100%;background:#2a7a6c;transition:width .4s}
+.coach-row{display:flex;gap:8px;align-items:center}.coach-row span{flex:1}
+.coach .btn.sm{background:#fff;color:#18201c;border:1px solid #cfd6cf}.coach .btn.primary{background:#2a7a6c;border-color:#2a7a6c;color:#fff}
+.coach-hot{outline:2px solid #3fb950!important;outline-offset:2px;animation:hotPulse 1.2s infinite;position:relative;z-index:1}
+@keyframes hotPulse{50%{outline-color:transparent;box-shadow:0 0 0 6px rgba(63,185,80,.25)}}
+.port.coach{stroke:#3fb950;stroke-width:3.5;fill:#3fb950;animation:pinPulse 1s infinite}
+@keyframes pinPulse{50%{stroke-width:9;stroke-opacity:.35}}
+.learnbtn{border-color:#2a7a6c}
+@media (max-width:760px){.coach{left:8px;right:8px;width:auto;bottom:calc(70px + env(safe-area-inset-bottom,0px));padding:12px 14px 10px}.coach h3{font-size:16px}}
 #rulesPanel select,#rulesPanel input{min-height:32px}
 .pvwrap{padding:0;overflow:hidden}
 .pv{position:relative;height:520px;border-radius:12px;overflow:hidden;background:radial-gradient(ellipse at 50% 42%,#fff 0,#eff1ec 52%,#dde1d9 100%)}
@@ -706,7 +726,7 @@ table.conn td{padding:6px;border-bottom:1px solid var(--line);vertical-align:top
       <p class="eyebrow"><b class="newtag">NEW</b> Real 3D arena · Electronics · IoT · Neuroscience</p>
       <h2>Circuit Arena</h2>
       <p>Wire real parts, write code for chips, and watch robots, drones, phones and brain-controlled gadgets come alive.</p>
-      <div class="row"><button class="btn aihero" data-go="ai">✨ Build with AI</button><button class="btn v3d" data-go="3d">🏎️ 3D Arena</button><button class="btn primary" data-go="continue">Continue</button><button class="btn" data-go="sandbox">Open Sandbox</button><button class="btn" data-go="search">Search</button></div>
+      <div class="row"><button class="btn aihero" data-go="ai">✨ Build with AI</button><button class="btn v3d" data-go="3d">🏎️ 3D Arena</button><button class="btn learnbtn" data-go="learn">🎓 Learn</button><button class="btn primary" data-go="continue">Continue</button><button class="btn" data-go="sandbox">Open Sandbox</button><button class="btn" data-go="search">Search</button></div>
       <p class="hstats" id="hStats"></p>
     </div>
     <button class="heroimg" data-go="3d" aria-label="See a circuit in 3D"><img src="hero3d.webp" alt="3D car arena with concrete barriers, crates and a robot car" width="960" height="420"><span>🏎️ Drive it in 3D</span></button>
@@ -720,7 +740,7 @@ table.conn td{padding:6px;border-bottom:1px solid var(--line);vertical-align:top
     <div class="setrow"><span>Graphics</span><div class="chips" id="setGfx"><button class="chip" data-gfx="auto">Auto</button><button class="chip" data-gfx="high">High</button><button class="chip" data-gfx="lite">Smooth</button></div></div>
     <div class="setrow"><span>Workbench tips</span><button class="btn sm" id="setTips">Show again</button></div>
     <div class="setrow"><span>Progress (stars and best scores)</span><button class="btn sm danger" id="setReset">Reset</button></div>
-    <p class="ver">Circuit Arena 1.6 · works offline</p>
+    <p class="ver">Circuit Arena 1.7 · works offline</p>
     <p class="ver"><a href="../" style="color:var(--copper);font-weight:600;text-decoration:none">More free games at calmtype.life →</a> · <a href="projects/" style="color:var(--copper)">Project guides with code</a> · <a href="privacy/" style="color:var(--muted)">Privacy</a></p>
   </section>
 </section>
@@ -1082,7 +1102,7 @@ function buildFrom(def,wire,rules){S.parts=[];S.wires=[];S.nextId=1;sel=null;pen
   S.rules=rules?(def.rules||[]).map(r=>({...r})):[];return ids}
 function afterLoad(){fxBoot=true;S.demo=null;S.cloud={send:{},ctl:{}};S.t0=Date.now();S.tEnd=null;hist.length=0;$('#results').innerHTML='';$('#sbTools').hidden=!L().sandbox;
   resetWorld();S.wType=undefined;renderLevels();renderBin();renderMission();renderEnv();renderRules();insFor=-1;guideSig='';portraitLayout();requestAnimationFrame(fitCam)}
-function loadLevel(i){S.proj=null;S.inv=null;S.lvl=i;const l=LEVELS[i];
+function loadLevel(i){if(typeof closeLearn==='function'&&S.learn)closeLearn();S.proj=null;S.inv=null;S.lvl=i;const l=LEVELS[i];
   S.env={...ENV0};
   if(l.sandbox){buildFrom(EXAMPLES.find(e=>e.id==='555-blink')||EXAMPLES[0],true,true);S.sbWorld='auto'}
   else{buildFrom({parts:l.start},false,false);S.rules=Array.from({length:l.rules||0},blankRule)}
@@ -1641,7 +1661,7 @@ function renderBench(){
     const ring=S.demo&&S.demo.focus.includes(p.id)?`<rect class="demoring" x="-12" y="-12" width="${d.w+24}" height="${d.h+24}" rx="12"/>`:'';
     ps+=`<g data-part="${p.id}" transform="translate(${p.x} ${p.y})">${ring}${shadow}${isSel?`<rect class="selbox" x="-8" y="-8" width="${d.w+16}" height="${d.h+16}" rx="6"/>`:''}${bodySVG(p)}${p.burnt&&!OWN_BURN.has(p.type)?`<rect x="-2" y="-2" width="${d.w+4}" height="${d.h+4}" rx="7" fill="#140d0a" opacity=".42"/><ellipse cx="${d.w/2}" cy="${d.h/2}" rx="${(d.w*.48).toFixed(0)}" ry="${(d.h*.48).toFixed(0)}" fill="url(#gSoot)"/>`:''}${lab}${name}</g>`;
     d.ports.forEach(([n,x,y,k])=>{const key=p.id+':'+n;
-      ports+=`<g data-port="${key}"><circle class="phit" cx="${p.x+x}" cy="${p.y+y}" r="13"/><circle class="port k-${k}${pending===key?' act':''}" cx="${p.x+x}" cy="${p.y+y}" r="5.5"/></g>`});
+      ports+=`<g data-port="${key}"><circle class="phit" cx="${p.x+x}" cy="${p.y+y}" r="13"/><circle class="port k-${k}${pending===key?' act':''}${coachPins.has(key)?' coach':''}" cx="${p.x+x}" cy="${p.y+y}" r="5.5"/></g>`});
     if(p.st.msg){const t=p.st.msg,bw=t.length*6.2+14;const by=nameTop?p.y-36:p.y-28;
       bad+=`<g class="badge${p.st.warn&&!p.burnt?' warn':''}" transform="translate(${clamp(p.x+d.w/2-bw/2,2,W-bw-2)} ${Math.max(2,by)})"><rect width="${bw}" height="17" rx="8.5"/><text x="${bw/2}" y="12" text-anchor="middle">${esc(t)}</text></g>`}
     const cx=p.x+d.w/2,cy=p.y+Math.min(d.h/2,40);
@@ -1720,7 +1740,7 @@ function renderInspector(){const p=sel&&sel.kind==='part'?part(sel.id):null;insF
       <div class="prop"><label for="ins-r2">R2</label><input type="number" id="ins-r2" data-prop="r2" min="100" step="any" value="${pr.r2}"> Ω</div>
       <div class="prop"><label for="ins-c">C</label><select id="ins-c" data-prop="c">${cs.map(v=>`<option value="${v}"${Math.abs(v-pr.c)<1e-12?' selected':''}>${v>=1e-6?+(v*1e6).toFixed(1)+' µF':+(v*1e9).toFixed(0)+' nF'}</option>`).join('')}</select></div>`}}
   if(PD[p.type].prog)h+=`<div class="prop"><button class="btn primary" data-act="code">Edit code</button><span class="extra" style="margin:0">${p.type==='esp32'?'Arduino-style code with WiFi and cloud functions':'Write Arduino-style code for this chip'}</span></div>`;
-  h+=`<div class="prop">${p.type==='switch'?`<button class="btn sm" data-act="toggle">${p.on?'Turn OFF':'Turn ON'}</button>`:''}${p.burnt?'<button class="btn sm primary" data-act="repair">Replace part</button>':''}<button class="btn sm" data-act="dup">Duplicate</button><button class="btn sm" data-act="info">About this part</button><button class="btn sm" data-act="demo">▶ Demo</button></div>`;
+  h+=`<div class="prop">${p.type==='switch'?`<button class="btn sm" data-act="toggle">${p.on?'Turn OFF':'Turn ON'}</button>`:''}${p.burnt?'<button class="btn sm primary" data-act="repair">Replace part</button>':''}<button class="btn sm" data-act="dup">Duplicate</button><button class="btn sm" data-act="info">About this part</button><button class="btn sm" data-act="demo">▶ Demo</button><button class="btn sm learnbtn" data-act="learn">🎓 Learn how to use</button></div>`;
   $('#insProps').innerHTML=h;updateInspector()}
 function changeChip(p,t){if(!PD[t]||t===p.type)return;pushHist();const ports=new Set(PD[t].ports.map(q=>q[0]));
   S.wires=S.wires.filter(w=>w.every(k=>{const i=k.indexOf(':');return +k.slice(0,i)!==p.id||ports.has(k.slice(i+1))}));
@@ -1912,17 +1932,17 @@ svg.addEventListener('pointermove',e=>{if(ptrs.has(e.pointerId))ptrs.set(e.point
   if(panning){cam.x=panning.cx-(e.clientX-panning.sx)*panning.k;cam.y=panning.cy-(e.clientY-panning.sy)*panning.k;applyCam();return}
   const pt=svgPt(e);mouse=pt;
   hoverPort=!drag&&e.pointerType==='mouse'?nearestPort(pt,14):null;
-  if(drag){if(!drag.moved&&Math.hypot(pt.x-drag.sx,pt.y-drag.sy)>4){drag.moved=true;pushHist()}
+  if(drag){if(!drag.moved&&Math.hypot(pt.x-drag.sx,pt.y-drag.sy)>4){drag.moved=true;pushHist();snd('pick')}
     if(drag.moved){const d=PD[drag.p.type];drag.p.x=clamp(pt.x-drag.dx,4,W-d.w-4);drag.p.y=clamp(pt.y-drag.dy,22,BH-d.h-22)}}});
 svg.addEventListener('pointerleave',()=>{hoverPort=null});
 const ptrEnd=e=>{ptrs.delete(e.pointerId);if(ptrs.size<2)pinch=null;if(!ptrs.size)panning=null};
 svg.addEventListener('pointercancel',e=>{ptrEnd(e);drag=null;pendFromDown=false;if(pressed){pressed.on=false;pressed.kidx=0;pressed=null}});
 svg.addEventListener('pointerup',e=>{const wasPinch=!!pinch||ptrs.size>1;ptrEnd(e);if(wasPinch){drag=null;pendFromDown=false;return}
   if(pressed){pressed.on=false;pressed.kidx=0;pressed=null}
-  if(drag){if(!drag.moved&&drag.p.type==='switch'){pushHist();drag.p.on=!drag.p.on;insFor=-1}drag=null}
+  if(drag){if(!drag.moved&&drag.p.type==='switch'){pushHist();drag.p.on=!drag.p.on;insFor=-1;snd('snap')}if(drag.moved)snd('drop',{kg:PD[drag.p.type].kg});drag=null}
   if(pending&&pendFromDown){const nk=nearestPort(svgPt(e),e.pointerType==='mouse'?14:24);if(nk&&nk!==pending){addWire(pending,nk);pending=null}}
   pendFromDown=false});
-function removeSel(){if(!sel)return;pushHist();
+function removeSel(){if(!sel)return;pushHist();snd('remove');
   if(sel.kind==='wire')S.wires.splice(sel.i,1);
   else{const id=sel.id;S.parts=S.parts.filter(p=>p.id!==id);S.wires=S.wires.filter(([a,b])=>!a.startsWith(id+':')&&!b.startsWith(id+':'))}
   sel=null;onStructure()}
@@ -1938,7 +1958,7 @@ $('#bEmpty').onclick=()=>{pushHist();S.demo=null;renderMission();S.parts=[];S.wi
 $('#bSave').onclick=()=>{try{store.set('circuitArena.build',JSON.stringify({...JSON.parse(snap()),env:S.env,sbWorld:S.sbWorld}));flash('Build saved in this browser.')}catch(e){flash('Could not save in this browser.')}};
 $('#bLoad').onclick=()=>{let b=null;try{b=JSON.parse(store.get('circuitArena.build')||'null')}catch(e){}
   if(!b){flash('No saved build found.');return}pushHist();restore(b);S.env={...S.env,...(b.env||{})};S.sbWorld=b.sbWorld||'auto';renderEnv();fitCam();flash('Saved build loaded.')};
-$('#bin').addEventListener('click',e=>{const b=e.target.closest('[data-add]');if(!b)return;pushHist();const p=addPart(b.dataset.add);if(p){SFX.add();sel={kind:'part',id:p.id};onStructure();renderInspector()}});
+$('#bin').addEventListener('click',e=>{const b=e.target.closest('[data-add]');if(!b)return;pushHist();const p=addPart(b.dataset.add);if(p){SFX.add(PD[p.type].kg);sel={kind:'part',id:p.id};onStructure();renderInspector()}});
 $('#levels').addEventListener('click',e=>{const b=e.target.closest('[data-l]');if(b)loadLevel(+b.dataset.l)});
 $('#env').addEventListener('input',e=>{const k=e.target.dataset.env;if(!k)return;if(k==='throttle')FLY.mode='manual';S.env[k]=BOOLENV.has(k)?(e.target.checked?1:0):+e.target.value;syncEnv()});
 $('#env').addEventListener('pointerdown',e=>{const b=e.target.closest('[data-pad]');if(!b)return;const [k,v]=b.dataset.pad.split(':');S.env[k]=+v;syncEnv();cap(b,e.pointerId)});
@@ -2266,7 +2286,7 @@ function thumb(type,props,cls){const d=PD[type];const p={id:0,type,on:type==='sw
     const [tx,ty,an]=s==='top'?[x,-10,'middle']:s==='bottom'?[x,y+18,'middle']:s==='left'?[x-10,y+3,'end']:[x+10,y+3,'start'];lab+=`<text x="${tx}" y="${ty}" text-anchor="${an}" class="plab">${n}</text>`});
   return `<svg class="${cls||'thumb'}" viewBox="-40 -26 ${d.w+80} ${d.h+52}" aria-hidden="true">${bodySVG(p)}${lab}${dots}</svg>`}
 let pCat='All',cCat='All';
-function setView(v){view=v;if(v!=='play'&&typeof v3d!=='undefined'&&v3d)set3D(false);if(v!=='parts'&&typeof closePV==='function')closePV();if(v==='home')renderHome();['home','play','build','projects','parts'].forEach(k=>{$('#v-'+k).hidden=k!==v});
+function setView(v){view=v;if(typeof coachEl!=='undefined'&&coachEl)coachEl.hidden=v!=='play'||!S.learn;if(v!=='play'&&typeof v3d!=='undefined'&&v3d)set3D(false);if(v!=='parts'&&typeof closePV==='function')closePV();if(v==='home')renderHome();['home','play','build','projects','parts'].forEach(k=>{$('#v-'+k).hidden=k!==v});
   document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected',t.dataset.view===v));$('.stats').hidden=v!=='play';
   if(v==='build')renderBuild();if(v==='projects'){$('#pDetail').hidden=true;$('#pList').hidden=false;renderProjects()}
   if(v==='parts'){$('#cDetail').hidden=true;$('#cList').hidden=false;renderParts()}
@@ -2313,7 +2333,7 @@ function openPart(t){const d=PD[t],inf=PARTINFO[t];const used=PROJECTS.filter(p=
       <p class="eyebrow">Used in</p><p>${inf.u}</p>
       ${used.length?`<p class="eyebrow">Projects</p><div class="chips">${used.map(p=>`<button class="chip" data-gop="${p.id}">${p.title}</button>`).join('')}</div>`:''}
       ${demoFor(t)?`<p class="eyebrow">How to connect it</p><ul class="dlist">${demoLines(demoFor(t),t).join('')}</ul>`:''}
-      <div class="row">${demoFor(t)?`<button class="btn primary" data-demo="${t}">▶ Watch demo</button>`:''}<button class="btn${demoFor(t)?'':' primary'}" data-try="${t}">Try it in the Sandbox</button></div></section></div></div>`;
+      <div class="row">${demoFor(t)?`<button class="btn primary learnbtn" data-learn="${t}">🎓 Learn how to use</button><button class="btn" data-demo="${t}">▶ Watch demo</button>`:''}<button class="btn${demoFor(t)?'':' primary'}" data-try="${t}">Try it in the Sandbox</button></div></section></div></div>`;
   $('#cList').hidden=true;$('#cDetail').hidden=false;window.scrollTo(0,0);openPV(t)}
 // "Meet the part": the part as a turnable 3D model with numbered hotspots. The flat picture stays if WebGL is missing.
 var pv=null,pvSeq=0;
@@ -2322,6 +2342,7 @@ function openPV(t){const seq=++pvSeq;import('./partview.js').then(m=>{const box=
   try{pv=m.open(box,{type:t,PD,PARTINFO,KEYPAD})}catch(e){box.innerHTML=fb;box.classList.remove('pv');pv=null}}).catch(()=>{})}
 $('#cDetail').addEventListener('click',e=>{if(e.target.closest('#cBack')){closePV();$('#cDetail').hidden=true;$('#cList').hidden=false;return}
   const dm=e.target.closest('[data-demo]');if(dm){openDemo(dm.dataset.demo);return}
+  const ln=e.target.closest('[data-learn]');if(ln){openLearn(ln.dataset.learn);return}
   const g=e.target.closest('[data-gop]');if(g){setView('projects');openProject(g.dataset.gop);return}
   const tr=e.target.closest('[data-try]');if(tr){setView('play');if(!L().sandbox)loadLevel(SB);requestAnimationFrame(()=>{pushHist();const p=addPart(tr.dataset.try);if(p){sel={kind:'part',id:p.id};onStructure()}})}});
 
@@ -3087,9 +3108,26 @@ let actx=null,muted=false;try{muted=store.get('circuitArena.mute')==='1'}catch(e
 function tone(f,d,type,v,delay){if(muted)return;try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume();
   const t=actx.currentTime+(delay||0);const o=actx.createOscillator(),g=actx.createGain();o.type=type||'sine';o.frequency.setValueAtTime(f,t);
   g.gain.setValueAtTime(v||.05,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(actx.destination);o.start(t);o.stop(t+d+.03)}catch(e){}}
-const SFX={wire:()=>tone(880,.06,'square',.025),add:()=>tone(520,.08,'triangle',.05),pop:()=>{tone(150,.25,'sawtooth',.06);tone(70,.35,'square',.04,.04)},
+// Bench sounds made on the fly from filtered noise and short pitch drops (no audio files):
+// a part set down on the mat (heavier parts thud deeper), picked up, a wire clicking onto a pin, a part removed, a soft UI tick.
+let noiseBuf=null;
+function snd(kind,o={}){if(muted)return;try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume();const a=actx,t0=a.currentTime;
+  if(!noiseBuf){noiseBuf=a.createBuffer(1,Math.floor(a.sampleRate*.6),a.sampleRate);const d=noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1}
+  const out=a.createGain();out.gain.value=o.vol??1;out.connect(a.destination);
+  const noise=(f,q,dur,v,st=0,type='bandpass')=>{const s=a.createBufferSource();s.buffer=noiseBuf;const fl=a.createBiquadFilter();fl.type=type;fl.frequency.value=f;fl.Q.value=q;const g=a.createGain();const t=t0+st;
+    g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(v,t+.002);g.gain.exponentialRampToValueAtTime(.0001,t+dur);s.connect(fl);fl.connect(g);g.connect(out);s.start(t,Math.random()*.4);s.stop(t+dur+.03)};
+  const thump=(f0,f1,dur,v,st=0)=>{const os=a.createOscillator(),g=a.createGain();const t=t0+st;os.frequency.setValueAtTime(f0,t);os.frequency.exponentialRampToValueAtTime(f1,t+dur);
+    g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(v,t+.004);g.gain.exponentialRampToValueAtTime(.0001,t+dur);os.connect(g);g.connect(out);os.start(t);os.stop(t+dur+.03)};
+  const r=1+(Math.random()-.5)*.14;
+  if(kind==='drop'){const k=Math.min(1,(o.kg||8)/60);thump((170-k*70)*r,48,.1+k*.12,.2+k*.22);noise((2600-k*1200)*r,1.1,.045+k*.04,.18);noise(5600*r,3,.014,.07);if(k>.3)noise(900*r,.8,.09,.08,.012)}
+  else if(kind==='pick'){noise(3600*r,2.2,.028,.06);thump(380*r,520,.05,.03)}
+  else if(kind==='snap'){noise(4800*r,6,.011,.24);noise(3100*r,5,.016,.15,.038);thump(1300*r,700,.025,.04,.038)}
+  else if(kind==='remove'){noise(1600*r,.7,.14,.09,0,'lowpass');thump(320*r,110,.12,.06)}
+  else if(kind==='tick'){noise(6200*r,4,.009,.07)}
+  else if(kind==='step'){thump(660,660,.07,.05);thump(990,990,.12,.05,.07)}}catch(e){}}
+const SFX={wire:()=>snd('snap'),add:kg=>snd('drop',{kg}),pop:()=>{tone(150,.25,'sawtooth',.06);tone(70,.35,'square',.04,.04)},
   goal:()=>{tone(784,.1,'triangle',.05);tone(1175,.16,'triangle',.05,.09)},win:()=>[523,659,784,1047].forEach((f,i)=>tone(f,.2,'triangle',.06,i*.11))};
-function setMute(m){muted=m;$('#bSound').setAttribute('aria-pressed',String(!m));$('#bSound').setAttribute('aria-label',m?'Sound off':'Sound on');try{store.set('circuitArena.mute',m?'1':'0')}catch(e){}if(!m)SFX.add()}
+function setMute(m){muted=m;$('#bSound').setAttribute('aria-pressed',String(!m));$('#bSound').setAttribute('aria-label',m?'Sound off':'Sound on');try{store.set('circuitArena.mute',m?'1':'0')}catch(e){}if(!m)snd('tick')}
 $('#bSound').onclick=()=>setMute(!muted);setMute(muted);
 let burntCount=0;
 
@@ -3101,7 +3139,7 @@ function confetti(){if(REDUCED)return;const c=$('#fx');const ctx=c.getContext&&c
     if(t<130)requestAnimationFrame(step);else ctx.clearRect(0,0,c.width,c.height)})()}
 
 /* ---------- Search everything ---------- */
-function addPartAnywhere(type){setView('play');const go=()=>{pushHist();const p=addPart(type);if(p){SFX.add();sel={kind:'part',id:p.id};onStructure();flash(PD[type].name+' added to the bench.')}};
+function addPartAnywhere(type){setView('play');const go=()=>{pushHist();const p=addPart(type);if(p){SFX.add(PD[type].kg);sel={kind:'part',id:p.id};onStructure();flash(PD[type].name+' added to the bench.')}};
   if(!L().parts.includes(type)){loadLevel(SB);requestAnimationFrame(()=>requestAnimationFrame(go))}else requestAnimationFrame(go)}
 function palIndex(){const out=[];
   Object.keys(PD).forEach(t=>out.push({k:'Part',t:PD[t].name,s:PD[t].cat+' · ₹'+PD[t].cost,sw:PD[t].sw,hay:hayOf(t),run:()=>addPartAnywhere(t),info:t}));
@@ -3232,7 +3270,65 @@ function openDemo(t){const def=demoFor(t);if(!def){flash('No demo for this part 
 $('#mDemo').addEventListener('click',e=>{if(e.target.closest('[data-aidoctor]')){openAI('doctor');return}if(e.target.closest('[data-aiagain]')){openAI('build');return}
   const b=e.target.closest('[data-demoback]');if(b){setView('parts');openPart(b.dataset.demoback);return}
   const a=e.target.closest('[data-demoagain]');if(a)openDemo(a.dataset.demoagain)});
-$('#insProps').addEventListener('click',e=>{if(!e.target.closest('[data-act=demo]'))return;const p=sel&&sel.kind==='part'?part(sel.id):null;if(p)openDemo(p.type)});
+$('#insProps').addEventListener('click',e=>{const lb=e.target.closest('[data-act=learn]');if(lb){const p=sel&&sel.kind==='part'?part(sel.id):null;if(p)openLearn(p.type);return}if(!e.target.closest('[data-act=demo]'))return;const p=sel&&sel.kind==='part'?part(sel.id):null;if(p)openDemo(p.type)});
+/* ---------- Learn how to use: a step-by-step coach for any part ----------
+   Built from the part's demo circuit: add each part, make each connection, add the code, then try it.
+   Each step checks itself and moves on when it is done; "Show me" does the step for you. */
+var coachPins=new Set(),coachEl=null,coachT=0;
+// "an LED", "an ESP32", "a battery": by how the word sounds, not only its first letter
+const article=w=>/^([aeio]|LED|LDR|RC\b|RF|SG|MPU|MQ|FC\b|ESP|HC|NE5|L\d|F\d|8)/i.test(w)?'an':'a';
+function learnSteps(t,def){const inf=PARTINFO[t]||{},nm=i=>pnm(def.parts[i][0]),steps=[];
+  steps.push({k:'intro',title:`Learn the ${pnm(t)}`,text:(inf.d||'')+' You will build a small circuit with it, one step at a time.'});
+  // power and the main part first, then the rest in the demo's order
+  const order=def.parts.map((q,i)=>i).sort((a,b)=>(PD[def.parts[a][0]].cat==='Power'?0:def.parts[a][0]===t?1:2)-(PD[def.parts[b][0]].cat==='Power'?0:def.parts[b][0]===t?1:2));
+  order.forEach(i=>{const ty=def.parts[i][0],d=PD[ty];steps.push({k:'part',i,title:`Add ${article(pnm(ty))} ${pnm(ty)}`,
+    text:`Tap <b>${esc(d.short||d.name)}</b> in the parts list${isPhone()?'':' (or drag it onto the bench)'}. ${esc(((PARTINFO[ty]||{}).d||'').split('. ')[0].replace(/\.$/,''))}.`})});
+  (def.conns||[]).forEach(([i,pi,j,pj])=>{const m=((PARTINFO[def.parts[i][0]]||{}).p||{})[pi],n=((PARTINFO[def.parts[j][0]]||{}).p||{})[pj];
+    steps.push({k:'wire',c:[i,pi,j,pj],title:`Wire ${nm(i)} ${pi} → ${nm(j)} ${pj}`,text:`Tap the glowing <b>${esc(pi)}</b> pin on the ${esc(nm(i))}, then the glowing <b>${esc(pj)}</b> pin on the ${esc(nm(j))}.${m||n?` <span class="dm">${esc([m&&pi+': '+m,n&&pj+': '+n].filter(Boolean).join(' · '))}</span>`:''}`})});
+  if((def.rules||[]).length)steps.push({k:'code',title:'Add the code',text:`The board needs ${def.rules.length} rule${def.rules.length>1?'s':''} to know what to do. Open the <b>Code</b> panel and fill them in, or tap <b>Show me</b>.`});
+  steps.push({k:'try',title:'Try it',text:esc(def.try||'Your circuit is complete. Change values in the Part panel and watch what happens.')+(def.learn?`<span class="dm">${esc(def.learn)}</span>`:'')});
+  return steps}
+function openLearn(t){const def=demoFor(t);if(!def){flash('No lesson for this part yet.');return}
+  setView('play');loadLevel(SB);S.parts=[];S.wires=[];S.rules=[];S.nextId=1;sel=null;pending=null;S.demo=null;
+  S.env={...ENV0,...(def.envVals||{})};resetWorld();hist.length=0;onStructure();renderEnv();
+  S.learn={t,def,steps:learnSteps(t,def),i:0,map:{},doneAt:0};renderCoach();requestAnimationFrame(fitCam);snd('step')}
+function closeLearn(){S.learn=null;coachPins.clear();document.querySelectorAll('.coach-hot').forEach(e=>e.classList.remove('coach-hot'));if(coachEl)coachEl.hidden=true}
+// match the demo's parts to the parts on the bench, in the order they were added
+function learnMap(L){const used=new Set(Object.values(L.map));L.def.parts.forEach((q,i)=>{if(L.map[i]!=null&&part(L.map[i]))return;delete L.map[i];
+  const p=S.parts.find(p=>p.type===q[0]&&!used.has(p.id));if(p){L.map[i]=p.id;used.add(p.id)}})}
+function stepDone(L,st){learnMap(L);if(st.k==='part')return L.map[st.i]!=null;
+  if(st.k==='wire'){const [i,pi,j,pj]=st.c;return L.map[i]!=null&&L.map[j]!=null&&sameNet(L.map[i]+':'+pi,L.map[j]+':'+pj)}
+  if(st.k==='code'){const outs=[...new Set(L.def.rules.map(r=>r.out))];return outs.every(o=>S.rules.some(r=>r.out===o&&String(r.then).trim()!==''))}
+  return false}
+function showMe(){const L=S.learn;if(!L)return;const st=L.steps[L.i];learnMap(L);
+  if(st.k==='part'){const [ty,x,y,pr]=L.def.parts[st.i];pushHist();const p=addPart(ty,x,y,pr);if(p){L.map[st.i]=p.id;snd('drop',{kg:PD[ty].kg});onStructure();requestAnimationFrame(fitCam)}}
+  else if(st.k==='wire'){const [i,pi,j,pj]=st.c;if(L.map[i]==null||L.map[j]==null){flash('Add the parts first.');return}addWire(L.map[i]+':'+pi,L.map[j]+':'+pj)}
+  else if(st.k==='code'){S.rules=L.def.rules.map(r=>({...r}));renderRules();snd('snap')}
+  else coachGo(1)}
+function coachGo(d){const L=S.learn;if(!L)return;L.i=clamp(L.i+d,0,L.steps.length-1);L.doneAt=0;snd('tick');renderCoach()}
+function renderCoach(){const L=S.learn;if(!coachEl){coachEl=document.createElement('div');coachEl.id='coach';coachEl.className='coach';coachEl.setAttribute('role','dialog');coachEl.setAttribute('aria-live','polite');document.body.appendChild(coachEl);
+    coachEl.addEventListener('click',e=>{const b=e.target.closest('[data-coach]');if(!b)return;const a=b.dataset.coach;
+      if(a==='x')closeLearn();else if(a==='back')coachGo(-1);else if(a==='skip'||a==='start')coachGo(1);else if(a==='show')showMe();
+      else if(a==='finish'){try{store.set('circuitArena.learned.'+L.t,'1')}catch(e){}SFX.win();confetti();flash('Lesson complete: you can use the '+pnm(S.learn.t)+'!');closeLearn()}})}
+  if(!L){coachEl.hidden=true;return}const st=L.steps[L.i],n=L.steps.length,done=st.k!=='intro'&&st.k!=='try'&&stepDone(L,st);
+  coachEl.hidden=view!=='play';
+  coachEl.innerHTML=`<div class="coach-top"><span class="eyebrow">Learn · ${esc(pnm(L.t))} · step ${L.i+1} of ${n}</span><button class="coach-x" data-coach="x" aria-label="Close the lesson">×</button></div>
+    <h3>${esc(st.title)}</h3><p>${st.text}</p>
+    ${st.k==='intro'||st.k==='try'?'':`<div class="coach-turn${done?' ok':''}">${done?'✓ Done!':'👉 Your turn'}</div>`}
+    <div class="coach-bar"><i style="width:${Math.round((L.i+(done?1:0))/(n-1)*100)}%"></i></div>
+    <div class="coach-row">${L.i?'<button class="btn sm" data-coach="back">Back</button>':''}<span></span>
+      ${st.k==='intro'?'<button class="btn primary sm" data-coach="start">Start</button>':st.k==='try'?'<button class="btn primary sm" data-coach="finish">Finish</button>':`<button class="btn sm" data-coach="show">Show me</button><button class="btn sm" data-coach="skip">Skip</button>`}</div>`;
+  // point at the thing to tap: the part in the list, or the two pins on the bench
+  document.querySelectorAll('.coach-hot').forEach(e=>e.classList.remove('coach-hot'));coachPins.clear();
+  if(st.k==='part'&&!done){const b=document.querySelector(`#bin [data-add="${L.def.parts[st.i][0]}"]`);if(b){b.classList.add('coach-hot');b.scrollIntoView({block:'nearest',inline:'center',behavior:'smooth'})}}
+  if(st.k==='wire'&&!done){learnMap(L);const [i,pi,j,pj]=st.c;if(L.map[i]!=null)coachPins.add(L.map[i]+':'+pi);if(L.map[j]!=null)coachPins.add(L.map[j]+':'+pj)}
+  if(st.k==='code'&&!done&&isPhone())showSec('code');
+  L.sig=L.i+':'+done}
+// called from the frame loop: notices a finished step, celebrates it and moves on
+function coachTick(now){const L=S.learn;if(!L||now-coachT<250)return;coachT=now;if(coachEl&&coachEl.hidden!==(view!=='play'))coachEl.hidden=view!=='play';
+  const st=L.steps[L.i];const done=st.k!=='intro'&&st.k!=='try'&&stepDone(L,st);if(L.sig!==L.i+':'+done)renderCoach();
+  if(done){if(!L.doneAt){L.doneAt=now;snd('step')}else if(now-L.doneAt>900){L.i=Math.min(L.i+1,L.steps.length-1);L.doneAt=0;renderCoach()}}}
+
 
 /* ---------- AI: build with AI and the Circuit Doctor (premium, with free tries) ---------- */
 let aiPending=null;
@@ -3727,6 +3823,7 @@ function renderHome(){const done=LEVELS.filter(l=>best[l.id]).length,starsN=LEVE
 function goHome(k){const exByTitle=t=>EXAMPLES.findIndex(x=>x.id===t);
   if(k==='3d'){w3dOff=false;try{store.set('circuitArena.world3d','on')}catch(e){}setView('play');loadLevel(SB);requestAnimationFrame(()=>{const sEl=$('#exSel');sEl.value=String(exByTitle('car'));sEl.dispatchEvent(new Event('change'))});return}
   if(k==='ai'){openAI('build');return}
+  if(k==='learn'){openLearn('led');return}
   if(k==='continue'){setView('play');return}
   if(k==='search'){openPal();return}
   if(k==='levels'){setView('play');const i=LEVELS.findIndex((l,j)=>j<SB&&!best[l.id]);loadLevel(i<0?0:i);return}
@@ -3735,7 +3832,7 @@ function goHome(k){const exByTitle=t=>EXAMPLES.findIndex(x=>x.id===t);
   if(k==='iot'){setView('play');loadInvention(INVENTIONS.find(i=>i.id==='weather'));return}
   if(k==='neuro'){setView('play');loadInvention(INVENTIONS.find(i=>i.id==='neurons'));return}
   setView(k)}
-$('#v-home').addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(b){SFX.add();goHome(b.dataset.go)}});
+$('#v-home').addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(b){snd('tick');goHome(b.dataset.go)}});
 $('#setSound').onclick=()=>{setMute(!muted);renderHome()};
 $('#setVib').onclick=()=>{vibOn=!vibOn;try{store.set('circuitArena.vib',vibOn?'1':'0')}catch(e){}haptic(20);renderHome()};
 $('#setTips').onclick=()=>{try{store.set('circuitArena.tips','1');store.set('circuitArena.rot','1')}catch(e){}$('#tips').hidden=false;$('#rotTip').hidden=false;flash('Tips will show on the workbench.');setView('play')};
@@ -3751,7 +3848,7 @@ window.CA={back(){const wf=$('#w3d.full');if(wf){wf.classList.remove('full');ret
 let last=0;
 function frame(ts){requestAnimationFrame(frame);if(ts-last<33)return;last=ts;if(view!=='play')return;gfxTick(ts);
   const aw=activeWorld();const wt=aw?aw.type:null;if(wt!==S.wType){S.wType=wt;resetWorld();if(L().sandbox)renderEnv()}
-  S.time=(S.time||0)+1/30;renderGuide();worldPre(aw);runICs(1/30);simulate();
+  S.time=(S.time||0)+1/30;renderGuide();coachTick(ts);worldPre(aw);runICs(1/30);simulate();
   runChips(1/30);const spk=runNeurons(1/30);if(spk&&aw&&aw.type==='neuron')for(let k=0;k<Math.min(spk,4);k++)tone(2400,.012,'square',.02,k*.009);
   S.parts.forEach(q=>{if(q.type==='scope'){q.sc=q.sc||[];q.sc.push(q.st.v);if(q.sc.length>75)q.sc.shift()}});spin=(spin+12)%360;tick++;worldStep(aw,1/30);drainBatteries(aw,1/30);
   S.parts.forEach(p=>{if(p.type==='servo')p.st.angle+=(p.st.target-p.st.angle)*.25;
