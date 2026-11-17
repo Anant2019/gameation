@@ -36,23 +36,6 @@ function shade(hex, f) {
   c.setHSL(h.h, h.s, Math.max(0, Math.min(1, h.l * f))); return '#' + c.getHexString();
 }
 
-// A PCB top: solder mask colour, faint traces, mounting holes and silkscreen text.
-function pcbTex(color, W, D, label, seed = 1, sub = '', at = null) {
-  return canvasTex(512, Math.max(64, Math.round(512 * D / W)), (g, w, h) => {
-    g.fillStyle = color; g.fillRect(0, 0, w, h);
-    const r = (n => () => (n = (n * 9301 + 49297) % 233280) / 233280)(seed * 977);
-    g.strokeStyle = shade(color, 1.35); g.globalAlpha = .35; g.lineWidth = 3;
-    for (let i = 0; i < 14; i++) { g.beginPath(); let x = r() * w, y = r() * h; g.moveTo(x, y);
-      for (let k = 0; k < 3; k++) { if (r() < .5) x = r() * w; else y = r() * h; g.lineTo(x, y); } g.stroke(); }
-    g.globalAlpha = 1; g.fillStyle = '#d9c27a';
-    for (const [x, y] of [[14, 14], [w - 14, 14], [14, h - 14], [w - 14, h - 14]]) { g.beginPath(); g.arc(x, y, 9, 0, 7); g.fill();
-      g.fillStyle = '#111'; g.beginPath(); g.arc(x, y, 5, 0, 7); g.fill(); g.fillStyle = '#d9c27a'; }
-    if (label) { g.fillStyle = 'rgba(255,255,255,.88)'; const fs = Math.min(at ? 40 : 54, h * .2); g.font = `700 ${fs}px ${FONT}`;
-      if (at) { g.textAlign = 'left'; g.fillText(label, w * at[0], h * at[1]); } else { g.textAlign = 'center'; g.fillText(label, w / 2, h * .62); } }
-    if (sub) { g.fillStyle = 'rgba(255,255,255,.7)'; g.font = `600 ${Math.min(26, h * .12)}px ${FONT}`; g.textAlign = 'center'; g.fillText(sub, w / 2, h * .8); }
-  }, `pcb${color}${label}${sub}${W.toFixed(2)}${D.toFixed(2)}${at}`);
-}
-
 function labelTex(text, bg, fg = '#fff', w = 256, h = 64, size = 34) {
   return canvasTex(w, h, (g) => { g.fillStyle = bg; g.fillRect(0, 0, w, h); g.fillStyle = fg; g.font = `700 ${size}px ${FONT}`;
     g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(text, w / 2, h / 2 + 2); }, `lb${text}${bg}${fg}${w}${h}${size}`);
@@ -74,48 +57,209 @@ function texBox(w, h, d, tex, sideColor, rough = .55) {
   b.position.y = h / 2; b.castShadow = true; b.receiveShadow = true; return b;
 }
 
+// A PCB top: glossy solder mask, copper traces under the mask, vias, pads, silkscreen outlines, pin names and a label.
+// pins: optional [{n,x,z,side}] in board units so the silkscreen names sit next to each header pin.
+function pcbTex(color, W, D, label, seed = 1, sub = '', at = null, pins = null) {
+  const TW = 1024, TH = Math.max(128, Math.round(TW * D / W));
+  return canvasTex(TW, TH, (g, w, h) => {
+    const px = w / W;
+    g.fillStyle = color; g.fillRect(0, 0, w, h);
+    const r = (n => () => (n = (n * 9301 + 49297) % 233280) / 233280)(seed * 977 + 13);
+    // copper under the mask shows as slightly lighter lines with 45° bends
+    g.strokeStyle = shade(color, 1.28); g.lineCap = 'round'; g.lineJoin = 'round';
+    for (let i = 0; i < 46; i++) { g.lineWidth = [3, 4, 6, 9][Math.floor(r() * 4)]; g.globalAlpha = .55; g.beginPath();
+      let x = r() * w, y = r() * h; g.moveTo(x, y);
+      for (let k = 0; k < 3; k++) { const L = 30 + r() * 160, dir = Math.floor(r() * 8) * Math.PI / 4; x += Math.cos(dir) * L; y += Math.sin(dir) * L; g.lineTo(x, y); }
+      g.stroke(); g.globalAlpha = 1; g.fillStyle = '#c9b46a'; g.beginPath(); g.arc(x, y, 4.5, 0, 7); g.fill(); g.fillStyle = '#2a2a24'; g.beginPath(); g.arc(x, y, 2, 0, 7); g.fill(); }
+    // ground pour hatch near the edges
+    g.globalAlpha = .12; g.fillStyle = shade(color, 1.4); g.fillRect(0, 0, w, 10); g.fillRect(0, h - 10, w, 10); g.globalAlpha = 1;
+    // silkscreen boxes for parts that are not modelled
+    g.strokeStyle = 'rgba(255,255,255,.75)'; g.lineWidth = 2;
+    for (let i = 0; i < 7; i++) { const bw = 26 + r() * 50, bh = 14 + r() * 26, x = 60 + r() * (w - 160), y = 50 + r() * (h - 120); g.strokeRect(x, y, bw, bh);
+      g.fillStyle = 'rgba(255,255,255,.7)'; g.font = `600 13px ${FONT}`; g.fillText(['R', 'C', 'U', 'D', 'L', 'Q'][i % 6] + (1 + Math.floor(r() * 30)), x, y - 4); }
+    // mounting holes: gold ring, dark hole
+    for (const [x, y] of [[18, 18], [w - 18, 18], [18, h - 18], [w - 18, h - 18]]) { g.fillStyle = '#d4bd72'; g.beginPath(); g.arc(x, y, 12, 0, 7); g.fill(); g.fillStyle = '#141414'; g.beginPath(); g.arc(x, y, 6.5, 0, 7); g.fill(); }
+    // pin names beside the headers
+    if (pins) { g.fillStyle = 'rgba(255,255,255,.92)'; g.textAlign = 'center'; const fs = Math.max(11, Math.min(18, (w / Math.max(8, pins.length)) * .5)); g.font = `700 ${fs}px ${FONT}`;
+      for (const q of pins) { const x = (q.x / W + .5) * w, y = (q.z / D + .5) * h; const off = 28;
+        const ty = q.side === 'top' ? y + off + fs : q.side === 'bottom' ? y - off : y + fs * .35; const tx = q.side === 'left' ? x + off + 10 : q.side === 'right' ? x - off - 10 : x;
+        g.fillText(q.n.replace('GPIO', ''), tx, Math.max(fs, Math.min(h - 4, ty))); } }
+    g.textAlign = 'left';
+    if (label) { g.fillStyle = 'rgba(255,255,255,.92)'; const fs = Math.min(at ? 64 : 84, h * .18); g.font = `800 ${fs}px ${FONT}`;
+      if (at) g.fillText(label, w * at[0], h * at[1]); else { g.textAlign = 'center'; g.fillText(label, w / 2, h * .6); } }
+    if (sub) { g.fillStyle = 'rgba(255,255,255,.75)'; g.font = `600 ${Math.min(34, h * .1)}px ${FONT}`; g.textAlign = at ? 'left' : 'center'; g.fillText(sub, at ? w * at[0] : w / 2, at ? h * at[1] + 40 : h * .78); }
+  }, `pcb2${color}${label}${sub}${W.toFixed(2)}${D.toFixed(2)}${at}${pins ? pins.map(q => q.n).join('') : ''}`);
+}
+// A circuit board slab: glossy solder mask on top, darker edges.
+function pcbBox(w, d, tex, sideColor) {
+  const side = mat('pcbside' + sideColor, () => std(new THREE.Color(sideColor), .6));
+  const top = new THREE.MeshPhysicalMaterial({ map: tex, roughness: .55, clearcoat: .55, clearcoatRoughness: .25 });
+  const b = new THREE.Mesh(new THREE.BoxGeometry(w, PCB, d), [side, side, top, side, side, side]); b.position.y = PCB / 2; b.castShadow = true; b.receiveShadow = true; return b;
+}
+// Laser-etched chip top: dark epoxy, grey text, pin-1 dot.
+function chipTex(text, sub = '', w = 256, h = 256) {
+  return canvasTex(w, h, (g) => { g.fillStyle = '#17191b'; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 900; i++) { g.fillStyle = `rgba(255,255,255,${Math.random() * .025})`; g.fillRect(Math.random() * w, Math.random() * h, 2, 2); }
+    g.fillStyle = 'rgba(205,210,214,.82)'; g.textAlign = 'center'; g.font = `700 ${Math.min(44, w / Math.max(6, text.length) * 1.5)}px ${FONT}`; g.fillText(text, w / 2, h * .5);
+    if (sub) { g.font = `500 ${Math.min(26, w / 10)}px ${FONT}`; g.fillStyle = 'rgba(205,210,214,.6)'; g.fillText(sub, w / 2, h * .5 + 34); }
+    g.fillStyle = '#0c0d0e'; g.beginPath(); g.arc(w * .14, h * .2, Math.min(w, h) * .05, 0, 7); g.fill(); }, `chip${text}${sub}${w}${h}`);
+}
+const RNG = s => () => (s = (s * 9301 + 49297) % 233280) / 233280;
+// Many copies of one small mesh in a single draw call.
+function instances(geo, m, list) {
+  const im = new THREE.InstancedMesh(geo, m, list.length); const o = new THREE.Object3D();
+  list.forEach(([x, y, z, ry = 0], i) => { o.position.set(x, y, z); o.rotation.set(0, ry, 0); o.updateMatrix(); im.setMatrixAt(i, o.matrix); });
+  im.castShadow = true; im.receiveShadow = true; return im;
+}
+const goldPin = () => mat('goldpin', () => std(0xe2c06a, .25, 1));
+// Pin headers. Male: black base strip with square gold pins standing up. Female: a tall black socket with a hole per pin.
+function headerRow(g, pts, h = .085, female = false, y0 = PCB) {
+  if (!pts.length) return;
+  const xs = pts.map(p => p[0]), zs = pts.map(p => p[1]);
+  const horizontal = Math.max(...xs) - Math.min(...xs) >= Math.max(...zs) - Math.min(...zs);
+  const minX = Math.min(...xs) - .06, maxX = Math.max(...xs) + .06, minZ = Math.min(...zs) - .06, maxZ = Math.max(...zs) + .06;
+  const w = horizontal ? maxX - minX : .1, d = horizontal ? .1 : maxZ - minZ;
+  if (female) {
+    g.add(box(w, h, d, mat('femhdr', () => std(0x141517, .45)), (minX + maxX) / 2, y0, (minZ + maxZ) / 2));
+    g.add(instances(new THREE.BoxGeometry(.045, .004, .045), mat('hole', () => std(0x030303, .95)), pts.map(([x, z]) => [x, y0 + h + .001, z])));
+    g.add(instances(new THREE.BoxGeometry(.018, .004, .018), goldPin(), pts.map(([x, z]) => [x, y0 + h + .002, z])));
+  } else {
+    g.add(box(w, .028, d, mat('malehdr', () => std(0x141517, .5)), (minX + maxX) / 2, y0, (minZ + maxZ) / 2));
+    g.add(instances(new THREE.BoxGeometry(.016, h, .016), goldPin(), pts.map(([x, z]) => [x, y0 + h / 2, z])));
+  }
+}
+// Little surface-mount parts sprinkled over free board space (resistors, capacitors, SOT-23 transistors), avoiding the big parts.
+function smdScatter(g, W, D, seed, n, avoid = [], y0 = PCB) {
+  const r = RNG(seed * 131 + 7), res = [], cap = [], ends = [], sot = [];
+  const free = (x, z) => Math.abs(x) < W / 2 - .12 && Math.abs(z) < D / 2 - .16 && !avoid.some(([ax, az, aw, ad]) => Math.abs(x - ax) < aw / 2 + .04 && Math.abs(z - az) < ad / 2 + .04);
+  for (let i = 0, tries = 0; i < n && tries < n * 30; tries++) { const x = (r() - .5) * W, z = (r() - .5) * D; if (!free(x, z)) continue; i++;
+    const ry = r() < .5 ? 0 : Math.PI / 2, kind = r();
+    if (kind < .45) { res.push([x, y0 + .009, z, ry]); ends.push([x + Math.cos(ry) * .024, y0 + .009, z - Math.sin(ry) * .024, ry], [x - Math.cos(ry) * .024, y0 + .009, z + Math.sin(ry) * .024, ry]); }
+    else if (kind < .85) { cap.push([x, y0 + .011, z, ry]); ends.push([x + Math.cos(ry) * .024, y0 + .009, z - Math.sin(ry) * .024, ry], [x - Math.cos(ry) * .024, y0 + .009, z + Math.sin(ry) * .024, ry]); }
+    else sot.push([x, y0 + .012, z, ry]); }
+  if (res.length) g.add(instances(new THREE.BoxGeometry(.04, .018, .022), mat('smdres', () => std(0x141414, .5)), res));
+  if (cap.length) g.add(instances(new THREE.BoxGeometry(.04, .022, .022), mat('smdcap', () => std(0xb08a5a, .55)), cap));
+  if (ends.length) g.add(instances(new THREE.BoxGeometry(.01, .02, .024), mat('smdend', () => std(0xd8dcdf, .3, 1)), ends));
+  if (sot.length) g.add(instances(new THREE.BoxGeometry(.05, .024, .032), mat('sot', () => std(0x18191b, .5)), sot));
+}
+// Integrated circuits. qfp: square chip with gull-wing legs on four sides; dip: through-hole chip with bent legs on two sides.
+function qfp(g, x, z, s, text, sub = '', y0 = PCB, rot = 0) {
+  const c = new THREE.Group(); c.position.set(x, y0, z); c.rotation.y = rot; g.add(c);
+  const body = texBox(s, .03, s, chipTex(text, sub), 0x17191b, .5); body.position.y = .004; c.add(body);
+  const n = Math.max(4, Math.round(s / .03)), legs = [];
+  for (let i = 0; i < n; i++) { const t = (i + .5) / n * s * .86 - s * .43; legs.push([t, .006, s / 2 + .012, 0], [t, .006, -s / 2 - .012, 0], [s / 2 + .012, .006, t, Math.PI / 2], [-s / 2 - .012, .006, t, Math.PI / 2]); }
+  c.add(instances(new THREE.BoxGeometry(.01, .006, .026), metal(), legs)); return c;
+}
+function dip(g, x, z, len, wid, n, text, sub = '', y0 = PCB) {
+  const c = new THREE.Group(); c.position.set(x, y0, z); g.add(c);
+  const body = texBox(len, .07, wid, chipTex(text, sub, 512, 160), 0x17191b, .5); body.position.y = .03; c.add(body);
+  c.add(at(cyl(.025, .004, mat('notch', () => std(0x0b0b0b, .8)), 0, 0, 0, 16), -len / 2 + .045, .1, 0));
+  const legs = [], feet = []; for (let i = 0; i < n; i++) { const t = (i + .5) / n * len - len / 2; for (const s of [-1, 1]) { legs.push([t, .06, s * (wid / 2 + .012), 0]); feet.push([t, .02, s * (wid / 2 + .022), 0]); } }
+  c.add(instances(new THREE.BoxGeometry(.03, .012, .03), metal(), legs)); c.add(instances(new THREE.BoxGeometry(.016, .05, .01), metal(), feet)); return c;
+}
+// Connectors and small parts used on many boards.
+function usbB(g, x, z, rot = 0) { const c = new THREE.Group(); c.position.set(x, PCB, z); c.rotation.y = rot; g.add(c);
+  c.add(box(.42, .3, .36, mat('usbshell', () => std(0xd9dde0, .3, 1))));
+  const mouth = box(.012, .18, .22, mat('usbmouth', () => std(0x050505, .9)), -.21, .06, 0); c.add(mouth);
+  c.add(box(.014, .1, .1, plastic(0xf2f2ee), -.2, .1, 0)); return c; }
+function usbMicro(g, x, z, rot = 0, wide = .2) { const c = new THREE.Group(); c.position.set(x, PCB, z); c.rotation.y = rot; g.add(c);
+  c.add(box(.16, .06, wide, mat('usbshell', () => std(0xd9dde0, .3, 1)))); c.add(box(.012, .03, wide * .7, mat('usbmouth', () => std(0x050505, .9)), -.08, .015, 0)); return c; }
+function dcJack(g, x, z) { const c = new THREE.Group(); c.position.set(x, PCB, z); g.add(c);
+  c.add(box(.4, .26, .22, mat('jack', () => std(0x101112, .45))));
+  const hole = new THREE.Mesh(new THREE.CylinderGeometry(.07, .07, .02, 24), mat('hole', () => std(0x030303, .95))); hole.rotation.z = Math.PI / 2; hole.position.set(-.2, .13, 0); c.add(hole);
+  const pin = new THREE.Mesh(new THREE.CylinderGeometry(.02, .02, .03, 12), metal()); pin.rotation.z = Math.PI / 2; pin.position.set(-.205, .13, 0); c.add(pin); return c; }
+function crystal(g, x, z, y0 = PCB) { const c = new THREE.Mesh(new THREE.CapsuleGeometry(.04, .1, 6, 16), mat('xtal', () => std(0xdfe3e6, .25, 1))); c.rotation.z = Math.PI / 2; c.scale.set(1, 1, .45); c.position.set(x, y0 + .04, z); c.castShadow = true; g.add(c); }
+function tactile(g, x, z, cap = 0xd0362a, y0 = PCB) { g.add(box(.12, .04, .12, mat('tactbody', () => std(0xc8ccd0, .3, 1)), x, y0, z)); g.add(cyl(.035, .03, plastic(cap), x, y0 + .04, z, 20)); }
+function eCap(g, x, z, r = .06, h = .16, y0 = PCB) { const c = cyl(r, h, mat('ecap', () => std(0x1c1f24, .35, .2)), x, y0, z, 28); g.add(c);
+  g.add(cyl(r * .92, .004, mat('ecaptop', () => std(0xc9ced2, .3, 1)), x, y0 + h, z, 28)); g.add(box(r * 1.5, .006, .008, mat('ecapx', () => std(0x6e767c, .4, 1)), x, y0 + h + .003, z));
+  const st = new THREE.Mesh(new THREE.CylinderGeometry(r + .001, r + .001, h * .95, 28, 1, true, 0, .9), mat('ecapstripe', () => std(0xb8bec4, .4))); st.position.set(x, y0 + h / 2, z); g.add(st); }
+function smdLed(g, x, z, color, y0 = PCB) { const m = std(color, .3, 0, { emissive: color, emissiveIntensity: 1.6 }); g.add(box(.03, .016, .02, m, x, y0, z)); return m; }
+function shieldTex(text, sub) { return canvasTex(512, 384, (g, w, h) => { g.fillStyle = '#c8ccd0'; g.fillRect(0, 0, w, h);
+  for (let i = 0; i < 400; i++) { g.strokeStyle = `rgba(${Math.random() < .5 ? '255,255,255' : '90,95,100'},${Math.random() * .12})`; g.beginPath(); const y = Math.random() * h; g.moveTo(0, y); g.lineTo(w, y + Math.random() * 4 - 2); g.stroke(); }
+  g.fillStyle = 'rgba(60,64,68,.85)'; g.font = `700 46px ${FONT}`; g.textAlign = 'center'; g.fillText(text, w / 2, h * .42); g.font = `500 28px ${FONT}`; g.fillText(sub, w / 2, h * .58);
+  g.strokeStyle = 'rgba(60,64,68,.5)'; g.lineWidth = 3; g.strokeRect(14, 14, w - 28, h - 28); }, 'shield' + text); }
+function antennaTex() { return canvasTex(256, 128, (g, w, h) => { g.fillStyle = '#16191b'; g.fillRect(0, 0, w, h); g.strokeStyle = '#a8925a'; g.lineWidth = 7; g.beginPath(); g.moveTo(20, h - 14);
+  for (let i = 0; i < 6; i++) { const x = 34 + i * 34; g.lineTo(x, h - 14); g.lineTo(x, 20); g.lineTo(x + 17, 20); g.lineTo(x + 17, h - 14); } g.stroke(); }, 'antenna'); }
+
+function boardModel(p, d, W, D) {
+  const g = new THREE.Group(); const t = p.type, ps = portsLocal(d, W, D);
+  const names = { arduino: ['UNO', 'ARDUINO'], nano: ['NANO', 'ARDUINO'], mega: ['MEGA 2560', 'ARDUINO'], rpi: ['Raspberry Pi 4 Model B', '© Raspberry Pi'], pi5: ['Raspberry Pi 5', '© Raspberry Pi'],
+    pizero: ['Raspberry Pi Zero 2 W', ''], pico: ['Raspberry Pi Pico', '© 2020'], esp32: ['ESP32 DevKitC', 'WROOM-32'] }[t] || [d.name, ''];
+  const ard = /^(arduino|mega|nano)$/.test(t), pi = /^(rpi|pi5|pizero)$/.test(t);
+  const color = t === 'esp32' ? '#14181b' : d.sw;
+  const labelAt = ard ? [.36, .62] : pi ? [.08, .62] : [.3, .62];
+  g.add(pcbBox(W, D, pcbTex(color, W, D, names[0], p.id + 3, names[1], labelAt, ps), shade(color, .65)));
+  const female = t === 'arduino' || t === 'mega';
+  for (const side of ['top', 'bottom', 'left', 'right']) { const row = ps.filter(q => q.side === side).map(q => [q.x, q.z]); if (row.length) headerRow(g, row, female ? .085 : .07, female); }
+  const avoid = [];
+  if (t === 'arduino' || t === 'mega') {
+    usbB(g, -W / 2 + .14, -D * .2); avoid.push([-W / 2 + .14, -D * .2, .5, .42]);
+    dcJack(g, -W / 2 + .14, D * .27); avoid.push([-W / 2 + .14, D * .27, .46, .3]);
+    if (t === 'arduino') { dip(g, W * .2, D * .12, .72, .16, 14, 'ATMEGA328P', 'AU 1952'); avoid.push([W * .2, D * .12, .8, .3]); }
+    else { qfp(g, W * .12, D * .02, .3, 'ATMEGA2560', '16AU'); avoid.push([W * .12, D * .02, .4, .4]); }
+    qfp(g, -W * .2, -D * .2, .12, '16U2'); avoid.push([-W * .2, -D * .2, .18, .18]);
+    crystal(g, -W * .08, -D * .05); avoid.push([-W * .08, -D * .05, .22, .1]);
+    tactile(g, -W * .36, -D * .38); avoid.push([-W * .36, -D * .38, .16, .16]);
+    eCap(g, -W * .22, D * .3); eCap(g, -W * .1, D * .3); avoid.push([-W * .16, D * .3, .3, .16]);
+    g.add(box(.14, .05, .1, mat('reg', () => std(0x17191b, .5)), -W * .3, PCB, D * .1)); avoid.push([-W * .3, D * .1, .18, .14]);
+    headerRow(g, [[W * .45, -.05], [W * .45, .05], [W * .45 - .1, -.05], [W * .45 - .1, .05], [W * .45 - .2, -.05], [W * .45 - .2, .05]], .07); avoid.push([W * .4, 0, .3, .2]);
+    const leds = [smdLed(g, W * .02, -D * .3, 0xffc23a), smdLed(g, W * .02, -D * .24, 0xffc23a), smdLed(g, W * .02, -D * .18, 0xffc23a), smdLed(g, W * .3, -D * .3, 0x3cff6a)]; void leds;
+    avoid.push([W * .02, -D * .24, .1, .2], [W * .3, -D * .3, .08, .08]);
+  } else if (t === 'nano') {
+    usbMicro(g, -W / 2 + .08, 0, 0, .26); qfp(g, W * .05, 0, .22, 'ATMEGA328P', 'AU'); crystal(g, -W * .2, 0); tactile(g, W * .25, 0);
+    avoid.push([-W / 2 + .08, 0, .2, .3], [W * .05, 0, .3, .3], [-W * .2, 0, .2, .1], [W * .25, 0, .16, .16]);
+  } else if (t === 'esp32') {
+    // the WROOM module: its own little board, a brushed metal shield with etched text, and the meander PCB antenna
+    const mx = W * .08, mw = W * .62, md = D * .62;
+    g.add(at(pcbBox(mw, md, canvasTex(64, 64, (c, w, h) => { c.fillStyle = '#16191b'; c.fillRect(0, 0, w, h); }, 'modpcb'), '#101214'), mx, PCB, 0));
+    const sh = texBox(mw * .72, .05, md * .92, shieldTex('ESP32-WROOM-32', 'Wi-Fi + Bluetooth'), 0xc8ccd0, .3); sh.position.set(mx - mw * .12, PCB * 2, 0); sh.material.forEach?.(m => { m.metalness = .9; m.roughness = .3; }); g.add(sh);
+    g.add(at(texBox(mw * .24, .004, md * .9, antennaTex(), 0x16191b, .5), mx + mw * .36, PCB * 2, 0));
+    usbMicro(g, -W / 2 + .08, 0); tactile(g, -W * .36, -D * .3, 0x222222); tactile(g, -W * .36, D * .3, 0x222222);
+    g.add(box(.12, .05, .08, mat('reg', () => std(0x17191b, .5)), -W * .26, PCB, 0)); smdLed(g, -W * .22, D * .22, 0xff3030);
+    avoid.push([mx, 0, mw, md], [-W / 2 + .08, 0, .2, .26], [-W * .36, 0, .16, D]);
+  } else if (t === 'pico') {
+    usbMicro(g, -W / 2 + .08, 0); qfp(g, W * .02, 0, .2, 'RP2', 'B1'); g.add(box(.16, .03, .1, mat('flash', () => std(0x17191b, .5)), W * .2, PCB, 0)); tactile(g, -W * .22, -D * .1, 0xf2f2f2);
+    crystal(g, W * .12, D * .2); smdLed(g, -W * .3, D * .22, 0x3cff6a); avoid.push([-W / 2 + .08, 0, .2, .26], [W * .02, 0, .3, .3], [W * .2, 0, .2, .14], [-W * .22, -D * .1, .16, .16], [W * .12, D * .2, .2, .1]);
+  } else if (pi) {
+    g.add(at(box(.36, .03, .36, mat('soclid', () => std(0xb7bcc0, .35, 1))), -W * .08, PCB, -D * .02)); g.add(at(texBox(.3, .012, .3, chipTex(t === 'pi5' ? 'BCM2712' : 'BCM2711', 'Broadcom'), 0xb7bcc0, .3), -W * .08, PCB + .03, -D * .02));
+    qfp(g, W * .12, -D * .02, .22, 'LPDDR4', '4GB');
+    if (t !== 'pizero') { for (const z of [-D * .22, D * .2]) { g.add(box(.38, .3, .3, mat('usbshell', () => std(0xd9dde0, .3, 1)), W / 2 - .2, PCB, z)); g.add(box(.02, .16, .24, plastic(t === 'pi5' ? 0x2f6fd0 : 0x111111), W / 2 - .01, PCB + .07, z)); }
+      g.add(box(.2, .1, .14, mat('usbshell', () => std(0xd9dde0, .3, 1)), -W * .3, PCB, D / 2 - .08)); g.add(box(.14, .06, .1, mat('usbshell', () => std(0xd9dde0, .3, 1)), -W * .05, PCB, D / 2 - .06)); }
+    g.add(box(.2, .05, .06, plastic(0xf2f2ee), W * .02, PCB, D * .26));
+    avoid.push([-W * .08, -D * .02, .4, .4], [W * .12, -D * .02, .3, .3], [W / 2 - .2, 0, .44, D], [-W * .2, D / 2 - .1, .5, .2]);
+  }
+  smdScatter(g, W, D, p.id + t.length, Math.round(W * D * 18), avoid);
+  return g;
+}
+
+function dipModel(p, d, W, D, label) {
+  const g = new THREE.Group(); const ps = portsLocal(d, W, D);
+  const n = Math.max(4, Math.round(ps.length / 2)), bw = Math.min(W * .86, n * .1 + .06), bd = Math.min(D * .5, .3);
+  dip(g, 0, 0, bw, bd, n, label, '', .02);
+  for (const q of ps) g.add(box(.02, .08, .012, metal(), q.x, 0, q.z));
+  return g;
+}
+
+function moduleModel(p, d, W, D, opts = {}) {
+  // Sensor/module board: glossy PCB with traces and pin names, the sensor feature, a few SMD parts, a power LED and a male header.
+  const g = new THREE.Group(); const ps = portsLocal(d, W, D);
+  // real module boards are mostly blue or green; the part's UI swatch colour is only used when it is a plausible solder-mask colour
+  const lum = new THREE.Color(d.sw || '#2e7d4f').getHSL({}).l;
+  const c = opts.color || ({ pir: '#1e6b45', ldr: '#1f5fbf', temp: '#1f5fbf' }[p.type]) || (lum > .55 || lum < .12 ? (p.id % 2 ? '#1f5fbf' : '#1e6b45') : d.sw);
+  g.add(pcbBox(W, D, pcbTex(c, W, D, opts.label ?? (d.tag || d.short || d.name), p.id, '', null, ps), shade(c, .7)));
+  if (opts.feature) opts.feature(g);
+  smdScatter(g, W, D, p.id + 11, Math.max(3, Math.round(W * D * 10)), [[0, -D * .1, W * .55, D * .55]]);
+  smdLed(g, W / 2 - .1, -D / 2 + .1, 0xff3030);
+  headerRow(g, ps.map(q => [q.x, q.z]), .06);
+  return g;
+}
+
 // ---------- part models ----------
 // Every builder gets (p, d, W, D) with W×D the footprint in world units and returns a THREE.Group centred on the part.
 // Dynamic pieces are stored on group.userData so update() can move them.
 
-function headerRow(g, pts, h = .085) {
-  // A black plastic header with gold pins under every port of a board edge.
-  if (!pts.length) return;
-  const xs = pts.map(p => p[0]), zs = pts.map(p => p[1]);
-  const horizontal = Math.max(...xs) - Math.min(...xs) >= Math.max(...zs) - Math.min(...zs);
-  const minX = Math.min(...xs) - .07, maxX = Math.max(...xs) + .07, minZ = Math.min(...zs) - .07, maxZ = Math.max(...zs) + .07;
-  const w = horizontal ? maxX - minX : .1, d = horizontal ? .1 : maxZ - minZ;
-  g.add(box(w, h, d, black(), (minX + maxX) / 2, PCB, (minZ + maxZ) / 2));
-  for (const [x, z] of pts) { const s = box(.05, .012, .05, mat('hole', () => std(0x050505, .9)), x, PCB + h - .006, z); g.add(s); }
-}
-
 function portsLocal(d, W, D) {
   return d.ports.map(([n, x, y, k]) => ({ n, k, x: x / U - W / 2, z: y / U - D / 2, side: y === 0 ? 'top' : y === d.h ? 'bottom' : x === 0 ? 'left' : 'right' }));
-}
-
-function boardModel(p, d, W, D) {
-  const g = new THREE.Group();
-  const names = { arduino: 'ARDUINO UNO', nano: 'NANO', mega: 'ARDUINO MEGA 2560', rpi: 'Raspberry Pi 4', pi5: 'Raspberry Pi 5', pizero: 'Pi Zero 2 W', pico: 'Raspberry Pi Pico', esp32: 'ESP32 DevKit' };
-  const pb = texBox(W, PCB, D, pcbTex(d.sw, W, D, names[p.type] || d.name, p.id, '', [.08, .84]), shade(d.sw, .7));
-  g.add(pb);
-  const ps = portsLocal(d, W, D);
-  for (const side of ['top', 'bottom', 'left', 'right']) headerRow(g, ps.filter(q => q.side === side).map(q => [q.x, q.z]));
-  const isPi = /^(rpi|pi5|pizero)$/.test(p.type);
-  // main chip
-  const chip = texBox(Math.min(.62, W * .3), .045, Math.min(.36, D * .3), labelTex(isPi ? 'BCM2711' : p.type === 'esp32' ? 'ESP-WROOM-32' : p.type === 'pico' ? 'RP2040' : 'ATMEGA328P', '#1b1d1f', '#c9ccd0', 256, 96, 24), 0x1b1d1f, .4);
-  chip.position.set(W * .12, PCB + .0225, D * .05); g.add(chip);
-  if (p.type === 'esp32') { const can = box(Math.min(.7, W * .32), .03, Math.min(.5, D * .45), metal(), -W * .18, PCB, 0); g.add(can); }
-  if (isPi) {
-    const lid = box(.42, .03, .42, metal(), -W * .05, PCB + .045, 0); g.add(lid);
-    g.add(box(.36, .26, .3, metal(), W / 2 - .2, PCB, -D * .22)); g.add(box(.36, .26, .3, metal(), W / 2 - .2, PCB, D * .18));
-  } else if (/^(arduino|mega)$/.test(p.type)) {
-    g.add(box(.42, .28, .36, metal(), -W / 2 + .16, PCB, -D * .18));                         // USB-B
-    g.add(box(.36, .26, .22, black(), -W / 2 + .14, PCB, D * .28));                          // DC jack
-    g.add(cyl(.07, .14, mat('cap', () => std(0x2a2d30, .35, .3)), -W * .2, PCB, D * .25));   // capacitors
-    g.add(cyl(.07, .14, mat('cap', () => std(0x2a2d30, .35, .3)), -W * .28, PCB, D * .25));
-    g.add(box(.08, .03, .05, plastic(0x30ff70), W * .3, PCB, -D * .32));                      // ON LED
-  } else { g.add(box(.22, .1, .18, metal(), -W / 2 + .1, PCB, 0)); }                            // micro USB
-  return g;
 }
 
 function legs(g, pts, topY, m = metal()) {
@@ -125,7 +269,7 @@ function legs(g, pts, topY, m = metal()) {
 
 function ledModel(p, d, W, D) {
   const g = new THREE.Group(); const c = (d.props && p.props.color) || 'red';
-  const C = { red: 0xe5403a, green: 0x2e9e4a, yellow: 0xd8a820, blue: 0x2f62d8, white: 0xd8dce6 }[c] || 0xe5403a;
+  const C = { red: 0xe5403a, green: 0x2e9e4a, yellow: 0xd8a820, blue: 0x2f62d8, white: 0xd8dce6, orange: 0xe8741e, purple: 0x7e3fd0, pink: 0xe0559a }[c] || 0xe5403a;
   const ps = portsLocal(d, W, D);
   const cx = 0, cz = -D * .18, base = .2;
   legs(g, ps.map(q => [q.x, q.z, base + .01]), base);
@@ -141,55 +285,6 @@ function ledModel(p, d, W, D) {
 }
 
 const BANDC = ['#111', '#7A4A1E', '#C0392B', '#E67E22', '#F1C40F', '#27AE60', '#2E6FD0', '#8E44AD', '#8A8F8C', '#F4F4F4'];
-function resistorModel(p, d, W, D) {
-  const g = new THREE.Group(); const r = Math.max(1, +(p.props && p.props.r) || 330);
-  const e = Math.floor(Math.log10(r)) - 1; const sig = Math.round(r / 10 ** e); const b = [Math.floor(sig / 10) % 10, sig % 10, Math.max(0, e)];
-  // the capsule's texture runs along its length in v, so the bands are horizontal stripes
-  const tex = canvasTex(64, 256, (gc, w, h) => { gc.fillStyle = '#d9bf93'; gc.fillRect(0, 0, w, h);
-    [[.26, b[0]], [.37, b[1]], [.48, b[2]]].forEach(([y, v]) => { gc.fillStyle = BANDC[v]; gc.fillRect(0, y * h, w, h * .07); });
-    gc.fillStyle = '#C9A227'; gc.fillRect(0, .7 * h, w, h * .07); }, 'res' + b.join(''));
-  const m = new THREE.MeshStandardMaterial({ map: tex, roughness: .5 });
-  const body = new THREE.Mesh(new THREE.CapsuleGeometry(.065, W * .4, 6, 20), m);
-  body.position.set(0, .11, 0); body.castShadow = true;
-  body.rotation.set(0, 0, Math.PI / 2); g.add(body);   // CapsuleGeometry runs along Y: lay it along X
-  const ps = portsLocal(d, W, D);
-  for (const q of ps) { g.add(box(Math.abs(q.x) - W * .2, .014, .014, metal(), q.x / 2 + Math.sign(q.x) * W * .1, .1, q.z)); g.add(cyl(.009, .11, metal(), q.x, 0, q.z, 8)); }
-  return g;
-}
-
-function batteryModel(p, d, W, D) {
-  const g = new THREE.Group(); const pre = (p.props && p.props.preset) || '9V';
-  if (/AA/.test(pre)) {
-    g.add(box(W, .06, D * .9, plastic(0x1d1f22)));
-    const n = pre === '2AA' ? 2 : 1;
-    for (let i = 0; i < n; i++) { const z = (i - (n - 1) / 2) * .2; const c = new THREE.Mesh(new THREE.CylinderGeometry(.085, .085, W * .8, 28), plastic(0xd4502a));
-      c.rotation.z = Math.PI / 2; c.position.set(0, .15, z); c.castShadow = true; g.add(c); }
-  } else if (/usb|phone|watch|li|lipo/.test(pre)) {
-    const m = pre === 'usb' ? plastic(0xe9ecef) : plastic(0x2b5ea8);
-    const b = texBox(W * .95, .12, D * .85, labelTex(pre === 'usb' ? 'POWER BANK 5V' : (p.props.v || '') + 'V LiPo', pre === 'usb' ? '#e9ecef' : '#2b5ea8', pre === 'usb' ? '#333' : '#fff', 256, 128, 26), pre === 'usb' ? 0xe9ecef : 0x2b5ea8, .4);
-    g.add(b); void m;
-  } else {
-    // a 9 V block battery standing on its side with the snap on top
-    const tex = canvasTex(256, 160, (gc, w, h) => { const gr = gc.createLinearGradient(0, 0, w, 0); gr.addColorStop(0, '#1b1c1e'); gr.addColorStop(.62, '#2a2c2f'); gr.addColorStop(.62, '#c9a227'); gr.addColorStop(1, '#e2c060');
-      gc.fillStyle = gr; gc.fillRect(0, 0, w, h); gc.fillStyle = '#fff'; gc.font = `800 64px ${FONT}`; gc.textAlign = 'center'; gc.fillText((p.props.v || 9) + 'V', w * .32, h * .62); }, '9v' + (p.props && p.props.v));
-    g.add(texBox(W * .95, .32, D * .78, tex, 0x1b1c1e, .4));
-  }
-  const ps = portsLocal(d, W, D);
-  for (const q of ps) { const t = cyl(.035, .05, q.n === '+' ? metal() : darkMetal(), q.x, .32, q.z, 6); g.add(t); }
-  return g;
-}
-
-function dipModel(p, d, W, D, label) {
-  const g = new THREE.Group(); const ps = portsLocal(d, W, D);
-  const bw = W * .86, bd = Math.min(D * .5, .34);
-  const top = labelTex(label, '#1e2124', '#d6d9dc', 512, 160, 52);
-  const b = texBox(bw, .07, bd, top, 0x1e2124, .45); b.position.y = .05 + .035; g.add(b);
-  const notch = cyl(.03, .01, black(), -bw / 2 + .06, .12, 0, 16); g.add(notch);
-  for (const q of ps) { const sz = Math.sign(q.z) * bd / 2; const l = box(.035, .01, Math.abs(q.z - sz), metal(), q.x, .08, (q.z + sz) / 2); g.add(l);
-    g.add(box(.02, .08, .012, metal(), q.x, 0, q.z)); }
-  return g;
-}
-
 function servoModel(p, d, W, D) {
   const g = new THREE.Group(); const bw = W * .7, bd = D * .72;
   const body = texBox(bw, .26, bd, labelTex('SG90', '#2457a4', '#fff', 256, 128, 44), 0x2457a4, .45); body.position.x = W * .1; g.add(body);
@@ -207,7 +302,7 @@ function servoModel(p, d, W, D) {
 
 function ultrasonicModel(p, d, W, D) {
   const g = new THREE.Group();
-  g.add(texBox(W, PCB, D * .8, pcbTex('#1f5fbf', W, D * .8, 'HC-SR04', p.id), 0x194f9e));
+  g.add(pcbBox(W, D * .8, pcbTex('#1f5fbf', W, D * .8, 'HC-SR04', p.id), 0x194f9e));
   const can = x => { const c = cyl(.16, .2, metal(), x, PCB, -D * .05, 32); g.add(c);
     const mesh = cyl(.13, .005, mat('mesh', () => std(0x2a2a2a, .9)), x, PCB + .2, -D * .05, 32); g.add(mesh); };
   can(-W * .28); can(W * .28);
@@ -216,18 +311,9 @@ function ultrasonicModel(p, d, W, D) {
   return g;
 }
 
-function moduleModel(p, d, W, D, opts = {}) {
-  // Generic sensor/module: coloured PCB, a feature on top and the pin header.
-  const g = new THREE.Group(); const c = opts.color || d.sw || '#2e7d4f';
-  g.add(texBox(W, PCB, D, pcbTex(c, W, D, opts.label ?? (d.tag || d.short || d.name), p.id), shade(c, .7)));
-  if (opts.feature) opts.feature(g);
-  headerRow(g, portsLocal(d, W, D).map(q => [q.x, q.z]), .06);
-  return g;
-}
-
 function lcdModel(p, d, W, D) {
   const g = new THREE.Group();
-  g.add(texBox(W, PCB, D, pcbTex('#2e7d4f', W, D, '', p.id), 0x245f3d));
+  g.add(pcbBox(W, D, pcbTex('#2e7d4f', W, D, '', p.id), 0x245f3d));
   g.add(box(W * .9, .05, D * .66, black(), 0, PCB, -D * .06));
   const c = document.createElement('canvas'); c.width = 512; c.height = 128;
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
@@ -284,29 +370,6 @@ function fanModel(p, d, W, D) {
   for (let i = 0; i < 5; i++) { const b = new THREE.Mesh(new THREE.BoxGeometry(s * .38, .012, .1), plastic(0x4e5b63));
     b.position.set(Math.cos(i * 1.2566) * s * .2, 0, Math.sin(i * 1.2566) * s * .2); b.rotation.y = -i * 1.2566; b.rotation.x = .35; b.castShadow = true; rot.add(b); }
   g.add(rot); g.userData.spin = rot; return g;
-}
-
-function motorModel(p, d, W, D) {
-  const g = new THREE.Group();
-  const can = new THREE.Mesh(new THREE.CylinderGeometry(.22, .22, .42, 32), metal()); can.rotation.x = Math.PI / 2; can.position.set(0, .23, -D * .1); can.castShadow = true; g.add(can);
-  const cap = new THREE.Mesh(new THREE.CylinderGeometry(.2, .2, .05, 32), plastic(0xc0392b)); cap.rotation.x = Math.PI / 2; cap.position.set(0, .23, -D * .1 + .23); g.add(cap);
-  const rot = new THREE.Group(); rot.position.set(0, .23, -D * .1 - .27);
-  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(.015, .015, .12, 10), metal()); shaft.rotation.x = Math.PI / 2; rot.add(shaft);
-  const prop = new THREE.Mesh(new THREE.BoxGeometry(.5, .05, .012), plastic(0xf2a33a)); prop.position.z = -.06; prop.castShadow = true; rot.add(prop);
-  g.add(rot); g.userData.spinZ = rot;
-  for (const q of portsLocal(d, W, D)) g.add(cyl(.012, .1, gold(), q.x, 0, q.z, 8));
-  return g;
-}
-
-function bulbModel(p, d, W, D) {
-  const g = new THREE.Group();
-  g.add(box(W * .9, .03, D * .4, plastic(0x2e7d4f), 0, 0, D * .25));
-  g.add(cyl(.09, .14, metal(), 0, 0, -D * .1, 24));
-  const m = new THREE.MeshPhysicalMaterial({ color: 0xfff6d8, roughness: .05, transparent: true, opacity: .55, emissive: 0xffd36a, emissiveIntensity: 0, clearcoat: 1 });
-  const glass = new THREE.Mesh(new THREE.SphereGeometry(.2, 32, 20), m); glass.position.set(0, .34, -D * .1); glass.castShadow = true; g.add(glass);
-  const fil = cyl(.012, .1, mat('fil', () => std(0x888888, .4, 1, { emissive: 0xff9a2a, emissiveIntensity: 0 })), 0, .26, -D * .1, 6); g.add(fil);
-  g.userData.glow = { mat: m, color: 0xffd36a, pos: new THREE.Vector3(0, .36, -D * .1), kind: 'bulb', fil: fil.material };
-  return g;
 }
 
 function alarmModel(p, d, W, D) {
@@ -376,7 +439,7 @@ function dynamoModel(p, d, W, D) {
 }
 
 function driverModel(p, d, W, D) {
-  const g = new THREE.Group(); g.add(texBox(W, PCB, D, pcbTex('#b3262c', W, D, 'L298N', p.id), 0x8a1d22));
+  const g = new THREE.Group(); g.add(pcbBox(W, D, pcbTex('#b3262c', W, D, 'L298N', p.id), 0x8a1d22));
   const hs = new THREE.Group(); hs.position.set(0, PCB, -D * .05);
   for (let i = 0; i < 9; i++) hs.add(box(.025, .34, .5, darkMetal(), -.2 + i * .05, 0, 0)); g.add(hs);
   for (const q of portsLocal(d, W, D)) g.add(box(.12, .1, .12, plastic(0x2a74c9), q.x - Math.sign(q.x) * (q.side === 'left' || q.side === 'right' ? .07 : 0), PCB, q.z - (q.side === 'top' ? -.07 : 0)));
@@ -391,7 +454,10 @@ function sensorFeature(type) {
   return g => {
     if (type === 'ldr') { g.add(cyl(.06, .03, plastic(0xc97a3a), 0, PCB, -.06, 20)); }
     else if (type === 'temp') { g.add(texBox(.3, .14, .36, canvasTex(128, 128, (c, w, h) => { c.fillStyle = '#4fa3d8'; c.fillRect(0, 0, w, h); c.fillStyle = '#2b6f9e'; for (let y = 0; y < 6; y++) for (let x = 0; x < 5; x++) c.fillRect(10 + x * 23, 10 + y * 19, 14, 10); }, 'dht'), 0x4fa3d8)); }
-    else if (type === 'pir') { const dome = new THREE.Mesh(new THREE.SphereGeometry(.2, 28, 14, 0, Math.PI * 2, 0, Math.PI / 2), mat('fresnel', () => std(0xf4f4f0, .7))); dome.position.y = PCB + .03; dome.castShadow = true; g.add(dome); g.add(box(.42, .03, .42, plastic(0xf4f4f0), 0, PCB, 0)); }
+    else if (type === 'pir') { const dome = new THREE.Mesh(new THREE.SphereGeometry(.2, 40, 20, 0, Math.PI * 2, 0, Math.PI / 2), mat('fresnel', () => { const t = canvasTex(256, 256, (c, w, h) => { c.fillStyle = '#f4f3ee'; c.fillRect(0, 0, w, h);
+      // the faceted Fresnel lens: a grid of small cells, each with its own shading
+      for (let y = 0; y < 8; y++) for (let x = 0; x < 16; x++) { const v = 205 + Math.floor(Math.random() * 40); c.fillStyle = `rgb(${v},${v},${v - 6})`; c.fillRect(x * 16 + 1, y * 32 + 1, 14, 30); } }, 'fresnelT');
+      return new THREE.MeshPhysicalMaterial({ map: t, bumpMap: t, bumpScale: 2, roughness: .55, transmission: 0, sheen: .3, color: 0xffffff }); })); dome.position.y = PCB + .03; dome.castShadow = true; g.add(dome); g.add(box(.42, .03, .42, plastic(0xf4f4f0), 0, PCB, 0)); }
     else if (type === 'gas' || type === 'flame' || type === 'sound') { g.add(cyl(.12, .16, metal(), -.08, PCB, -.04, 24)); g.add(cyl(.1, .005, mat('mesh', () => std(0x2a2a2a, .9)), -.08, PCB + .16, -.04, 24)); }
     else { g.add(box(.16, .05, .16, black(), -.1, PCB, -.04)); }
     g.add(cyl(.04, .03, plastic(0x2457a4), .14, PCB, -.06, 16));
@@ -406,6 +472,278 @@ function lm35Model(p, d, W, D) {
   return g;
 }
 
+// ---------- realistic models for power, lights, motors and drone parts ----------
+// A rounded block (battery packs, chargers, pouches): a rounded rectangle extruded upwards with soft bevelled edges.
+function roundBlock(w, h, d, r, m, bv = .014) {
+  const s = new THREE.Shape(), x = -w / 2 + bv, y = -d / 2 + bv, a = w - 2 * bv, b = d - 2 * bv, k = Math.min(r, a / 2, b / 2);
+  s.moveTo(x + k, y); s.lineTo(x + a - k, y); s.quadraticCurveTo(x + a, y, x + a, y + k); s.lineTo(x + a, y + b - k); s.quadraticCurveTo(x + a, y + b, x + a - k, y + b);
+  s.lineTo(x + k, y + b); s.quadraticCurveTo(x, y + b, x, y + b - k); s.lineTo(x, y + k); s.quadraticCurveTo(x, y, x + k, y);
+  const geo = new THREE.ExtrudeGeometry(s, { depth: Math.max(.002, h - 2 * bv), bevelEnabled: true, bevelThickness: bv, bevelSize: bv, bevelSegments: 3, curveSegments: 10 });
+  geo.rotateX(-Math.PI / 2); geo.translate(0, bv, 0);
+  const o = new THREE.Mesh(geo, m); o.castShadow = true; o.receiveShadow = true; return o;
+}
+// A printed label lying on top of a part.
+function decal(w, d, tex, y, x = 0, z = 0, rough = .45) {
+  const o = new THREE.Mesh(new THREE.PlaneGeometry(w, d), new THREE.MeshStandardMaterial({ map: tex, roughness: rough }));
+  o.rotation.x = -Math.PI / 2; o.position.set(x, y, z); o.receiveShadow = true; return o;
+}
+// A soft cable through a few points.
+function cable(pts, r, color) {
+  const c = new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(...p)));
+  const o = new THREE.Mesh(new THREE.TubeGeometry(c, 28, r, 8), mat('cab' + color, () => std(color, .55))); o.castShadow = true; return o;
+}
+const at = (o, x, y, z) => { o.position.set(x, y, z); return o; };
+function texCanvas(w, h, key, draw) { return canvasTex(w, h, draw, key); }
+const LAMP3 = { warm: [0xfff3d2, 0xffc860], white: [0xf4f7ff, 0xffffff], yellow: [0xfff2a8, 0xffe04a], orange: [0xffd9b8, 0xff9a3c], red: [0xffc9c0, 0xff4a30],
+  green: [0xcff5d8, 0x4cff70], blue: [0xcfe0ff, 0x5c9bff], purple: [0xe4d2ff, 0xa86cff], pink: [0xffd3ea, 0xff7cc0] };
+
+function resistorModel(p, d, W, D) {
+  const g = new THREE.Group(); const r = Math.max(.1, +(p.props && p.props.r) || 330);
+  let e = Math.floor(Math.log10(r)) - 1, sig = Math.round(r / 10 ** e); if (sig >= 100) { sig = Math.round(sig / 10); e++; }
+  const cols = [BANDC[Math.floor(sig / 10) % 10], BANDC[sig % 10], e < 0 ? '#C9A227' : BANDC[Math.min(9, e)], '#C9A227'];
+  // the classic "dog bone": fat end caps, slimmer middle, round ends
+  const L = .5, N = 72, cap = .068, neck = .053, end = .06;
+  const ss = (a, b, t) => { const x = Math.max(0, Math.min(1, (t - a) / (b - a))); return x * x * (3 - 2 * x); };
+  const rad = t => { if (t < end) return cap * Math.sqrt(Math.max(0, 1 - ((end - t) / end) ** 2)); if (t > 1 - end) return cap * Math.sqrt(Math.max(0, 1 - ((t - 1 + end) / end) ** 2));
+    const bump = 1 - ss(.29, .36, t) + ss(.64, .71, t); return neck + (cap - neck) * Math.min(1, bump); };
+  const pts = []; for (let i = 0; i <= N; i++) { const t = i / N; pts.push(new THREE.Vector2(Math.max(.0004, rad(t)), (t - .5) * L)); }
+  const tex = canvasTex(32, 512, (c, w, h) => { c.fillStyle = '#D9BD8B'; c.fillRect(0, 0, w, h);
+    for (let i = 0; i < 260; i++) { c.fillStyle = `rgba(120,90,50,${Math.random() * .08})`; c.fillRect(0, Math.random() * h, w, 1 + Math.random() * 2); }
+    [[.16, cols[0]], [.25, cols[1]], [.43, cols[2]], [.8, cols[3]]].forEach(([t, col]) => { c.fillStyle = col; c.fillRect(0, (1 - t - .03) * h, w, .06 * h); }); }, 'res4' + cols.join(''));
+  const m = new THREE.MeshPhysicalMaterial({ map: tex, roughness: .42, clearcoat: .35, clearcoatRoughness: .4 });
+  const body = new THREE.Mesh(new THREE.LatheGeometry(pts, 40), m); body.rotation.z = -Math.PI / 2; body.position.set(0, .11, 0); body.castShadow = true; g.add(body);
+  for (const q of portsLocal(d, W, D)) { g.add(box(Math.abs(q.x) - L * .45, .012, .012, metal(), q.x / 2 + Math.sign(q.x) * L * .225, .104, q.z)); g.add(cyl(.009, .11, metal(), q.x, 0, q.z, 8)); }
+  return g;
+}
+
+function bulbModel(p, d, W, D) {
+  const g = new THREE.Group(); const [off, on] = LAMP3[(p.props && p.props.color) || 'warm'] || LAMP3.warm;
+  const smart = p.type === 'bulb', cz = smart ? -D * .12 : -D * .08, y0 = smart ? .1 : .04;
+  if (smart) {
+    g.add(at(pcbBox(W * .95, D * .32, pcbTex('#2E7D4F', W * .95, D * .32, 'RELAY', p.id), 0x1f5a39), 0, 0, D * .3));
+    const rl = texBox(.3, .2, .22, labelTex('SRD-05VDC', '#1F5FBF', '#fff', 256, 128, 26), 0x1f5fbf, .35); rl.position.set(W * .22, PCB, D * .3); g.add(rl);
+    g.add(cyl(.12, .1, plastic(0xf2f2ee), 0, 0, cz, 28));
+  }
+  // screw base with threads and a black insulator
+  const base = new THREE.Group(); base.position.set(0, y0, cz); g.add(base);
+  base.add(cyl(.045, .03, black(), 0, 0, 0, 20)); base.add(cyl(.085, .13, metal(), 0, .03, 0, 28));
+  for (let i = 0; i < 4; i++) { const t = new THREE.Mesh(new THREE.TorusGeometry(.086, .009, 6, 28), metal()); t.rotation.x = Math.PI / 2; t.position.y = .05 + i * .028; base.add(t); }
+  // pear-shaped glass
+  const prof = [[.07, 0], [.074, .04], [.11, .1], [.16, .17], [.18, .24], [.17, .31], [.13, .37], [.07, .405], [0, .415]].map(([r, y]) => new THREE.Vector2(r, y));
+  const glassM = new THREE.MeshPhysicalMaterial({ color: off, roughness: smart ? .5 : .12, transparent: true, opacity: smart ? .92 : .72, emissive: on, emissiveIntensity: 0, clearcoat: 1 });
+  const glass = new THREE.Mesh(new THREE.LatheGeometry(new THREE.SplineCurve(prof).getPoints(24), 40), glassM); glass.position.y = .16; glass.castShadow = true; base.add(glass);
+  let fil = null;
+  if (!smart) { const fm = mat('fil', () => std(0x888888, .4, 1, { emissive: 0xffa040, emissiveIntensity: 0 }));
+    base.add(cyl(.006, .14, metal(), -.03, .16, 0, 6)); base.add(cyl(.006, .14, metal(), .03, .16, 0, 6));
+    const coil = new THREE.Mesh(new THREE.TorusGeometry(.03, .006, 6, 18, Math.PI), fm); coil.position.set(0, .3, 0); base.add(coil); fil = fm; }
+  for (const q of portsLocal(d, W, D)) g.add(cyl(.009, smart ? .06 : .05, metal(), q.x, 0, q.z, 8));
+  if (!smart) for (const q of portsLocal(d, W, D)) g.add(box(.012, .012, Math.abs(q.z - cz), metal(), q.x * .6, .04, (q.z + cz) / 2));
+  g.userData.glow = { mat: glassM, color: on, pos: new THREE.Vector3(0, y0 + .4, cz), kind: 'bulb', fil };
+  return g;
+}
+
+function motorModel(p, d, W, D) {
+  // a "130" hobby motor lying down: brushed-steel can with flat sides, plastic end cap with brass tabs, shaft and a small propeller
+  const g = new THREE.Group(); const z0 = -D * .05, y = .21;
+  const can = new THREE.Mesh(new THREE.CylinderGeometry(.2, .2, .44, 40), mat('mcan', () => std(0xd5d9dc, .32, 1))); can.rotation.x = Math.PI / 2; can.scale.set(1, 1, .8);
+  can.position.set(0, y, z0); can.castShadow = true; g.add(can);
+  const lip = new THREE.Mesh(new THREE.TorusGeometry(.17, .012, 8, 40), mat('mcan', () => std(0xd5d9dc, .32, 1))); lip.position.set(0, y, z0 - .22); lip.scale.set(1, .8, 1); g.add(lip);
+  const boss = new THREE.Mesh(new THREE.CylinderGeometry(.05, .05, .05, 20), metal()); boss.rotation.x = Math.PI / 2; boss.position.set(0, y, z0 - .245); g.add(boss);
+  const capM = plastic(0x1e2123);
+  const cap = new THREE.Mesh(new THREE.CylinderGeometry(.19, .19, .08, 40), capM); cap.rotation.x = Math.PI / 2; cap.scale.set(1, 1, .8); cap.position.set(0, y, z0 + .26); g.add(cap);
+  for (const s of [-1, 1]) { g.add(box(.05, .1, .012, gold(), s * .1, y - .05, z0 + .305)); }
+  g.add(cyl(.02, .01, plastic(0xd0362a), -.14, y + .1, z0 + .23, 12));
+  const rot = new THREE.Group(); rot.position.set(0, y, z0 - .3);
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(.012, .012, .14, 10), metal()); shaft.rotation.x = Math.PI / 2; rot.add(shaft);
+  const hub = new THREE.Mesh(new THREE.CylinderGeometry(.035, .035, .05, 16), plastic(0x2f6fd0)); hub.rotation.x = Math.PI / 2; hub.position.z = -.06; rot.add(hub);
+  for (const s of [-1, 1]) { const bl = new THREE.Mesh(new THREE.BoxGeometry(.26, .06, .012), plastic(0x2f6fd0)); bl.position.set(s * .14, 0, -.06); bl.rotation.x = s * .35; bl.castShadow = true; rot.add(bl); }
+  g.add(rot); g.userData.spinZ = rot;
+  for (const q of portsLocal(d, W, D)) { g.add(cyl(.01, .1, gold(), q.x, 0, q.z, 8)); g.add(cable([[q.x, .1, q.z], [q.x * .9, .14, q.z - .05], [Math.sign(q.x) * .1, y - .08, z0 + .31]], .012, q.x < 0 ? 0xd0362a : 0x1f2124)); }
+  return g;
+}
+
+function batteryModel(p, d, W, D) {
+  const g = new THREE.Group(); const pr = p.props || {}, pre = pr.preset || '9V', v = +pr.v || 9, ps = portsLocal(d, W, D);
+  const pos = ps.find(q => q.n === '+'), neg = ps.find(q => q.n === '-');
+  const leads = (fromZ, h) => { for (const [q, c] of [[pos, 0xd0362a], [neg, 0x1f2124]]) { g.add(cable([[q.x * .55, h, fromZ], [q.x * .8, h + .08, (fromZ + q.z) / 2], [q.x, .1, q.z]], .018, c)); g.add(cyl(.016, .1, gold(), q.x, 0, q.z, 10)); } };
+  if (/^lipo/.test(pre)) {
+    const n = pre.slice(4, 5);
+    const tex = texCanvas(512, 256, 'lipo' + pre + v + pr.mah, (c, w, h) => { c.fillStyle = '#1F4FA0'; c.fillRect(0, 0, w, h); c.fillStyle = '#F2F4F7'; c.fillRect(30, 30, w - 60, h - 60);
+      c.fillStyle = '#1F4FA0'; c.font = `800 64px ${FONT}`; c.fillText(n + 'S LiPo', 52, 104); c.fillStyle = '#2B2F2D'; c.font = `600 40px ${FONT}`; c.fillText(`${v}V  ${pr.mah || 1500}mAh`, 52, 162);
+      c.fillStyle = '#E3884B'; c.fillRect(w - 150, 64, 100, 54); c.fillStyle = '#fff'; c.font = `800 36px ${FONT}`; c.fillText('25C', w - 136, 104); });
+    const pack = roundBlock(W * .92, .2, D * .7, .05, mat('lipoW', () => std(0x1f4fa0, .35))); pack.position.z = D * .12; g.add(pack);
+    g.add(decal(W * .86, D * .62, tex, .201, 0, D * .12, .35));
+    leads(-D * .2, .12);
+    g.add(at(roundBlock(.12, .05, .08, .01, plastic(0xf4f4f0)), W * .4, .06, -D * .2));
+  } else if (pre === 'AA' || pre === '2AA' || pre === 'li') {
+    const holder = roundBlock(W * .96, .1, D * .82, .03, plastic(0x1b1d1f)); holder.position.z = D * .06; g.add(holder);
+    const n = pre === '2AA' ? 2 : 1, rr = pre === 'li' ? .1 : .085;
+    for (let i = 0; i < n; i++) { const z = D * .06 + (i - (n - 1) / 2) * .2;
+      const cell = new THREE.Group(); cell.position.set(0, .1 + rr * .6, z); g.add(cell);
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(rr, rr, W * .62, 32), pre === 'li' ? mat('li18650', () => std(0x2e7d5b, .35)) : mat('aaBlack', () => std(0x1b1c1e, .35)));
+      body.rotation.z = Math.PI / 2; body.position.x = -W * .07; body.castShadow = true; cell.add(body);
+      if (pre !== 'li') { const top = new THREE.Mesh(new THREE.CylinderGeometry(rr, rr, W * .14, 32), mat('aaCopper', () => std(0xc77a2c, .3, .6))); top.rotation.z = Math.PI / 2; top.position.x = W * .31; cell.add(top); }
+      const nub = new THREE.Mesh(new THREE.CylinderGeometry(rr * .4, rr * .4, .03, 16), metal()); nub.rotation.z = Math.PI / 2; nub.position.x = W * .395; cell.add(nub);
+      const lab = decal(W * .3, rr * 1.2, labelTex(pre === 'li' ? '18650 3.7V' : 'AA 1.5V', pre === 'li' ? '#2e7d5b' : '#1b1c1e', '#fff', 256, 64, 30), rr + .001, -W * .1, 0); cell.add(lab); }
+    leads(-D * .15, .1);
+  } else if (pre === 'usb' || pre === 'phone' || pre === 'watch') {
+    const usb = pre === 'usb', col = usb ? 0xedeff1 : 0x1c1e21;
+    const blk = roundBlock(W * .92, usb ? .2 : .06, D * .7, usb ? .1 : .02, mat('bt' + pre, () => std(col, usb ? .4 : .3))); blk.position.z = D * .12; g.add(blk);
+    g.add(decal(W * .7, D * .4, labelTex(usb ? 'POWER BANK 5V' : `Li-Po ${v}V ${pr.mah || ''}mAh`, usb ? '#edeff1' : '#1c1e21', usb ? '#3a4045' : '#E9D9A6', 512, 160, 52), (usb ? .2 : .06) + .001, 0, D * .12));
+    if (!usb) g.add(box(.3, .012, .1, gold(), 0, .03, -D * .25));
+    leads(-D * .2, usb ? .1 : .05);
+  } else if (pre === 'lead') {
+    g.add(at(roundBlock(W * .96, .4, D * .8, .03, mat('lead', () => std(0x1f2224, .5))), 0, 0, D * .08));
+    g.add(decal(W * .7, D * .4, labelTex('12V 7Ah', '#E3C22A', '#1f2224', 256, 128, 52), .401, 0, D * .1));
+    for (const q of [pos, neg]) { g.add(box(.12, .05, .08, q === pos ? plastic(0xd0362a) : black(), q.x, .4, -D * .2)); g.add(cable([[q.x, .44, -D * .2], [q.x, .3, (q.z - D * .2) / 2], [q.x, .1, q.z]], .016, q === pos ? 0xd0362a : 0x1f2124)); }
+  } else {
+    // a 9 V block standing upright with its snap terminals on top
+    const tex = texCanvas(512, 256, '9v' + v, (c, w, h) => { const gr = c.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#1b1c1e'); gr.addColorStop(.66, '#26282b'); gr.addColorStop(.66, '#c79a2e'); gr.addColorStop(1, '#e8c35a');
+      c.fillStyle = gr; c.fillRect(0, 0, w, h); c.fillStyle = '#E8C35A'; c.font = `700 30px ${FONT}`; c.fillText('ALKALINE', 30, 50); c.fillStyle = '#fff'; c.font = `800 110px ${FONT}`; c.textAlign = 'center'; c.fillText(v + 'V', w / 2, h * .58); });
+    const blk = roundBlock(W * .9, .3, D * .62, .03, mat('9vside', () => std(0x1b1c1e, .35))); blk.position.z = D * .1; g.add(blk);
+    g.add(decal(W * .86, D * .58, tex, .301, 0, D * .1, .3));
+    g.add(cyl(.045, .05, metal(), pos.x, .3, -D * .14, 20)); const hex = cyl(.055, .05, metal(), neg.x, .3, -D * .14, 6); g.add(hex);
+    for (const q of [pos, neg]) g.add(cable([[q.x, .34, -D * .14], [q.x, .3, (q.z - D * .14) / 2], [q.x, .1, q.z]], .014, q === pos ? 0xd0362a : 0x1f2124));
+    for (const q of [pos, neg]) g.add(cyl(.016, .1, gold(), q.x, 0, q.z, 10));
+  }
+  return g;
+}
+
+function chargerModel(p, d, W, D) {
+  // a white USB wall charger: two round mains pins, a USB-C cable that splits into red and black leads
+  const g = new THREE.Group(); const ps = portsLocal(d, W, D);
+  const body = roundBlock(W * .78, .34, D * .62, .07, mat('charger', () => std(0xf4f4f2, .38))); body.position.set(W * .06, 0, D * .14); g.add(body);
+  g.add(decal(W * .6, D * .36, labelTex('5V ⎓ 2A', '#f4f4f2', '#2b2f2d', 256, 96, 44), .341, W * .06, D * .2));
+  for (const z of [D * .04, D * .26]) { const pin = new THREE.Mesh(new THREE.CylinderGeometry(.022, .022, .14, 14), metal()); pin.rotation.z = Math.PI / 2; pin.position.set(-W * .4, .17, z); g.add(pin); }
+  g.add(box(.012, .02, .012, plastic(0x3fff70), W * .36, .34, D * .38));
+  g.add(box(.1, .06, .07, plastic(0xe9ecef), W * .06, .12, -D * .18));
+  g.add(cable([[W * .06, .15, -D * .2], [W * .06, .2, -D * .3], [W * .02, .16, -D * .38]], .022, 0xe9ecef));
+  for (const q of ps) { g.add(cable([[W * .02, .16, -D * .38], [q.x * .6, .16, -D * .44], [q.x, .1, q.z]], .014, q.n === '+' ? 0xd0362a : 0x1f2124)); g.add(cyl(.016, .1, gold(), q.x, 0, q.z, 10)); }
+  return g;
+}
+
+function bldcModel(p, d, W, D) {
+  // drone motor: black bell with a red ring and cooling slots, two-blade propeller, ESC in blue heat-shrink
+  const g = new THREE.Group(); const cz = -D * .13, ps = portsLocal(d, W, D);
+  const esc = roundBlock(W * .5, .07, D * .2, .02, mat('esc', () => std(0x1e5aa8, .35))); esc.position.set(0, 0, D * .27); g.add(esc);
+  g.add(decal(W * .4, D * .12, labelTex('ESC 30A', '#1e5aa8', '#fff', 256, 64, 34), .071, 0, D * .27));
+  [[-1, 0x1f2124], [0, 0xd0362a], [1, 0xe3c22a]].forEach(([s, c]) => g.add(cable([[s * .06, .05, D * .17], [s * .05, .1, D * .05], [s * .04, .1, cz + .12]], .012, c)));
+  for (const q of ps) { g.add(cable([[q.x * .5, .04, D * .37], [q.x, .1, q.z]], .011, q.n === 'VCC' ? 0xd0362a : q.n === 'GND' ? 0x1f2124 : 0xe8b923)); g.add(cyl(.009, .1, gold(), q.x, 0, q.z, 8)); }
+  const mot = new THREE.Group(); mot.position.set(0, 0, cz); g.add(mot);
+  mot.add(cyl(.12, .03, mat('mbase', () => std(0x2a2d30, .35, .8)), 0, 0, 0, 32));
+  const bell = cyl(.15, .14, mat('bell', () => std(0x17191b, .3, .7)), 0, .03, 0, 40); mot.add(bell);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(.15, .013, 8, 40), mat('ring', () => std(0xc0392b, .3, .7))); ring.rotation.x = Math.PI / 2; ring.position.y = .14; mot.add(ring);
+  for (let i = 0; i < 6; i++) { const s = box(.05, .011, .03, mat('slot', () => std(0x050505, .9)), Math.cos(i * 1.047) * .09, .168, Math.sin(i * 1.047) * .09); s.rotation.y = -i * 1.047; mot.add(s); }
+  mot.add(cyl(.06, .02, metal(), 0, .17, 0, 24));
+  const prop = new THREE.Group(); prop.position.y = .2; mot.add(prop);
+  const bm = new THREE.MeshStandardMaterial({ color: 0x25313a, roughness: .35, transparent: true, opacity: .95 });
+  const sh = new THREE.Shape(); sh.moveTo(0, -.025); sh.bezierCurveTo(.12, -.05, .32, -.045, .42, -.012); sh.bezierCurveTo(.43, .005, .42, .02, .4, .024); sh.bezierCurveTo(.3, .03, .12, .04, 0, .025); sh.lineTo(0, -.025);
+  const bg = new THREE.ExtrudeGeometry(sh, { depth: .008, bevelEnabled: false }); bg.rotateX(Math.PI / 2);
+  for (const s of [0, Math.PI]) { const b = new THREE.Mesh(bg, bm); b.rotation.set(0, s, s ? -.18 : .18); b.castShadow = true; prop.add(b); }
+  prop.add(cyl(.035, .05, plastic(0xc0392b), 0, -.01, 0, 16));
+  const disc = new THREE.Mesh(new THREE.CircleGeometry(.43, 48), new THREE.MeshBasicMaterial({ color: 0x9fb0bc, transparent: true, opacity: .22, depthWrite: false, side: THREE.DoubleSide }));
+  disc.rotation.x = -Math.PI / 2; disc.position.y = .205; disc.visible = false; mot.add(disc);
+  g.userData.prop = { grp: prop, disc, mat: bm };
+  return g;
+}
+
+function fcModel(p, d, W, D) {
+  // F405 flight controller on rubber grommets: black PCB, gold pads, STM32 turned 45°, status LEDs
+  const g = new THREE.Group(); const ps = portsLocal(d, W, D), st = p.st || {};
+  const tex = texCanvas(512, 432, 'fcpcb', (c, w, h) => { c.fillStyle = '#111315'; c.fillRect(0, 0, w, h);
+    c.strokeStyle = 'rgba(80,90,95,.22)'; c.lineWidth = 2; for (let i = 0; i < 10; i++) { c.beginPath(); c.moveTo(Math.random() * w, Math.random() * h); c.lineTo(Math.random() * w, Math.random() * h); c.stroke(); }
+    c.fillStyle = '#C9A227'; ps.forEach(q => { const x = (q.x / W + .5) * w, y = (q.z / D + .5) * h; c.fillRect(x - 18, y < h / 2 ? 6 : h - 34, 36, 28); });
+    c.fillStyle = '#fff'; c.font = `700 28px ${FONT}`; c.textAlign = 'center'; ps.forEach(q => { const x = (q.x / W + .5) * w, y = (q.z / D + .5) * h; c.fillText(q.n, x, y < h / 2 ? 70 : h - 48); });
+    c.beginPath(); c.moveTo(w / 2, 92); c.lineTo(w / 2 + 22, 124); c.lineTo(w / 2 - 22, 124); c.fill(); c.font = `700 24px ${FONT}`; c.fillText('F405  FC', w / 2, h - 96); });
+  const pcb = texBox(W * .96, .025, D * .96, tex, 0x111315, .5); pcb.position.y = .07; g.add(pcb);
+  for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { const x = sx * W * .4, z = sz * D * .38;
+    g.add(cyl(.05, .09, mat('grom', () => std(0x6a3fb0, .7)), x, 0, z, 20)); g.add(cyl(.022, .12, metal(), x, 0, z, 10)); }
+  const mcu = texBox(.3, .035, .3, labelTex('STM32F405', '#1e2124', '#c9ccd0', 256, 256, 30), 0x1e2124, .4); mcu.position.y = .095; mcu.rotation.y = Math.PI / 4; g.add(mcu);
+  g.add(box(.09, .02, .09, black(), W * .28, .095, D * .18));
+  g.add(box(.14, .06, .1, metal(), -W * .46, .095, 0));
+  const ledA = box(.03, .02, .03, mat('fcLedB', () => std(0x6fa8ff, .3, 0, { emissive: 0x3070ff, emissiveIntensity: 0 })), W * .3, .095, -D * .2); g.add(ledA);
+  const ledB = box(.03, .02, .03, mat('fcLedG', () => std(0x5cff7e, .3, 0, { emissive: 0x20ff60, emissiveIntensity: 0 })), W * .36, .095, -D * .2); g.add(ledB);
+  g.userData.fcLeds = [ledA.material, ledB.material];
+  for (const q of ps) g.add(cyl(.009, .1, gold(), q.x, 0, q.z, 8));
+  void st; return g;
+}
+
+function rcModel(p, d, W, D) {
+  const g = new THREE.Group();
+  g.add(at(roundBlock(W * .9, .12, D * .7, .03, mat('rcbox', () => std(0x232726, .45))), 0, 0, D * .05));
+  g.add(decal(W * .7, D * .36, labelTex('RX 2.4GHz', '#232726', '#d6dadc', 256, 96, 38), .121, 0, D * .05));
+  for (const s of [-1, 1]) g.add(cable([[W * .3, .1, -D * .25], [W * (.35 + s * .05), .3, -D * .45], [W * (.4 + s * .12), .5, -D * .5]], .006, 0x111111));
+  g.add(box(.03, .015, .03, mat('rcLed', () => std(0x5cff7e, .3, 0, { emissive: 0x20ff60, emissiveIntensity: 1.2 })), W * .35, .12, D * .25));
+  for (const q of portsLocal(d, W, D)) g.add(cyl(.009, .1, gold(), q.x, 0, q.z, 8));
+  return g;
+}
+
+// ---------- what sits on top of each sensor or module board ----------
+// trimmer pot (blue cube, brass screw), screw terminal block, glass screen, lens barrel and other recurring pieces
+function trimPot(g, x, z) { g.add(box(.09, .07, .09, plastic(0x2457c8), x, PCB, z)); g.add(cyl(.028, .012, gold(), x, PCB + .07, z, 16)); g.add(box(.04, .004, .008, mat('slot', () => std(0x050505, .9)), x, PCB + .082, z)); }
+function terminal(g, x, z, n = 2, rot = 0) { const c = new THREE.Group(); c.position.set(x, PCB, z); c.rotation.y = rot; g.add(c);
+  c.add(box(n * .1, .1, .1, plastic(0x2a7fd4))); for (let i = 0; i < n; i++) { const sx = (i - (n - 1) / 2) * .1; c.add(cyl(.026, .012, metal(), sx, .1, -.01, 14)); c.add(box(.03, .004, .006, mat('slot', () => std(0x050505, .9)), sx, .113, -.01)); c.add(box(.05, .04, .01, mat('hole', () => std(0x030303, .95)), sx, .03, .051)); } }
+function screen(g, w, d, color, x = 0, z = 0, round = false, y0 = PCB) {
+  const glassM = new THREE.MeshPhysicalMaterial({ color, roughness: .08, clearcoat: 1, clearcoatRoughness: .05, metalness: .1 });
+  const s = round ? cyl(Math.min(w, d) / 2, .025, glassM, x, y0, z, 48) : box(w, .025, d, glassM, x, y0, z); g.add(s); return s; }
+function lens(g, x, z, r = .07, h = .08, y0 = PCB) { g.add(box(r * 2.6, .05, r * 2.6, mat('lensbody', () => std(0x141516, .5)), x, y0, z)); g.add(cyl(r, h, mat('barrel', () => std(0x1b1c1e, .35, .4)), x, y0 + .05, z, 32));
+  g.add(cyl(r * .7, .006, new THREE.MeshPhysicalMaterial({ color: 0x14204a, roughness: .02, metalness: .3, clearcoat: 1, iridescence: .6 }), x, y0 + .05 + h, z, 32)); }
+function flex(g, x, z, len, w = .1, rot = 0) { const f = box(w, .006, len, mat('flex', () => std(0xc8862e, .45)), x, PCB, z); f.rotation.y = rot; g.add(f); }
+function ledT(g, x, z, color, clear = false, y0 = PCB) { const m = new THREE.MeshPhysicalMaterial({ color, roughness: .15, transparent: clear, opacity: clear ? .7 : 1, clearcoat: 1 });
+  g.add(cyl(.035, .1, m, x, y0 + .02, z, 20)); const dome = new THREE.Mesh(new THREE.SphereGeometry(.035, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), m); dome.position.set(x, y0 + .12, z); g.add(dome); }
+function traceTex(kind, color) { return canvasTex(256, 256, (c, w, h) => { c.fillStyle = color; c.fillRect(0, 0, w, h); c.strokeStyle = '#d8c47a'; c.lineWidth = 9;
+  if (kind === 'comb') { for (let i = 0; i < 9; i++) { c.beginPath(); c.moveTo(i % 2 ? w - 14 : 14, 20 + i * 27); c.lineTo(i % 2 ? 30 : w - 30, 20 + i * 27); c.stroke(); } c.beginPath(); c.moveTo(14, 10); c.lineTo(14, h - 10); c.moveTo(w - 14, 10); c.lineTo(w - 14, h - 10); c.stroke(); }
+  else if (kind === 'strips') { for (let i = 0; i < 10; i++) { c.beginPath(); c.moveTo(20 + i * 24, 20); c.lineTo(20 + i * 24, h - 10); c.stroke(); } }
+  else if (kind === 'loop') { c.lineWidth = 6; for (let i = 0; i < 4; i++) c.strokeRect(16 + i * 12, 16 + i * 12, w - 32 - i * 24, h - 32 - i * 24); } }, 'trace' + kind + color); }
+const FEATURE3D = {
+  display: (W, D) => g => { screen(g, W * .9, D * .7, 0x07080a, 0, -D * .05); flex(g, 0, D * .36, D * .14, W * .3); },
+  oled: (W, D) => g => { screen(g, W * .78, W * .78, 0x07080a, 0, -D * .05, true); g.add(cyl(W * .41, .018, mat('bezel', () => std(0xb7bcc0, .3, 1)), 0, PCB, -D * .05, 48)); },
+  speaker: (W, D) => g => { const fr = cyl(W * .38, .05, mat('spkframe', () => std(0x26292c, .4, .6)), 0, PCB, -D * .05, 40); g.add(fr);
+    const cone = new THREE.Mesh(new THREE.ConeGeometry(W * .34, .06, 40, 1, true), mat('cone', () => std(0x161718, .85))); cone.rotation.x = Math.PI; cone.position.set(0, PCB + .08, -D * .05); g.add(cone);
+    g.add(cyl(W * .12, .03, mat('dust', () => std(0x1f2022, .6)), 0, PCB + .05, -D * .05, 28)); },
+  mic: (W, D) => g => { g.add(box(.14, .05, .1, mat('memsc', () => std(0xc9ced2, .3, 1)), 0, PCB, -D * .05)); g.add(cyl(.012, .002, mat('hole', () => std(0x030303, .95)), 0, PCB + .05, -D * .05, 12)); },
+  camera: (W, D) => g => { lens(g, 0, -D * .08, .1, .1); flex(g, 0, D * .3, D * .2, W * .35); },
+  modem: (W, D) => g => { g.add(texBox(W * .62, .05, D * .55, shieldTex('LTE CAT-4', '4G modem'), 0xc8ccd0, .3)); g.add(cyl(.03, .02, gold(), W * .38, PCB, -D * .3, 16)); g.add(box(.3, .02, .2, metal(), -W * .28, PCB, D * .3)); },
+  hrm: (W, D) => g => { g.add(box(.16, .03, .1, mat('maxpkg', () => std(0x1c1c1e, .3)), 0, PCB, -D * .05)); g.add(box(.05, .004, .04, std(0x30ff70, .2, 0, { emissive: 0x20ff60, emissiveIntensity: 1 }), -.04, PCB + .031, -D * .05)); g.add(box(.05, .004, .04, std(0xff3030, .2, 0, { emissive: 0xff2020, emissiveIntensity: 1 }), .04, PCB + .031, -D * .05)); },
+  spo2: (W, D) => FEATURE3D.hrm(W, D),
+  vib: (W, D) => g => { g.add(cyl(W * .32, .05, mat('coin', () => std(0xd5d9dc, .3, 1)), 0, PCB, -D * .05, 40)); g.add(cyl(W * .1, .002, mat('coinlabel', () => std(0x9aa1a6, .4, 1)), 0, PCB + .05, -D * .05, 20)); },
+  ble: (W, D) => g => { g.add(texBox(W * .5, .004, D * .5, traceTex('loop', '#1e6b45'), 0x1e6b45, .5)); g.add(box(.12, .04, .12, mat('blechip', () => std(0x17191b, .5)), -W * .3, PCB, 0)); },
+  soil: (W, D) => g => { for (const s of [-1, 1]) g.add(box(W * .16, PCB, D * .9, new THREE.MeshPhysicalMaterial({ color: 0xd8c47a, metalness: .9, roughness: .3 }), s * W * .2, .002, D * .05)); trimPot(g, W * .3, -D * .3); },
+  rain: (W, D) => g => { g.add(at(texBox(W * .8, .004, D * .62, traceTex('comb', '#1e6b45'), 0x1e6b45, .4), 0, PCB, -D * .08)); },
+  water: (W, D) => g => { g.add(at(texBox(W * .7, .004, D * .7, traceTex('strips', '#c0392b'), 0xc0392b, .4), 0, PCB, -D * .06)); },
+  bmp: (W, D) => g => { g.add(box(.1, .03, .1, mat('bmp', () => std(0xd5d9dc, .3, 1)), 0, PCB, -D * .05)); g.add(cyl(.01, .002, mat('hole', () => std(0x030303, .95)), .02, PCB + .03, -D * .03, 10)); },
+  rfid: (W, D) => g => { g.add(at(texBox(W * .7, .004, D * .55, traceTex('loop', '#1f5fbf'), 0x1f5fbf, .4), 0, PCB, -D * .14)); qfp(g, -W * .3, D * .2, .12, 'MFRC522'); crystal(g, W * .1, D * .26); },
+  flame: (W, D) => g => { ledT(g, -W * .25, -D * .1, 0x111111); trimPot(g, W * .1, -D * .05); qfp(g, W * .32, D * .05, .1, 'LM393'); },
+  sound: (W, D) => g => { g.add(cyl(.09, .08, mat('micfelt', () => std(0x111111, .95)), -W * .25, PCB, -D * .1, 28)); g.add(cyl(.095, .08, mat('miccan', () => std(0xc9ced2, .3, 1)), -W * .25, PCB - .002, -D * .1, 28, .095)); trimPot(g, W * .1, -D * .05); qfp(g, W * .32, D * .05, .1, 'LM393'); },
+  irobs: (W, D) => g => { ledT(g, -W * .3, -D * .25, 0xe8f0ff, true); ledT(g, -W * .1, -D * .25, 0x111111); trimPot(g, W * .2, -D * .05); },
+  mpu: (W, D) => g => { qfp(g, 0, -D * .05, .1, 'MPU', '6050'); g.add(box(.08, .03, .06, mat('reg', () => std(0x17191b, .5)), -W * .28, PCB, -D * .2)); },
+  ecg: (W, D) => g => { qfp(g, -W * .1, -D * .05, .12, 'AD8232'); g.add(box(.2, .12, .16, mat('jack35', () => std(0x141517, .45)), W * .3, PCB, -D * .2)); g.add(cyl(.04, .02, mat('hole', () => std(0x030303, .95)), W * .3 + .1, PCB + .06, -D * .2, 16)); },
+  emg: (W, D) => g => { g.add(box(.16, .02, .16, mat('snap', () => std(0xc9ced2, .3, 1)), -W * .25, PCB, -D * .1)); g.add(box(.16, .02, .16, mat('snap', () => std(0xc9ced2, .3, 1)), W * .25, PCB, -D * .1)); qfp(g, 0, -D * .05, .1, 'INA'); },
+  eeg: (W, D) => FEATURE3D.ecg(W, D),
+  gsr: (W, D) => g => { for (const s of [-1, 1]) { g.add(box(.18, .03, .1, plastic(0x2a2d30), s * W * .22, PCB, -D * .2)); g.add(box(.1, .01, .06, metal(), s * W * .22, PCB + .03, -D * .2)); } qfp(g, 0, D * .1, .1, 'LM324'); },
+  acs: (W, D) => g => { terminal(g, -W * .32, 0, 2, Math.PI / 2); g.add(box(.1, .05, .08, mat('soic', () => std(0x17191b, .5)), W * .05, PCB, 0)); },
+  gas: (W, D) => g => { const base = cyl(.16, .05, plastic(0x2a2d30), -W * .05, PCB, -D * .05, 32); g.add(base);
+    g.add(cyl(.15, .14, mat('mqmesh', () => { const t = canvasTex(128, 128, (c, w, h) => { c.fillStyle = '#9aa1a6'; c.fillRect(0, 0, w, h); c.fillStyle = '#2a2d30'; for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) c.fillRect(x * 8 + 2, y * 8 + 2, 4, 4); }, 'mqmeshT'); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(4, 1); return new THREE.MeshStandardMaterial({ map: t, metalness: .8, roughness: .45 }); }), -W * .05, PCB + .05, -D * .05, 32));
+    trimPot(g, W * .32, D * .15); },
+};
+function pumpModel(p, d, W, D) {
+  // a small submersible pump: black body, blue outlet nozzle, two lead wires
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(.2, .2, .44, 32), mat('pump', () => std(0x1c1e20, .5))); body.rotation.z = Math.PI / 2; body.position.set(0, .21, -D * .1); body.castShadow = true; g.add(body);
+  g.add(at(cyl(.07, .12, plastic(0x2f6fd0), 0, 0, 0, 20), W * .12, .4, -D * .1)); g.add(at(cyl(.12, .04, plastic(0x2f6fd0), 0, 0, 0, 24), -W * .3, .09, -D * .1));
+  for (const q of portsLocal(d, W, D)) { g.add(cable([[q.x, .1, q.z], [q.x * .8, .18, q.z - .1], [q.x * .4, .25, -D * .1 + .15]], .013, q.x < 0 ? 0xd0362a : 0x1f2124)); g.add(cyl(.012, .1, gold(), q.x, 0, q.z, 8)); }
+  return g;
+}
+function lockModel(p, d, W, D) {
+  // solenoid door lock: brushed steel box with a sloped latch tongue
+  const g = new THREE.Group();
+  g.add(roundBlock(W * .7, .32, D * .8, .02, mat('lockbody', () => std(0xbfc4c8, .35, 1)))); 
+  const tongue = box(.18, .16, .2, mat('lockbolt', () => std(0xd9dde0, .25, 1)), W * .43, .06, 0); g.add(tongue);
+  for (const s of [-1, 1]) g.add(cyl(.03, .01, mat('hole', () => std(0x030303, .95)), s * W * .25, .32, s * D * .25, 16));
+  for (const q of portsLocal(d, W, D)) { g.add(cable([[q.x, .1, q.z], [q.x * .6, .2, q.z + .1], [-W * .2, .2, D * .3]], .012, q.x < 0 ? 0xd0362a : 0x1f2124)); g.add(cyl(.012, .1, gold(), q.x, 0, q.z, 8)); }
+  return g;
+}
+
 function genericModel(p, d, W, D) {
   // Any other part: a module board with its name, sized to the part.
   return moduleModel(p, d, W, D, { label: d.short || d.name, feature: g => { g.add(box(Math.min(.3, W * .3), .05, Math.min(.3, D * .3), black(), 0, PCB, -D * .1)); } });
@@ -414,7 +752,7 @@ function genericModel(p, d, W, D) {
 function buildPart(p, d, api) {
   const W = d.w / U, D = d.h / U;
   let g;
-  if (d.board) g = boardModel(p, d, W, D);
+  if (d.board || p.type === 'esp32') g = boardModel(p, d, W, D);
   else switch (p.type) {
     case 'led': g = ledModel(p, d, W, D); break;
     case 'resistor': g = resistorModel(p, d, W, D); break;
@@ -425,7 +763,7 @@ function buildPart(p, d, api) {
     case 'keypad': g = keypadModel(p, d, W, D, api.KEYPAD); break;
     case 'voltmeter': case 'ammeter': g = meterModel(p, d, W, D); break;
     case 'fan': g = fanModel(p, d, W, D); break;
-    case 'motor': case 'pump': g = motorModel(p, d, W, D); break;
+    case 'motor': g = motorModel(p, d, W, D); break;
     case 'bulb': case 'lamp': g = bulbModel(p, d, W, D); break;
     case 'alarm': g = alarmModel(p, d, W, D); break;
     case 'buzzer': g = buzzerModel(p, d, W, D); break;
@@ -437,6 +775,12 @@ function buildPart(p, d, api) {
     case 'dynamo': g = dynamoModel(p, d, W, D); break;
     case 'driver': g = driverModel(p, d, W, D); break;
     case 'relay': g = relayModel(p, d, W, D); break;
+    case 'pump': g = pumpModel(p, d, W, D); break;
+    case 'lock': g = lockModel(p, d, W, D); break;
+    case 'usbc': g = chargerModel(p, d, W, D); break;
+    case 'bldc': g = bldcModel(p, d, W, D); break;
+    case 'fc': g = fcModel(p, d, W, D); break;
+    case 'rc': g = rcModel(p, d, W, D); break;
     case 'lm35': g = lm35Model(p, d, W, D); break;
     case 'diode': { g = resistorModel({ ...p, props: { r: 1 } }, d, W, D); g.children[0].material = mat('diode', () => new THREE.MeshStandardMaterial({ map: canvasTex(256, 64, (c, w, h) => { c.fillStyle = '#1b1c1e'; c.fillRect(0, 0, w, h); c.fillStyle = '#c9ced3'; c.fillRect(w * .72, 0, w * .09, h); }, 'diodeT'), roughness: .4 })); break; }
     case 'ldr': case 'temp': case 'pir': g = moduleModel(p, d, W, D, { label: '', feature: sensorFeature(p.type) }); break;
@@ -447,6 +791,7 @@ function buildPart(p, d, api) {
     case 'uln2003': g = dipModel(p, d, W, D, 'ULN2003'); break;
     default:
       if (/^ic74/.test(p.type)) g = dipModel(p, d, W, D, '74HC' + p.type.slice(4));
+      else if (FEATURE3D[p.type]) g = moduleModel(p, d, W, D, { label: d.tag || d.short || '', feature: FEATURE3D[p.type](W, D) });
       else if (d.gen) g = moduleModel(p, d, W, D, { label: d.tag || '', feature: sensorFeature(d.sensor === 'gas' ? 'gas' : d.sensor) });
       else g = genericModel(p, d, W, D);
   }
@@ -688,6 +1033,8 @@ export function open(container, api) {
       if (u.horn) u.horn.rotation.y = -((st.angle || 0) - 90) * Math.PI / 180;
       if (u.spin) u.spin.rotation.y = -(st.rot || 0) * Math.PI / 180;
       if (u.spinZ) u.spinZ.rotation.z = (st.rot || 0) * Math.PI / 180;
+      if (u.prop) { const fast = (st.duty || 0) > .05 && !live.burnt; u.prop.grp.rotation.y = -(st.rot || 0) * Math.PI / 180; u.prop.disc.visible = fast; u.prop.mat.opacity = fast ? .28 : .95; }
+      if (u.fcLeds) { u.fcLeds[0].emissiveIntensity = (st.vin || 0) >= 6.5 ? 2 : 0; u.fcLeds[1].emissiveIntensity = st.armed ? 2 : 0; }
       if (u.lcd) drawLcd(u.lcd, st.text, !!st.on && !live.burnt);
       if (u.meter) drawMeter(u.meter, live.type === 'voltmeter' ? st.v : st.i);
       if (u.press) u.press.position.y = .1 - (live.on ? .03 : 0);
@@ -715,3 +1062,4 @@ export function open(container, api) {
     view: (v) => fit(v), settle() { Object.assign(ctl, { theta: want.theta, phi: want.phi, r: want.r }); ctl.target.copy(want.target); },
   };
 }
+export { buildPart, makeEnv, portsLocal, U };

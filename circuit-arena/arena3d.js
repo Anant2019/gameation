@@ -105,33 +105,57 @@ function buildCar(S) {
 
 // ---------- the quadcopter ----------
 function buildDrone() {
+  // A modern quad: tapered carbon arms, white/orange canopy, motor bells with red rings, curved two-blade props inside guard rings,
+  // gimbal camera at the front, antennas and nav lights.
   const d = new THREE.Group();
-  for (const a of [Math.PI / 4, -Math.PI / 4]) { const arm = mesh(new THREE.BoxGeometry(.36, .008, .026), carbon()); arm.rotation.y = a; arm.position.y = .03; d.add(arm); }
-  const base = rbox(.11, .006, .085, .015, carbon()); base.position.y = .022; d.add(base);
-  const top = rbox(.1, .005, .075, .015, carbon()); top.position.y = .07; d.add(top);
-  for (const [x, z] of [[.04, .03], [.04, -.03], [-.04, .03], [-.04, -.03]]) d.add(mesh(new THREE.CylinderGeometry(.003, .003, .045, 8), M('alu', () => std(0xd9472b, .3, .8)), x, .047, z));
-  d.add(mesh(new THREE.BoxGeometry(.05, .01, .04), M('fc', () => std(0x1d2733, .5)), 0, .04, 0));                               // flight controller stack
-  const bat = mesh(new THREE.BoxGeometry(.075, .032, .036), M('lipo', () => new THREE.MeshStandardMaterial({ map: canvasTex(256, 128, (g, w, h) => { g.fillStyle = '#e8552a'; g.fillRect(0, 0, w, h); g.fillStyle = '#111'; g.fillRect(0, h * .62, w, h * .38); g.fillStyle = '#fff'; g.font = `800 40px ${FONT}`; g.fillText('4S 1500', 14, 56); g.font = `600 24px ${FONT}`; g.fillText('LiPo 14.8V', 16, 112); }), roughness: .45 })), 0, .089, 0);
-  d.add(bat); d.add(mesh(new THREE.BoxGeometry(.012, .036, .04), M('strap', () => std(0x111111, .8)), 0, .09, 0));
-  const cam = mesh(new THREE.BoxGeometry(.022, .022, .022), dark(), .062, .05, 0); cam.rotation.z = -.35; d.add(cam);
-  d.add(mesh(new THREE.CylinderGeometry(.008, .008, .01, 20).rotateZ(Math.PI / 2), M('lens', () => std(0x0a0c18, .05, .8)), .075, .055, 0));
+  const R = .127;
+  const armShape = new THREE.Shape(); armShape.moveTo(0, -.016); armShape.lineTo(R, -.009); armShape.quadraticCurveTo(R + .018, 0, R, .009); armShape.lineTo(0, .016); armShape.lineTo(0, -.016);
+  const armGeo = new THREE.ExtrudeGeometry(armShape, { depth: .007, bevelEnabled: true, bevelThickness: .001, bevelSize: .001, bevelSegments: 1 }); armGeo.rotateX(-Math.PI / 2);
+  for (let i = 0; i < 4; i++) { const arm = mesh(armGeo, carbon()); arm.rotation.y = Math.PI / 4 + i * Math.PI / 2; arm.position.y = .03; d.add(arm); }
+  const base = rbox(.12, .008, .09, .02, carbon()); base.position.y = .022; d.add(base);
+  // canopy: a smooth shell over the electronics
+  const shellM = M('shell', () => new THREE.MeshPhysicalMaterial({ color: 0xf4f5f6, roughness: .28, clearcoat: 1, clearcoatRoughness: .1 }));
+  const shell = mesh(new THREE.SphereGeometry(.06, 40, 20, 0, Math.PI * 2, 0, Math.PI / 2), shellM, 0, .034, 0); shell.scale.set(1.25, .62, .92); d.add(shell);
+  const stripe = mesh(new THREE.SphereGeometry(.0605, 40, 6, 0, Math.PI * 2, Math.PI * .3, Math.PI * .08), M('stripe', () => std(0xe3884b, .35, .1)), 0, .034, 0); stripe.scale.copy(shell.scale); d.add(stripe);
+  const vent = mesh(new THREE.BoxGeometry(.03, .004, .05), dark(), -.045, .066, 0); d.add(vent);
+  // battery slung underneath
+  const bat = rbox(.08, .026, .038, .006, M('lipo', () => new THREE.MeshStandardMaterial({ map: canvasTex(256, 128, (g, w, h) => { g.fillStyle = '#e8552a'; g.fillRect(0, 0, w, h); g.fillStyle = '#111'; g.fillRect(0, h * .62, w, h * .38);
+    g.fillStyle = '#fff'; g.font = `800 40px ${FONT}`; g.fillText('3S 1500', 18, 62); }), roughness: .4 })));
+  bat.position.y = -.008; d.add(bat); d.add(mesh(new THREE.BoxGeometry(.012, .03, .042), M('strap', () => std(0x111111, .8)), 0, .004, 0));
+  // gimbal camera
+  d.add(mesh(new THREE.BoxGeometry(.012, .016, .022), dark(), .07, .03, 0));
+  const cam = mesh(new THREE.SphereGeometry(.014, 20, 14), M('camb', () => std(0x22252a, .3, .6)), .082, .026, 0); d.add(cam);
+  d.add(mesh(new THREE.CylinderGeometry(.008, .009, .006, 24).rotateZ(Math.PI / 2), M('lens', () => std(0x0a0c18, .05, .8)), .095, .026, 0));
+  d.add(mesh(new THREE.CircleGeometry(.0055, 20).rotateY(Math.PI / 2), M('glint', () => std(0x6fa8ff, .05, .2, { emissive: 0x1d3c80, emissiveIntensity: .6 })), .0985, .026, 0));
+  // antennas
+  for (const z of [-.03, .03]) { const a = mesh(new THREE.CylinderGeometry(.0015, .0015, .05, 6), dark(), -.07, .06, z); a.rotation.z = .6; d.add(a);
+    d.add(mesh(new THREE.CylinderGeometry(.003, .003, .012, 8), M('ant', () => std(0xe3884b, .4)), -.084, .08, z)); }
   const props = [];
   const discMat = M('disc', () => new THREE.MeshBasicMaterial({ color: 0xc8d4e0, transparent: true, opacity: .32, depthWrite: false, side: THREE.DoubleSide }));
+  const guardM = M('guard', () => new THREE.MeshPhysicalMaterial({ color: 0x2a2e33, roughness: .35, clearcoat: .6 }));
+  const bladeShape = new THREE.Shape(); bladeShape.moveTo(0, -.004); bladeShape.bezierCurveTo(.02, -.009, .05, -.008, .064, -.002); bladeShape.bezierCurveTo(.066, .002, .064, .004, .061, .005); bladeShape.bezierCurveTo(.045, .007, .02, .008, 0, .004);
+  const bladeGeo = new THREE.ExtrudeGeometry(bladeShape, { depth: .0015, bevelEnabled: false }); bladeGeo.rotateX(Math.PI / 2);
   [[1, 1, 0xf2f2f2], [1, -1, 0xf2f2f2], [-1, 1, 0x1f2124], [-1, -1, 0x1f2124]].forEach(([sx, sz, col], i) => {
-    const x = sx * .127, z = sz * .127;
-    d.add(mesh(new THREE.CylinderGeometry(.014, .016, .02, 24), M('motor', () => std(0x2a2e33, .3, .9)), x, .044, z));
-    d.add(mesh(new THREE.CylinderGeometry(.015, .015, .004, 24), M('bell', () => std(0x9aa3ab, .2, 1)), x, .056, z));
-    const p = new THREE.Group(); p.position.set(x, .062, z);
-    const blade = M('blade' + col, () => new THREE.MeshPhysicalMaterial({ color: col, roughness: .3, transparent: true, opacity: .92, clearcoat: .8 }));
-    for (const r of [0, Math.PI]) { const b = mesh(new THREE.BoxGeometry(.062, .002, .014), blade); b.position.x = Math.cos(r) * .032; b.position.z = Math.sin(r) * .032; b.rotation.y = -r; b.rotation.x = .25 * (i % 2 ? 1 : -1); p.add(b); }
-    const disc = new THREE.Mesh(new THREE.CircleGeometry(.064, 32).rotateX(-Math.PI / 2), discMat); disc.visible = false; p.add(disc);
+    const x = sx * R * Math.SQRT1_2 * 1.414, z = sz * R * Math.SQRT1_2 * 1.414;
+    d.add(mesh(new THREE.CylinderGeometry(.015, .017, .022, 28), M('motor', () => std(0x1a1c1f, .3, .9)), x, .045, z));
+    const ring = mesh(new THREE.TorusGeometry(.0158, .0025, 8, 28), M('mring', () => std(0xc0392b, .3, .8)), x, .052, z); ring.rotation.x = Math.PI / 2; d.add(ring);
+    d.add(mesh(new THREE.CylinderGeometry(.009, .009, .006, 20), M('bell', () => std(0x9aa3ab, .2, 1)), x, .058, z));
+    // prop guard ring with two struts to the arm
+    const guard = mesh(new THREE.TorusGeometry(.072, .0035, 8, 48), guardM, x, .055, z); guard.rotation.x = Math.PI / 2; d.add(guard);
+    const p = new THREE.Group(); p.position.set(x, .063, z);
+    const blade = M('blade' + col, () => new THREE.MeshPhysicalMaterial({ color: col, roughness: .3, transparent: true, opacity: .95, clearcoat: .8, side: THREE.DoubleSide }));
+    for (const r of [0, Math.PI]) { const b = mesh(bladeGeo, blade); b.rotation.set(0, r, (i % 2 ? 1 : -1) * .2 * (r ? -1 : 1)); p.add(b); }
+    p.add(mesh(new THREE.CylinderGeometry(.006, .007, .008, 16), M('nut', () => std(0xc0392b, .3, .8))));
+    const disc = new THREE.Mesh(new THREE.CircleGeometry(.066, 40).rotateX(-Math.PI / 2), discMat); disc.visible = false; p.add(disc);
     d.add(p); props.push({ p, disc, dir: i === 0 || i === 3 ? 1 : -1 });
   });
-  // navigation LEDs: green front, red back
-  for (const [x, z, c] of [[.127, .127, 0x30ff70], [.127, -.127, 0x30ff70], [-.127, .127, 0xff2a1a], [-.127, -.127, 0xff2a1a]])
-    d.add(mesh(new THREE.SphereGeometry(.006, 10, 8), M('nav' + c, () => std(c, .3, 0, { emissive: c, emissiveIntensity: 4 })), x * 1.08, .028, z * 1.08));
-  // landing skids
-  for (const z of [-.05, .05]) { d.add(mesh(new THREE.CylinderGeometry(.004, .004, .14, 8).rotateZ(Math.PI / 2), dark(), 0, .004, z)); for (const x of [-.04, .04]) d.add(mesh(new THREE.CylinderGeometry(.003, .003, .022, 8), dark(), x, .012, z)); }
+  // navigation LEDs under the motors: green front, red back
+  for (const [x, z, c] of [[R, R, 0x30ff70], [R, -R, 0x30ff70], [-R, R, 0xff2a1a], [-R, -R, 0xff2a1a]])
+    d.add(mesh(new THREE.SphereGeometry(.0065, 10, 8), M('nav' + c, () => std(c, .3, 0, { emissive: c, emissiveIntensity: 4 })), x, .03, z));
+  // landing legs
+  for (const z of [-.05, .05]) { d.add(mesh(new THREE.CylinderGeometry(.004, .004, .15, 8).rotateZ(Math.PI / 2), M('skid', () => std(0xe9ecef, .4)), 0, -.03, z));
+    for (const x of [-.045, .045]) { const l = mesh(new THREE.CylinderGeometry(.003, .003, .05, 8), dark(), x, -.008, z * .8); l.rotation.x = z > 0 ? -.35 : .35; d.add(l); } }
+  d.children.forEach(c => { c.position.y += .035; });   // the skids rest on the ground
   d.userData = { props };
   return d;
 }

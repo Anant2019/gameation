@@ -1,0 +1,6 @@
+3D arena assets
+All models, textures and the sky are from Poly Haven (https://polyhaven.com) and are CC0 (public domain).
+Models: concrete_road_barrier, old_tyre, wooden_crate_01, plastic_crate_01, cardboard_box_01, street_lamp_01, shrub_01
+Textures: asphalt_track, grass_path_2
+Sky (HDRI): derelict_airfield_01
+They were resized and converted to WebP / quantized glTF for the game.
