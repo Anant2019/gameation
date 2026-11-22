@@ -3885,26 +3885,88 @@ window.claude?.hot?.ready?window.claude.hot.ready(start):start(window.claude?.ho
 </script>
 
 <button class="install" id="installApp" hidden>Install app</button>
+<div class="ipop" id="installPop" hidden role="dialog" aria-modal="true" aria-labelledby="ipopT">
+  <div class="ipop-card">
+    <button class="ipop-x" data-ip="later" aria-label="Not now">×</button>
+    <div class="ipop-head"><img src="icons/icon-192.png" alt="" width="56" height="56"><div><p class="ipop-k">Free · no app store</p><h3 id="ipopT">Keep Circuit Arena on your <span data-dev>phone</span></h3></div></div>
+    <ul class="ipop-list"><li>Opens in one tap from your <span data-dev2>home screen</span>, full screen like an app</li><li>Works offline, even in airplane mode</li><li>Your bench and progress are saved</li></ul>
+    <div class="ipop-ios" hidden><p>On iPhone or iPad: tap <b>Share</b> <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 12v8h14v-8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> in Safari, then <b>Add to Home Screen</b>.</p></div>
+    <div class="ipop-row"><button class="ipop-btn" data-ip="install">Install app</button><button class="ipop-later" data-ip="later">Not now</button></div>
+  </div>
+</div>
+<style>
+.ipop{position:fixed;inset:0;z-index:70;display:grid;place-items:end center;background:rgba(5,8,7,.55);backdrop-filter:blur(3px);padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));animation:ipopFade .25s ease-out}
+.ipop[hidden]{display:none}
+@media (min-width:700px){.ipop{place-items:center}}
+@keyframes ipopFade{from{opacity:0}}
+.ipop-card{position:relative;width:min(420px,100%);background:#fbfcfa;color:#18201c;border-radius:16px;padding:20px 20px 16px;box-shadow:0 20px 60px rgba(0,0,0,.45);font:500 14px/1.45 system-ui,-apple-system,sans-serif;animation:ipopUp .3s cubic-bezier(.2,.9,.3,1.2)}
+@keyframes ipopUp{from{transform:translateY(30px) scale(.97);opacity:0}}
+.ipop-x{position:absolute;right:8px;top:6px;border:0;background:none;font-size:24px;line-height:1;color:#68716b;min-width:40px;min-height:40px;cursor:pointer}
+.ipop-head{display:flex;gap:14px;align-items:center;margin-bottom:10px}.ipop-head img{border-radius:14px;box-shadow:0 4px 12px rgba(0,0,0,.2)}
+.ipop-k{margin:0;color:#2a7a6c;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.ipop h3{margin:2px 0 0;font-size:19px;line-height:1.25;color:#111}
+.ipop-list{margin:6px 0 12px;padding:0 0 0 2px;list-style:none}.ipop-list li{padding:4px 0 4px 26px;position:relative;color:#2f3833}
+.ipop-list li:before{content:"✓";position:absolute;left:2px;top:3px;width:18px;height:18px;border-radius:50%;background:#e3f3ec;color:#2a7a6c;font-size:12px;font-weight:800;display:grid;place-items:center}
+.ipop-ios{background:#eef4fb;border-radius:10px;padding:8px 12px;margin-bottom:12px}.ipop-ios p{margin:0}.ipop-ios svg{vertical-align:-3px;color:#2f6fd0}
+.ipop-row{display:flex;gap:10px}.ipop-btn{flex:1;min-height:46px;border:0;border-radius:12px;background:#E3884B;color:#1A0F07;font:700 15px system-ui,sans-serif;cursor:pointer}
+.ipop-later{min-height:46px;padding:0 16px;border:1px solid #d3d9d3;border-radius:12px;background:#fff;color:#2f3833;font:600 14px system-ui,sans-serif;cursor:pointer}
+</style>
 <script>
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 }
 let deferredPrompt = null;
 const installBtn = document.getElementById('installApp');
+const pop = document.getElementById('installPop');
+const standalone = matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches || navigator.standalone;
+const iOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const ls = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} } };
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; installBtn.hidden = false; });
-installBtn.addEventListener('click', async () => {
-  if (!deferredPrompt) return;
+async function doInstall() {
+  if (!deferredPrompt) return false;
   deferredPrompt.prompt();
-  await deferredPrompt.userChoice.catch(() => {});
+  const c = await deferredPrompt.userChoice.catch(() => null);
   deferredPrompt = null; installBtn.hidden = true;
-});
-window.addEventListener('appinstalled', () => { installBtn.hidden = true; });
+  if (c && c.outcome === 'accepted') ls.set('circuitArena.installed', '1');
+  return true;
+}
+installBtn.addEventListener('click', doInstall);
+window.addEventListener('appinstalled', () => { installBtn.hidden = true; pop.hidden = true; ls.set('circuitArena.installed', '1'); });
 // the install pill only shows on the Home screen, so it never covers the bench, the arena controls or a card
 const homeView = document.getElementById('v-home');
 const syncInstall = () => installBtn.classList.toggle('away', !homeView || homeView.hidden);
 if (homeView) new MutationObserver(syncInstall).observe(homeView, { attributes: true, attributeFilter: ['hidden'] }); syncInstall();
-const standalone = matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches || navigator.standalone;
 if (standalone && screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(() => {});
+
+// Install invitation: after about 12 minutes of real use (time with the tab visible, added up across visits),
+// a card invites the player to keep the game on their phone or laptop. "Not now" waits 3 days; it asks at most 3 times.
+// Never in the installed app, never while a finger or mouse is busy on the bench, and only where installing is possible.
+(function () {
+  if (standalone || ls.get('circuitArena.installed') === '1') return;
+  const ASK_AFTER = 12 * 60, SNOOZE = 3 * 864e5, MAX_ASKS = 3;
+  let used = +(ls.get('circuitArena.useSecs') || 0), busyUntil = 0;
+  ['pointerdown', 'keydown'].forEach(ev => addEventListener(ev, () => { busyUntil = Date.now() + 4000; }, true));
+  const canAsk = () => (deferredPrompt || iOS) && +(ls.get('circuitArena.installAsks') || 0) < MAX_ASKS && Date.now() > +(ls.get('circuitArena.installSnooze') || 0);
+  const mobile = matchMedia('(pointer:coarse)').matches || /Android|iPhone|iPad|Mobi/i.test(navigator.userAgent) || innerWidth < 760;
+  function show() {
+    pop.querySelector('[data-dev]').textContent = mobile ? 'phone' : 'laptop';
+    pop.querySelector('[data-dev2]').textContent = mobile ? 'home screen' : 'desktop or dock';
+    const ios = iOS && !deferredPrompt; pop.querySelector('.ipop-ios').hidden = !ios; pop.querySelector('[data-ip=install]').hidden = ios;
+    pop.hidden = false; ls.set('circuitArena.installAsks', String(+(ls.get('circuitArena.installAsks') || 0) + 1));
+    setTimeout(() => (ios ? pop.querySelector('.ipop-later') : pop.querySelector('.ipop-btn')).focus(), 50);
+  }
+  function later() { pop.hidden = true; ls.set('circuitArena.installSnooze', String(Date.now() + SNOOZE)); }
+  pop.addEventListener('click', async e => { const b = e.target.closest('[data-ip]'); if (e.target === pop) { later(); return; } if (!b) return;
+    if (b.dataset.ip === 'later') later(); else { pop.hidden = true; if (!(await doInstall())) later(); } });
+  addEventListener('keydown', e => { if (e.key === 'Escape' && !pop.hidden) later(); });
+  setInterval(() => {
+    if (document.hidden || !pop.hidden) return;
+    used += 5; ls.set('circuitArena.useSecs', String(used));
+    const modalOpen = document.querySelector('.modal:not([hidden]), #aiModal:not([hidden]), #w3d.full, #coach:not([hidden])');
+    if (used >= ASK_AFTER && Date.now() > busyUntil && !modalOpen && canAsk()) show();
+  }, 5000);
+  window.CA_installTest = { show, setUsed: n => { used = n; } };   // for tests
+})();
 </script>
 </body>
 </html>
