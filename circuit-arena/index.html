@@ -126,7 +126,7 @@ button,select,input{font:inherit;color:inherit}
 #bench{display:block;width:100%;aspect-ratio:960/560;height:auto;touch-action:none;user-select:none;-webkit-user-select:none}
 #world{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:8px;background:var(--bench)}
 #world[hidden]{display:none}
-#w3d{position:relative;width:100%;aspect-ratio:16/7;max-height:54vh;min-height:200px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#9cb6cc;container-type:inline-size}
+#w3d{position:relative;width:100%;aspect-ratio:16/10;max-height:68vh;min-height:200px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#9cb6cc;container-type:inline-size}
 .side #w3d{flex:none}
 .w3d-hud{position:absolute;inset:0;pointer-events:none;font:600 13px var(--sans,system-ui);color:#fff}
 .w3d-stats{position:absolute;left:10px;top:10px;max-width:calc(100% - 380px);background:rgba(10,14,16,.62);backdrop-filter:blur(6px);padding:7px 11px;border-radius:10px;line-height:1.45}
@@ -139,8 +139,8 @@ button,select,input{font:inherit;color:inherit}
 .w3d-bar button{min-height:34px;padding:0 11px;border-radius:10px;border:1px solid rgba(255,255,255,.25);background:rgba(10,14,16,.6);color:#fff;font:inherit;cursor:pointer;backdrop-filter:blur(6px)}
 .w3d-bar button[aria-pressed="true"],.w3d-bar button:hover{background:#E3884B;color:#1a0f07;border-color:#E3884B}
 @container (max-width:560px){.w3d-stats{font-size:11px;padding:5px 8px}.w3d-big{font-size:20px}.w3d-bar button{min-height:36px;min-width:36px;padding:0 8px;font-size:12px}}
-@media (orientation:landscape) and (max-height:560px){#w3d{aspect-ratio:3/1;max-height:40vh;min-height:120px}}
-@media (max-width:600px) and (orientation:portrait){#w3d{aspect-ratio:4/3;max-height:58vh}}
+@media (orientation:landscape) and (max-height:560px){#w3d{aspect-ratio:2/1;max-height:78vh;min-height:160px}}
+@media (max-width:600px) and (orientation:portrait){#w3d{aspect-ratio:1/1;max-height:62vh}}
 #w3d.full{position:fixed;inset:0;z-index:60;max-height:none;min-height:0;aspect-ratio:auto;border-radius:0;border:0}
 .wctl{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:8px 0;font:600 13px var(--sans,system-ui);color:var(--ink,#fff)}
 .wctl[hidden]{display:none}
@@ -164,7 +164,7 @@ button,select,input{font:inherit;color:inherit}
   #w3d .wctl:has(.pad)>button:nth-child(1){grid-column:1;grid-row:1}#w3d .wctl:has(.pad)>button:nth-child(2){grid-column:2;grid-row:1}
   #w3d .wctl:has(.pad)>button:nth-child(3){grid-column:2;grid-row:2}#w3d .wctl:has(.pad)>button:nth-child(4){grid-column:1;grid-row:2}
   #w3d .wctl:has(.pad) .pad{grid-column:4;grid-row:1/3;grid-template-columns:repeat(3,32px);grid-template-rows:repeat(2,32px)}#w3d .wctl:has(.pad) .thr{display:none}}
-@container (max-width:760px){.w3d-stats{max-width:calc(100% - 20px)}.w3d-bar{top:auto;bottom:10px}#w3d .wctl{bottom:54px;padding:6px;gap:6px}.wctl button{min-height:34px;padding:0 10px}.wctl .pad{grid-template-columns:repeat(3,34px);grid-template-rows:repeat(2,30px);gap:3px}#w3d .wctl small{display:none}#w3d .wctl:has(.pad){background:rgba(10,14,16,.35)}}
+@container (max-width:760px){.w3d-stats{max-width:calc(100% - 20px)}.w3d-bar{top:auto;bottom:10px}#w3d .wctl{bottom:54px;padding:6px;gap:6px}.wctl button{min-height:34px;padding:0 10px}.wctl .pad{grid-template-columns:repeat(3,34px);grid-template-rows:repeat(2,30px);gap:3px}#w3d .wctl small{display:none}#w3d .wctl:has(.pad){background:none}}
 @container (max-width:560px){#w3d .wctl{left:6px;right:6px;bottom:46px;padding:4px 6px;gap:4px;flex-wrap:nowrap;background:rgba(10,14,16,.4)}.wctl button{min-height:32px;min-width:34px;padding:0 8px;font-size:12px}#w3d .wctl .thr input,#w3d .wctl .thr small{display:none}#w3d .wctl .thr b{font-size:11px;white-space:nowrap}.wctl .pad{grid-template-columns:repeat(3,38px);grid-template-rows:repeat(2,34px)}}
 .status{font-family:var(--f-mono);font-size:12px;color:var(--muted);min-height:18px}
 .status b{color:var(--ink);font-weight:500}
@@ -751,7 +751,7 @@ table.conn td{padding:6px;border-bottom:1px solid var(--line);vertical-align:top
     <div class="setrow"><span>Graphics</span><div class="chips" id="setGfx"><button class="chip" data-gfx="auto">Auto</button><button class="chip" data-gfx="high">High</button><button class="chip" data-gfx="lite">Smooth</button></div></div>
     <div class="setrow"><span>Workbench tips</span><button class="btn sm" id="setTips">Show again</button></div>
     <div class="setrow"><span>Progress (stars and best scores)</span><button class="btn sm danger" id="setReset">Reset</button></div>
-    <p class="ver">Circuit Arena 1.8 · works offline</p>
+    <p class="ver">Circuit Arena 1.8.1 · works offline</p>
     <p class="ver"><a href="../" style="color:var(--copper);font-weight:600;text-decoration:none">More free games at calmtype.life →</a> · <a href="projects/" style="color:var(--copper)">Project guides with code</a> · <a href="privacy/" style="color:var(--muted)">Privacy</a></p>
   </section>
 </section>

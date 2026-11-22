@@ -7,7 +7,7 @@ const A = './arena/';
 const cache = {};
 // Every download gives up after a while, so a slow or broken connection never leaves the arena stuck on "Loading".
 const timed = (p, ms = 25000) => Promise.race([p, new Promise(r => setTimeout(() => r(null), ms))]);
-const loadTex = (url, srgb) => cache[url] || (cache[url] = new Promise(res => new THREE.TextureLoader().load(url, t => { if (srgb) t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8; res(t); }, undefined, () => res(null))));
+const loadTex = (url, srgb) => cache[url] || (cache[url] = new Promise(res => new THREE.TextureLoader().load(url, t => { if (srgb) t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 16; res(t); }, undefined, () => res(null))));
 const loadGLB = name => cache[name] || (cache[name] = new Promise(res => new GLTFLoader().load(A + name + '.glb', g => {
   g.scene.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } }); res(g.scene); }, undefined, () => res(null))));
 const loadHDR = () => cache.hdr || (cache.hdr = new Promise(res => new RGBELoader().load(A + 'sky.hdr', t => { t.mapping = THREE.EquirectangularReflectionMapping; res(t); }, undefined, () => res(null))));
@@ -160,9 +160,9 @@ function buildDrone() {
   return d;
 }
 
-function paintTex(W, D) {
+function paintTex(W, D, max = 2048) {
   // arena floor markings: border lines, start box, centre logo
-  return canvasTex(2048, Math.round(2048 * D / W), (g, w, h) => {
+  return canvasTex(max, Math.round(max * D / W), (g, w, h) => {
     g.clearRect(0, 0, w, h); const px = w / W;
     g.strokeStyle = 'rgba(245,245,240,.92)'; g.lineWidth = .06 * px; g.strokeRect(.12 * px, .12 * px, w - .24 * px, h - .24 * px);
     g.setLineDash([.4 * px, .3 * px]); g.lineWidth = .04 * px; g.beginPath(); g.moveTo(w / 2, .3 * px); g.lineTo(w / 2, h - .3 * px); g.stroke(); g.setLineDash([]);
@@ -173,19 +173,28 @@ function paintTex(W, D) {
   });
 }
 
+// A wide grass field that fades out at its rim into the sky photo's ground.
+function grassField(gd, gn, R, y) {
+  for (const tx of [gd, gn]) if (tx) tx.repeat.set(R / 1.4, R / 1.4);
+  const fade = canvasTex(256, 256, (g, w, h) => { const gr = g.createRadialGradient(w / 2, h / 2, w * .34, w / 2, h / 2, w / 2); gr.addColorStop(0, '#fff'); gr.addColorStop(1, '#000'); g.fillStyle = gr; g.fillRect(0, 0, w, h); });
+  fade.colorSpace = THREE.NoColorSpace;
+  const field = mesh(new THREE.CircleGeometry(R, 128).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ map: gd, normalMap: gn, roughness: .95, alphaMap: fade, transparent: true }));
+  field.castShadow = false; field.position.y = y; field.renderOrder = -1; return field;
+}
+
 export function open(container, api) {
   const { S } = api;
   const mobile = matchMedia('(pointer:coarse)').matches;
   let quality = api.quality || (mobile ? 'medium' : 'high');
   const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, quality === 'high' ? 2 : quality === 'medium' ? 1.5 : 1));
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, quality === 'high' ? 2 : quality === 'medium' ? 1.75 : 1));
   renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = .95;
   renderer.shadowMap.enabled = quality !== 'low'; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.domElement.style.cssText = 'display:block;width:100%;height:100%;touch-action:none;cursor:grab';
   container.appendChild(renderer.domElement);
 
   const scene = new THREE.Scene(); scene.background = new THREE.Color(0x9cb6cc);
-  const camera = new THREE.PerspectiveCamera(48, 1, .02, 600);
+  const camera = new THREE.PerspectiveCamera(48, 1, .05, 400);
   const sun = new THREE.DirectionalLight(0xfff1dc, 2.6); sun.castShadow = true; sun.shadow.mapSize.set(quality === 'high' ? 2048 : 1024, quality === 'high' ? 2048 : 1024);
   sun.shadow.bias = -.0003; sun.shadow.normalBias = .02; scene.add(sun, sun.target);
   const hemi = new THREE.HemisphereLight(0xdfe9ff, 0x4a4030, .35); scene.add(hemi);
@@ -193,8 +202,9 @@ export function open(container, api) {
   let composer = null, bloom = null;
   function setupPost() {
     if (quality === 'low') { composer = null; return; }
-    composer = new EffectComposer(renderer); composer.addPass(new RenderPass(scene, camera));
-    bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), .45, .55, .92); composer.addPass(bloom); composer.addPass(new OutputPass());
+    const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: renderer.capabilities.isWebGL2 === false ? 0 : 4 });   // MSAA: the composer otherwise loses the renderer's antialiasing
+    composer = new EffectComposer(renderer, rt); composer.addPass(new RenderPass(scene, camera));
+    bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), .3, .4, .95); composer.addPass(bloom); composer.addPass(new OutputPass());
   }
   setupPost();
 
@@ -209,7 +219,7 @@ export function open(container, api) {
     if (c === '2d') { api.onExit && api.onExit(); return; }
     if (c === 'full') { const on = !container.classList.contains('full'); container.classList.toggle('full', on); b.setAttribute('aria-pressed', on); return; }
     if (c === 'q') { quality = quality === 'high' ? 'medium' : quality === 'medium' ? 'low' : 'high'; b.textContent = quality === 'high' ? 'HD' : quality === 'medium' ? 'SD' : 'Low';
-      renderer.setPixelRatio(Math.min(devicePixelRatio || 1, quality === 'high' ? 2 : quality === 'medium' ? 1.5 : 1)); renderer.shadowMap.enabled = quality !== 'low'; setupPost(); resize(); api.onQuality && api.onQuality(quality); return; }
+      renderer.setPixelRatio(Math.min(devicePixelRatio || 1, quality === 'high' ? 2 : quality === 'medium' ? 1.75 : 1)); renderer.shadowMap.enabled = quality !== 'low'; setupPost(); resize(); api.onQuality && api.onQuality(quality); return; }
     camMode = c; hud.querySelectorAll('[data-c=chase],[data-c=orbit],[data-c=top]').forEach(x => x.setAttribute('aria-pressed', x.dataset.c === c)); });
 
   // ---------- world contents ----------
@@ -236,8 +246,10 @@ export function open(container, api) {
       for (const tx of [ad, an, ar]) if (tx) tx.repeat.set(PW / 2.5, PD / 2.5);
       const pad = mesh(new THREE.PlaneGeometry(PW, PD).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ map: ad, normalMap: an, roughnessMap: ar, roughness: 1 }));
       pad.castShadow = false; world.add(pad);
-      const paint = new THREE.Mesh(new THREE.PlaneGeometry(ARENA_W, ARENA_D).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ map: paintTex(ARENA_W, ARENA_D), transparent: true, roughness: .8, polygonOffset: true, polygonOffsetFactor: -2 }));
-      paint.position.y = .002; paint.receiveShadow = true; world.add(paint);
+      const [gd, gn] = await Promise.all([timed(loadTex(A + 'grass_path_2_diffuse.webp', true)), timed(loadTex(A + 'grass_path_2_nor_gl.webp'))]);
+      world.add(grassField(gd, gn, 60, -.01));
+      const paint = new THREE.Mesh(new THREE.PlaneGeometry(ARENA_W, ARENA_D).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ map: paintTex(ARENA_W, ARENA_D, Math.min(4096, renderer.capabilities.maxTextureSize)), transparent: true, roughness: .8, polygonOffset: true, polygonOffsetFactor: -2 }));
+      paint.position.y = .004; paint.receiveShadow = true; world.add(paint);
       // walls: concrete barriers all round
       if (barrier) { const L = .8; const b0 = fitModel(barrier, L, 'x');
         const put = (x, z, ry) => { const b = b0.clone(); b.scale.multiplyScalar(1); b.position.set(x, 0, z); b.rotation.y = ry; world.add(b); };
@@ -282,11 +294,7 @@ export function open(container, api) {
       dust = makeDust(); world.add(dust.points);
     } else {
       const [gd, gn] = await Promise.all([timed(loadTex(A + 'grass_path_2_diffuse.webp', true)), timed(loadTex(A + 'grass_path_2_nor_gl.webp'))]);
-      for (const tx of [gd, gn]) if (tx) tx.repeat.set(36, 36);
-      const fade = canvasTex(256, 256, (g, w, h) => { const gr = g.createRadialGradient(w / 2, h / 2, w * .3, w / 2, h / 2, w / 2); gr.addColorStop(0, '#fff'); gr.addColorStop(1, '#000'); g.fillStyle = gr; g.fillRect(0, 0, w, h); });
-      fade.colorSpace = THREE.NoColorSpace;
-      const field = mesh(new THREE.CircleGeometry(48, 96).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ map: gd, normalMap: gn, roughness: .95, alphaMap: fade, transparent: true }));
-      field.castShadow = false; field.position.y = .003; world.add(field);
+      world.add(grassField(gd, gn, 60, .003));
       const pad = mesh(new THREE.CylinderGeometry(.75, .75, .02, 48), new THREE.MeshStandardMaterial({ map: canvasTex(512, 512, (g, w, h) => { g.fillStyle = '#2b3036'; g.fillRect(0, 0, w, h); g.strokeStyle = '#f2b21b'; g.lineWidth = 18; g.beginPath(); g.arc(w / 2, h / 2, w * .4, 0, 7); g.stroke();
         g.fillStyle = '#f4f4f0'; g.font = `900 220px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('H', w / 2, h / 2 + 10); }), roughness: .7 }));
       pad.castShadow = false; world.add(pad);
@@ -374,7 +382,7 @@ export function open(container, api) {
       // the drone leans into the direction it flies
       const tilt = w.crash > 0 ? Math.sin(now / 50) * .5 : Math.sin(now / 900) * .03 * (alt > .2) + (w.dvz || 0) * .07;
       drone.rotation.set(tilt, 0, -(w.dvx || 0) * .07 + Math.cos(now / 1100) * .03 * (alt > .2));
-      gates3.forEach((g, i) => { const next = i === (w.gate || 0) % gates3.length; g.userData.m.emissive.setHex(next ? 0xff7a1a : 0x9fe8ff); g.userData.m.emissiveIntensity = next ? 1.6 + Math.sin(now / 160) * .5 : .5; });
+      gates3.forEach((g, i) => { const next = i === (w.gate || 0) % gates3.length; g.userData.m.emissive.setHex(next ? 0xff7a1a : 0x9fe8ff); g.userData.m.emissiveIntensity = next ? 1.1 + Math.sin(now / 160) * .35 : .22; });
       drone.userData.props.forEach(({ p, disc, dir }, i) => { const duty = bl[i] && bl[i].st ? (bl[i].st.duty ?? (bl[i].st.on ? .6 : 0)) : 0;
         const sp = spinning ? 40 + duty * 120 : 0; p.rotation.y += dir * sp * dt; disc.visible = sp > 30; p.children.forEach(c => { if (c !== disc) c.visible = sp <= 60; }); });
       if (spinning && alt < 1.2) for (let k = 0; k < 3; k++) { const a = Math.random() * 6.28; dust.emit(tmp.set(dx + Math.cos(a) * .3, .03, dz + Math.sin(a) * .3), new THREE.Vector3(Math.cos(a) * 1.2, .15, Math.sin(a) * 1.2)); }
@@ -388,9 +396,9 @@ export function open(container, api) {
     // camera: smoothing by time, not by frame, so slow phones reach the same view as fast ones
     const k = r => 1 - Math.exp(-r * dt);
     if (camMode === 'chase') {
-      const back = type === 'drone' ? 1.25 + Math.min(1.6, (w.alt || 0) * .06) : 1.5, upH = type === 'drone' ? .45 + Math.min(1.4, (w.alt || 0) * .05) : .75;
+      const back = type === 'drone' ? 1.25 + Math.min(1.6, (w.alt || 0) * .06) : 1.7, upH = type === 'drone' ? .45 + Math.min(1.4, (w.alt || 0) * .05) : .85;
       const want = type === 'drone' ? new THREE.Vector3(target.x - back * .8, target.y + upH, target.z + back * .9) : target.clone().addScaledVector(follow, -back).add(new THREE.Vector3(0, upH, 0));
-      camPos.lerp(want, k(type === 'drone' ? 3.6 : 5)); camLook.lerp(type === 'car' ? target.clone().addScaledVector(follow, .5) : target, k(9));
+      camPos.lerp(want, k(type === 'drone' ? 3.6 : 5)); camLook.lerp(type === 'car' ? target.clone().addScaledVector(follow, .3) : target, k(9));
     } else if (camMode === 'top') {
       camPos.lerp(type === 'car' ? new THREE.Vector3(0, 9.5, .01) : new THREE.Vector3(0, target.y + 5, .01), k(5)); camLook.lerp(type === 'car' ? new THREE.Vector3(0, 0, 0) : target, k(9));
     } else {
@@ -398,7 +406,8 @@ export function open(container, api) {
       camPos.lerp(want, k(12)); camLook.lerp(target, k(12));
     }
     camPos.y = Math.max(.08, camPos.y); camera.position.copy(camPos); camera.lookAt(camLook);
-    if (ready) { sun.position.set(target.x - 18, 26, target.z + 12); sun.target.position.copy(target); }
+    if (ready) { const sc = sun.shadow.camera, q = (sc.right - sc.left) / sun.shadow.mapSize.x * 4, sx = Math.round(target.x / q) * q, sz = Math.round(target.z / q) * q;   // whole-texel steps: no crawling shadow edges
+      sun.position.set(sx - 18, 26, sz + 12); sun.target.position.set(sx, 0, sz); }
     if (composer) composer.render(dt); else renderer.render(scene, camera);
   }
   raf = requestAnimationFrame(frame);
