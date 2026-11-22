@@ -228,10 +228,10 @@ export function open(container, api) {
   // the game's arena is in centimetres with the origin at a corner; the 3D world is in metres centred on the arena
   const AR = api.ARENA || { w: 960, h: 320 }, ARENA_W = AR.w / 100, ARENA_D = AR.h / 100;
   const toX = x => (x - AR.w / 2) / 100, toZ = y => (y - AR.h / 2) / 100;
-  let ramps3 = [], cones3 = [], boostMat = null, gates3 = [];
+  let ramps3 = [], cones3 = [], boostMat = null, gates3 = [], coins3 = [], checks3 = [], pins3 = [], bay3 = null;
 
   async function buildScene(t) {
-    world.clear(); car = drone = beam = dust = null; ready = false; ramps3 = []; cones3 = []; gates3 = []; boostMat = null; loadEl.style.display = '';
+    world.clear(); car = drone = beam = dust = null; ready = false; ramps3 = []; cones3 = []; gates3 = []; coins3 = []; checks3 = []; pins3 = []; bay3 = null; boostMat = null; loadEl.style.display = '';
     THREE.DefaultLoadingManager.onProgress = (u, done, total) => { loadEl.textContent = `Loading the 3D arena… ${Math.round(done / Math.max(1, total) * 100)}%`; };
     const [hdr, crate, tyre, barrier, box, lamp, shrub, pcrate] = await Promise.all([timed(loadHDR(), 40000), timed(loadGLB('wooden_crate_01')), timed(loadGLB('old_tyre')), timed(loadGLB('concrete_road_barrier')),
       timed(loadGLB('cardboard_box_01')), timed(loadGLB('street_lamp_01')), timed(loadGLB('shrub_01')), timed(loadGLB('plastic_crate_01'))]);
@@ -288,6 +288,26 @@ export function open(container, api) {
       const coneM = M('cone', () => new THREE.MeshStandardMaterial({ map: canvasTex(64, 128, (g, w, h) => { g.fillStyle = '#f26a1b'; g.fillRect(0, 0, w, h); g.fillStyle = '#f4f4f0'; g.fillRect(0, h * .35, w, h * .14); g.fillRect(0, h * .62, w, h * .1); }), roughness: .55 }));
       cones3 = (api.CONES || []).map(([x, y]) => { const c = new THREE.Group(); c.position.set(toX(x), 0, toZ(y)); world.add(c);
         c.add(mesh(new THREE.BoxGeometry(.2, .02, .2), M('conebase', () => std(0x1d1f22, .7)), 0, .01, 0)); c.add(mesh(new THREE.ConeGeometry(.075, .3, 24, 1, true), coneM, 0, .17, 0)); return c; });
+      // arena games: gold coins, race checkpoint arches, a parking bay and bowling pins
+      const coinM = M('coin', () => new THREE.MeshStandardMaterial({ color: 0xffc83d, metalness: 1, roughness: .22, emissive: 0x4a3000, emissiveIntensity: .6 }));
+      const coinG = new THREE.CylinderGeometry(.09, .09, .018, 32).rotateX(Math.PI / 2);
+      coins3 = (api.COINS || []).map(([x, y, h]) => { const c = mesh(coinG, coinM, toX(x), .16 + h / 100, toZ(y)); if (h) c.scale.setScalar(1.35); world.add(c); return c; });
+      checks3 = (api.CHECKS || []).map(([x, y], i) => { const g = new THREE.Group(); g.position.set(toX(x), 0, toZ(y)); world.add(g);
+        const m = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x9fe8ff, emissiveIntensity: .25, roughness: .4 });
+        for (const sx of [-1, 1]) g.add(mesh(new THREE.CylinderGeometry(.03, .035, .9, 12), M('gatepost', () => std(0x2a2e33, .5, .5)), 0, .45, sx * .8));
+        const banner = mesh(new THREE.BoxGeometry(.04, .2, 1.64), m, 0, .95, 0); g.add(banner);
+        const num = new THREE.Mesh(new THREE.PlaneGeometry(.34, .2), new THREE.MeshBasicMaterial({ transparent: true, map: canvasTex(128, 76, (c, w2, h2) => { c.fillStyle = '#16181a'; c.fillRect(0, 0, w2, h2); c.fillStyle = '#fff'; c.font = `800 50px ${FONT}`; c.textAlign = 'center'; c.fillText(`CP ${i + 1}`, w2 / 2, 56); }) }));
+        for (const sx of [-1, 1]) { const n = num.clone(); n.position.set(sx * .025, .95, 0); n.rotation.y = sx * Math.PI / 2; g.add(n); }
+        const ring = new THREE.Mesh(new THREE.RingGeometry(.74, .8, 64).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .5 })); ring.position.y = .006; g.add(ring);
+        g.userData.m = m; g.userData.ring = ring; return g; });
+      if (api.PARK) { const [px, py, pw, ph] = api.PARK, lineM = new THREE.MeshBasicMaterial({ color: 0xf4f4f0 });
+        bay3 = new THREE.Mesh(new THREE.PlaneGeometry(pw / 100, ph / 100).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x3fb950, transparent: true, opacity: 0 })); bay3.position.set(toX(px + pw / 2), .005, toZ(py + ph / 2)); world.add(bay3);
+        for (const [x, z, w2, d2] of [[px, py + ph / 2, .04, ph / 100], [px + pw, py + ph / 2, .04, ph / 100], [px + pw / 2, py + ph, pw / 100, .04]]) { const l = new THREE.Mesh(new THREE.PlaneGeometry(w2, d2).rotateX(-Math.PI / 2), lineM); l.position.set(toX(x), .006, toZ(z)); world.add(l); }
+        const P = new THREE.Mesh(new THREE.PlaneGeometry(.4, .4).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ transparent: true, map: canvasTex(128, 128, (c, w2, h2) => { c.fillStyle = '#1f6fd6'; c.beginPath(); c.roundRect(8, 8, 112, 112, 18); c.fill(); c.fillStyle = '#fff'; c.font = `900 90px ${FONT}`; c.textAlign = 'center'; c.fillText('P', 64, 96); }) }));
+        P.position.set(toX(px + pw / 2), .007, toZ(py + ph / 2)); P.rotation.y = Math.PI; world.add(P); }
+      const pinG = new THREE.LatheGeometry([[0, 0], [.028, 0], [.036, .04], [.03, .1], [.016, .14], [.02, .17], [.016, .19], [0, .195]].map(([r, y]) => new THREE.Vector2(r, y)), 24);
+      const pinM = M('pin', () => new THREE.MeshPhysicalMaterial({ map: canvasTex(64, 128, (g, w2, h2) => { g.fillStyle = '#f6f4ee'; g.fillRect(0, 0, w2, h2); g.fillStyle = '#d42a2a'; g.fillRect(0, h2 * .22, w2, 7); g.fillRect(0, h2 * .3, w2, 7); }), roughness: .25, clearcoat: 1 }));
+      pins3 = (api.PINS || []).map(([x, y]) => { const p = mesh(pinG, pinM, toX(x), 0, toZ(y)); p.scale.setScalar(1.6); world.add(p); return p; });
       car = buildCar(S); carKey = partsKey(); world.add(car);
       beam = new THREE.Mesh(new THREE.CylinderGeometry(.004, .004, 1, 8).rotateZ(Math.PI / 2).translate(.5, 0, 0), new THREE.MeshBasicMaterial({ color: 0x5cd6ff, transparent: true, opacity: .55, blending: THREE.AdditiveBlending, depthWrite: false }));
       world.add(beam);
@@ -345,6 +365,17 @@ export function open(container, api) {
     if (composer) { composer.setSize(w, h); composer.setPixelRatio(renderer.getPixelRatio()); } }
   const ro = new ResizeObserver(resize); ro.observe(container); resize();
 
+  // The game moves the car and the drone 30 times a second but the screen draws 60 or more: draw between the last two game steps so motion is smooth, not a judder.
+  let simT = null, simAt = 0, simPrev = null, simCur = null;
+  function smooth(w, keys, now) {
+    if (w.t !== simT) { const snap = {}; for (const k of keys) snap[k] = w[k] || 0;
+      const jump = simCur && keys.some(k => Math.abs(snap[k] - (simCur[k] ?? snap[k])) > (k === 'h' ? 1 : k === 'alt' ? 2 : 80));   // a reset or a teleport: don't slide across
+      simPrev = !simCur || jump || simT == null || w.t < simT ? snap : simCur; simCur = snap; simT = w.t; simAt = now; }
+    const a = Math.min(1, (now - simAt) / 33.4), out = {};
+    for (const k of keys) out[k] = (simPrev[k] ?? simCur[k]) + ((simCur[k] ?? 0) - (simPrev[k] ?? simCur[k])) * a;
+    return out;
+  }
+
   // ---------- per frame ----------
   let raf = 0, alive = true, last = performance.now();
   const tmp = new THREE.Vector3();
@@ -357,9 +388,13 @@ export function open(container, api) {
     let target = new THREE.Vector3(), follow = new THREE.Vector3(1, 0, 0);
     if (ready && type === 'car' && car) {
       if (partsKey() !== carKey) { world.remove(car); car = buildCar(S); carKey = partsKey(); world.add(car); }
-      const x = toX(w.x || 0), z = toZ(w.y || 0), h = w.h || 0;
+      const ip = smooth(w, ['x', 'y', 'h', 'z'], now); const x = toX(ip.x || 0), z = toZ(ip.y || 0), h = ip.h || 0;
       const air = !!w.inAir, onRamp = (w.z || 0) > 0 && !air;
-      car.position.set(x, (w.z || 0) / 100, z); car.rotation.y = -h;
+      car.position.set(x, (ip.z || 0) / 100, z); car.rotation.y = -h;
+      coins3.forEach((c, i) => { const got = (w.coins || []).includes(i); c.visible = !got; c.rotation.y = now / 400 + i; });
+      checks3.forEach((g, i) => { const next = i === (w.cp || 0); g.userData.m.emissive.setHex(next ? 0xff7a1a : 0x9fe8ff); g.userData.m.emissiveIntensity = next ? .9 + Math.sin(now / 180) * .3 : .2; g.userData.ring.material.color.setHex(next ? 0xff7a1a : 0xffffff); });
+      if (bay3) bay3.material.opacity = w.parked ? .35 : (w.parkT || 0) > 0 ? .15 : 0;
+      pins3.forEach((p, i) => { const down = (w.pins || []).includes(i); p.rotation.z += ((down ? 1.5 : 0) - p.rotation.z) * Math.min(1, dt * 10); p.rotation.y = down ? i : 0; });
       const pitch = air ? Math.max(-.5, Math.min(.5, Math.atan2(w.vzc || 0, Math.max(30, w.vair || 0)) * .7)) : onRamp ? Math.atan2((api.RAMP_H || 32), 200) : 0;
       const shake = w.crash > 0 ? Math.sin(now / 30) * .02 : 0; car.rotation.z = shake + pitch;
       cones3.forEach((c, i) => { const down = (w.cones || []).includes(i); c.rotation.z += ((down ? 1.45 : 0) - c.rotation.z) * Math.min(1, dt * 8); c.position.y = down ? .07 : 0; });
@@ -371,14 +406,14 @@ export function open(container, api) {
       if (v > .1 && Math.random() < v * 1.2) for (const s of [-1, 1]) dust.emit(tmp.set(x - follow.x * .2 + s * follow.z * .16, .02, z - follow.z * .2 - s * follow.x * .16), new THREE.Vector3(-follow.x * .3, .25, -follow.z * .3));
       if (beam) { const on = car.userData.eyes && S.parts.some(p => p.type === 'ultrasonic' && p.st && p.st.pow); beam.visible = !!on;
         if (on) { const d = Math.max(.02, (S.env.distance || 0) / 100); beam.scale.set(d, 1, 1); beam.position.set(x + follow.x * .27, .11, z + follow.z * .27); beam.rotation.y = -h; } }
-      target.set(x, .12 + (w.z || 0) / 100, z);
-      stats.innerHTML = `Speed <b>${(v * 1.8 * ((w.boost || 0) > 0 ? 2.2 : 1)).toFixed(2)} m/s</b> · driven <b>${(w.odo || 0).toFixed(1)} m</b> · stunts <b>${w.score || 0}</b> · best jump ${(w.bestAir || 0).toFixed(1)} s · cones ${(w.cones || []).length}/${(api.CONES || []).length}${S.parts.some(p => p.type === 'ultrasonic' && p.st && p.st.pow) ? ` · sensor <b>${Math.round(S.env.distance)} cm</b>` : ''}${api.battery ? ` · battery ${api.battery()}%` : ''}`;
+      target.set(x, .12 + (ip.z || 0) / 100, z);
+      stats.innerHTML = `Speed <b>${(v * 1.8 * ((w.boost || 0) > 0 ? 2.2 : 1)).toFixed(2)} m/s</b> · driven <b>${(w.odo || 0).toFixed(1)} m</b> · stunts <b>${w.score || 0}</b> · best jump ${(w.bestAir || 0).toFixed(1)} s · coins ${(w.coins || []).length}/${(api.COINS || []).length}${w.lapT0 != null ? ` · lap <b>${(w.lap || 0).toFixed(1)} s</b>` : ''}${w.bestLap ? ` · best lap ${w.bestLap.toFixed(1)} s` : ''}${S.parts.some(p => p.type === 'ultrasonic' && p.st && p.st.pow) ? ` · sensor <b>${Math.round(S.env.distance)} cm</b>` : ''}${api.battery ? ` · battery ${api.battery()}%` : ''}`;
       big.textContent = w.crash > 0 ? 'CRASH!' : w.stunt ? w.stunt.text : (w.boost || 0) > 0 ? 'BOOST!' : ''; big.className = 'w3d-big' + (w.crash > 0 ? ' bad' : w.stunt || (w.boost || 0) > 0 ? ' good' : '');
     } else if (ready && type === 'drone' && drone) {
       const alt = w.alt || 0; const bl = S.parts.filter(p => p.type === 'bldc'); const spinning = bl.some(b => b.st && b.st.on);
       const bob = alt > .2 && w.crash <= 0 ? Math.sin(now / 420) * .03 : 0;
-      const dx = w.dx || 0, dz = w.dz || 0;
-      drone.position.set(dx, alt + bob, dz);
+      const ip = smooth(w, ['dx', 'dz', 'alt'], now); const dx = ip.dx || 0, dz = ip.dz || 0;
+      drone.position.set(dx, ip.alt + bob, dz);
       // the drone leans into the direction it flies
       const tilt = w.crash > 0 ? Math.sin(now / 50) * .5 : Math.sin(now / 900) * .03 * (alt > .2) + (w.dvz || 0) * .07;
       drone.rotation.set(tilt, 0, -(w.dvx || 0) * .07 + Math.cos(now / 1100) * .03 * (alt > .2));
@@ -411,7 +446,7 @@ export function open(container, api) {
     if (composer) composer.render(dt); else renderer.render(scene, camera);
   }
   raf = requestAnimationFrame(frame);
-  window.__arena3d = { camera, scene, renderer, get look() { return camLook; } };   // read-only hook for tests
+  window.__arena3d = { camera, scene, renderer, get look() { return camLook; }, get w() { return S.w; } };   // hook for tests
 
   return {
     close() { container.classList.remove('full'); alive = false; cancelAnimationFrame(raf); ro.disconnect(); world.traverse(o => { if (o.isMesh && o.geometry) o.geometry.dispose(); }); renderer.dispose(); container.innerHTML = ''; },
