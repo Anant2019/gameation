@@ -133,6 +133,7 @@ button,select,input{font:inherit;color:inherit}
 .w3d-stats b{color:#ffd29a}
 .w3d-big{position:absolute;left:50%;top:22%;transform:translateX(-50%);font:800 28px var(--display,system-ui);letter-spacing:2px;text-shadow:0 2px 12px rgba(0,0,0,.6)}
 .w3d-big.bad{color:#ff5a46}
+.w3d-big.good{color:#ffd29a}
 .w3d-load{position:absolute;inset:0;display:grid;place-items:center;background:rgba(10,14,16,.55);font-size:15px}
 .w3d-bar{position:absolute;right:10px;top:10px;display:flex;gap:6px;pointer-events:auto}
 .w3d-bar button{min-height:34px;padding:0 11px;border-radius:10px;border:1px solid rgba(255,255,255,.25);background:rgba(10,14,16,.6);color:#fff;font:inherit;cursor:pointer;backdrop-filter:blur(6px)}
@@ -153,6 +154,16 @@ button,select,input{font:inherit;color:inherit}
 .wctl .pad{display:grid;grid-template-columns:repeat(3,44px);grid-template-rows:repeat(2,40px);gap:4px}
 .wctl .pad button{padding:0;min-width:0}
 .wctl small{opacity:.75;font-weight:500}
+#w3d .wctl:has(.pad){right:10px;background:none;backdrop-filter:none;padding:0;flex-wrap:nowrap;justify-content:flex-start;align-items:flex-end}
+#w3d .wctl:has(.pad) button,#w3d .wctl:has(.pad) .thr{background:rgba(10,14,16,.62);backdrop-filter:blur(6px)}
+#w3d .wctl:has(.pad) button.go{background:#E3884B}#w3d .wctl:has(.pad) button[aria-pressed="true"]{background:#3fb950}
+#w3d .wctl:has(.pad) .thr{padding:6px 10px;border-radius:10px}
+#w3d .wctl .pad{margin-left:auto}
+@container (max-width:560px){#w3d .wctl:has(.pad){display:grid;grid-template-columns:auto auto 1fr auto;gap:4px;bottom:50px;left:6px;right:6px}
+  #w3d .wctl:has(.pad)>button{min-height:34px;padding:0 8px;font-size:12px}
+  #w3d .wctl:has(.pad)>button:nth-child(1){grid-column:1;grid-row:1}#w3d .wctl:has(.pad)>button:nth-child(2){grid-column:2;grid-row:1}
+  #w3d .wctl:has(.pad)>button:nth-child(3){grid-column:2;grid-row:2}#w3d .wctl:has(.pad)>button:nth-child(4){grid-column:1;grid-row:2}
+  #w3d .wctl:has(.pad) .pad{grid-column:4;grid-row:1/3;grid-template-columns:repeat(3,32px);grid-template-rows:repeat(2,32px)}#w3d .wctl:has(.pad) .thr{display:none}}
 @container (max-width:760px){.w3d-stats{max-width:calc(100% - 20px)}.w3d-bar{top:auto;bottom:10px}#w3d .wctl{bottom:54px;padding:6px;gap:6px}.wctl button{min-height:34px;padding:0 10px}.wctl .pad{grid-template-columns:repeat(3,34px);grid-template-rows:repeat(2,30px);gap:3px}#w3d .wctl small{display:none}#w3d .wctl:has(.pad){background:rgba(10,14,16,.35)}}
 @container (max-width:560px){#w3d .wctl{left:6px;right:6px;bottom:46px;padding:4px 6px;gap:4px;flex-wrap:nowrap;background:rgba(10,14,16,.4)}.wctl button{min-height:32px;min-width:34px;padding:0 8px;font-size:12px}#w3d .wctl .thr input,#w3d .wctl .thr small{display:none}#w3d .wctl .thr b{font-size:11px;white-space:nowrap}.wctl .pad{grid-template-columns:repeat(3,38px);grid-template-rows:repeat(2,34px)}}
 .status{font-family:var(--f-mono);font-size:12px;color:var(--muted);min-height:18px}
@@ -2849,11 +2860,33 @@ function loadInvention(inv){S.proj=null;S.inv=inv;S.goalsDone={};S.bpDone=null;
   S.invLevel={id:'inv-'+inv.id,name:inv.title,scene:'meter',par:0,parts:Object.keys(PD),env:inv.env,envMin:inv.envMin||{},board:inv.parts.some(([t])=>PD[t].board),goal:inv.sum,hint:inv.hint,tests:[],inv:true};
   S.env={...ENV0,distance:200};S.cloud={send:{},ctl:{}};
   S.projIds=buildFrom(inv,false,false);S.rules=inv.rules.map(()=>blankRule());afterLoad()}
-function resetWorld(){FLY.mode='manual';S.w={x:90,y:160,h:0,odo:0,clean:0,crash:0,alt:0,vz:0,hover:0,maxAlt:0,app:null,wl:0,wr:0,tmax:0,weight:0,t:0,T:0,screen:0}}
+function resetWorld(){FLY.mode='manual';S.w={x:ARENA.start[0],y:ARENA.start[1],h:0,z:0,vzc:0,vair:0,inAir:false,boost:0,score:0,bestAir:0,cones:[],spinAcc:0,spinT:0,stunt:null,dx:0,dz:0,dvx:0,dvz:0,gate:0,gates:0,mx:0,my:0,odo:0,clean:0,crash:0,alt:0,vz:0,hover:0,maxAlt:0,app:null,wl:0,wr:0,tmax:0,weight:0,t:0,T:0,screen:0}}
 
 /* ---------- World physics ---------- */
-const OBST=[[300,40,50,130],[560,170,70,110],[760,40,40,90],[180,230,90,30]];
-function hitWall(x,y,r){if(x<r||y<r||x>960-r||y>320-r)return true;return OBST.some(([ox,oy,ow,oh])=>x>ox-r&&x<ox+ow+r&&y>oy-r&&y<oy+oh+r)}
+// Car arena, in centimetres: 24 m × 14 m with crate blocks, ramps, boost pads and a cone slalom.
+const ARENA={w:2400,h:1400,start:[200,700]};
+const OBST=[[520,160,60,260],[520,980,60,260],[920,560,260,60],[1500,180,60,320],[1500,900,60,320],[1880,640,220,60],[1120,180,200,60],[1120,1160,200,60],[2150,1050,60,200]];
+// ramps: [x, y, length, width, direction]; the car climbs along the direction and takes off from the far end
+const RAMPS=[[660,620,200,160,0],[1680,1000,200,160,Math.PI],[1240,820,180,150,-Math.PI/2]];
+const BOOST=[[330,660,130,80],[1300,320,130,80],[2050,340,130,80]];
+const CONES=[...[0,1,2,3,4,5].map(i=>[760+i*130,i%2?1060:1180]),...[0,1,2,3].map(i=>[1720+i*120,i%2?440:540])];
+const RAMP_H=32;
+// Drone airfield: ±40 m square; gates are rings [x, z, height, facing] in metres to fly through in order.
+const DRONE_FIELD=40,GATES=[[0,-8,3,0],[9,-14,5,Math.PI/2],[16,-4,4,0],[9,6,6,Math.PI/2],[-6,8,3.5,0]];
+function hitWall(x,y,r){if(x<r||y<r||x>ARENA.w-r||y>ARENA.h-r)return true;return OBST.some(([ox,oy,ow,oh])=>x>ox-r&&x<ox+ow+r&&y>oy-r&&y<oy+oh+r)}
+// The car's real footprint (50 × 36 cm with wheels) as a turning box: touching a corner is fine, overlapping is not.
+const CAR_HL=25,CAR_HW=18;
+function carHits(x,y,h,z){const c=Math.cos(h),s=Math.sin(h);
+  const pts=[];for(const a of [-1,-.5,0,.5,1])for(const b of [-1,1])pts.push([x+c*a*CAR_HL-s*b*CAR_HW,y+s*a*CAR_HL+c*b*CAR_HW]);pts.push([x+c*CAR_HL,y+s*CAR_HL],[x-c*CAR_HL,y-s*CAR_HL]);
+  if(pts.some(([px,py])=>px<2||py<2||px>ARENA.w-2||py>ARENA.h-2))return true;
+  if(z>58)return false;   // high enough to fly over the crates
+  const inCar=(px,py)=>{const dx=px-x,dy=py-y;return Math.abs(dx*c+dy*s)<CAR_HL-1&&Math.abs(-dx*s+dy*c)<CAR_HW-1};
+  return OBST.some(([ox,oy,ow,oh])=>pts.some(([px,py])=>px>ox+1&&px<ox+ow-1&&py>oy+1&&py<oy+oh-1)||[[ox,oy],[ox+ow,oy],[ox,oy+oh],[ox+ow,oy+oh]].some(([px,py])=>inCar(px,py)))}
+// where the car is on a ramp: 0 at the bottom edge to 1 at the lip, or -1 when it is not on one
+function rampAt(x,y){for(const r of RAMPS){const [rx,ry,L,Wd,d]=r;const along=Math.abs(Math.cos(d))>.5;
+    const cx=rx+(along?L:Wd)/2,cy=ry+(along?Wd:L)/2,dx=x-cx,dy=y-cy;const u=dx*Math.cos(d)+dy*Math.sin(d),vv=-dx*Math.sin(d)+dy*Math.cos(d);
+    if(Math.abs(u)<=L/2&&Math.abs(vv)<=Wd/2)return {p:(u+L/2)/L,r};}return null}
+const stunt=(w,text,pts)=>{w.stunt={text,t:2};w.score=(w.score||0)+pts;if(typeof snd==='function')snd('step')};
 function ray1(x,y,h){for(let d=0;d<400;d+=3){if(hitWall(x+Math.cos(h)*(26+d),y+Math.sin(h)*(26+d),0))return d}return 400}
 function rayDist(x,y,h){let m=400;for(let k=-2;k<=2;k++)m=Math.min(m,ray1(x-Math.sin(h)*k*7,y+Math.cos(h)*k*7,h+k*.13));return m}
 // Drone autopilot behind the Take off / Hover / Land buttons: trims the throttle to hold a target height (height error and climb rate feedback).
@@ -2868,8 +2901,28 @@ function worldStep(aw,dt){if(!aw)return;const w=S.w;w.t+=dt;
     else{Lm=mot.slice(0,1);Rm=mot.slice(1,2)}
     const avg=a=>a.length?a.reduce((s,m)=>s+clamp(m.st.speed,-1.4,1.4),0)/a.length:0;
     w.wl=Math.abs(avg(Lm))>.05?avg(Lm):0;w.wr=Math.abs(avg(Rm))>.05?avg(Rm):0;
-    const v=(w.wl+w.wr)/2*140,om=(w.wl-w.wr)*2.4;w.h+=om*dt;const nx=w.x+Math.cos(w.h)*v*dt,ny=w.y+Math.sin(w.h)*v*dt;
-    if(hitWall(nx,ny,22)){if(Math.abs(v)>5){w.crash=1.2;w.clean=0}}else{w.x=nx;w.y=ny;const dd=Math.abs(v*dt)/100;w.odo+=dd;w.clean+=dd}
+    if(w.boost>0)w.boost-=dt;if(w.stunt&&(w.stunt.t-=dt)<=0)w.stunt=null;
+    const v=(w.wl+w.wr)/2*180*(w.boost>0?2.2:1),om=(w.wl-w.wr)*2.4;
+    if(w.inAir){
+      // in the air: no grip, it keeps its speed and falls until it meets the ground (or a ramp)
+      w.air=(w.air||0)+dt;const nx=w.x+Math.cos(w.h)*w.vair*dt,ny=w.y+Math.sin(w.h)*w.vair*dt;w.vzc-=900*dt;w.z+=w.vzc*dt;
+      if(carHits(nx,ny,w.h,w.z)){w.crash=1.2;w.clean=0;w.vair=0;stunt(w,'CRASH LANDING',0)}else{w.x=nx;w.y=ny;const dd=Math.abs(w.vair*dt)/100;w.odo+=dd;w.clean+=dd}
+      const r=rampAt(w.x,w.y),ground=r?r.p*RAMP_H:0;
+      if(w.z<=ground&&w.vzc<=0){w.z=ground;w.vzc=0;w.inAir=false;const a=w.air;w.air=0;if(a>.15){w.bestAir=Math.max(w.bestAir,a);stunt(w,`JUMP ${a.toFixed(1)} s`,Math.round(a*100))}}}
+    else{w.h+=om*dt;
+      // a full turn on the spot in under 3 s is a 360 spin
+      if(Math.abs(om)>1.5&&Math.abs(v)<80){w.spinAcc+=Math.abs(om*dt);w.spinT+=dt;if(w.spinAcc>=Math.PI*2){stunt(w,'360 SPIN',50);w.spinAcc=0;w.spinT=0}}else{w.spinAcc=0;w.spinT=0}if(w.spinT>3){w.spinAcc=0;w.spinT=0}
+      const nx=w.x+Math.cos(w.h)*v*dt,ny=w.y+Math.sin(w.h)*v*dt;
+      if(carHits(nx,ny,w.h,0)){
+        // a gentle touch just stops the car or lets it slide along; only a real hit is a crash
+        if(Math.abs(v)>110){w.crash=1.2;w.clean=0}
+        else if(!carHits(nx,w.y,w.h,0))w.x=nx;else if(!carHits(w.x,ny,w.h,0))w.y=ny}
+      else{const before=rampAt(w.x,w.y);w.x=nx;w.y=ny;const dd=Math.abs(v*dt)/100;w.odo+=dd;w.clean+=dd;const on=rampAt(w.x,w.y);
+        w.z=on?on.p*RAMP_H:0;
+        // leaving a ramp over its lip at speed launches the car
+        if(before&&!on&&before.p>.8&&Math.cos(w.h-before.r[4])>.6&&v>40){w.vzc=120+v*.5;w.vair=v;w.z=RAMP_H;w.inAir=true}}
+      BOOST.forEach(([bx,by,bw,bh],i)=>{if(w.x>bx&&w.x<bx+bw&&w.y>by&&w.y<by+bh&&w.boost<=0){w.boost=2;stunt(w,'BOOST!',10)}})}
+    CONES.forEach(([cx,cy],i)=>{if(!w.cones.includes(i)&&Math.hypot(w.x-cx,w.y-cy)<CAR_HW+8&&w.z<30){w.cones.push(i);stunt(w,'CONE!',5)}});
     if(w.crash>0)w.crash-=dt}
   if(aw.type==='drone'){const bl=S.parts.filter(p=>p.type==='bldc'&&!p.burnt);w.weight=aw.frame+S.parts.reduce((a,p)=>a+kgOf(p),0);
     const T=bl.reduce((a,b)=>a+b.st.thrust,0);const fc=S.parts.find(p=>p.type==='fc');const vin=fc?fc.st.vin||0:0;
@@ -2878,6 +2931,12 @@ function worldStep(aw,dt){if(!aw)return;const w=S.w;w.t+=dt;
     w.vz+=(acc-1.6*w.vz)*dt;if(active>0&&active<4&&w.alt>.3){w.crash=1.5;w.vz=-6}
     w.alt=clamp(w.alt+w.vz*dt,0,30);if(w.alt<=0){if(w.vz<-5)w.crash=1.5;w.vz=Math.max(0,w.vz)}
     w.maxAlt=Math.max(w.maxAlt,w.alt);w.hover=(w.alt>1&&Math.abs(w.vz)<.4)?w.hover+dt:0;if(w.crash>0)w.crash-=dt;
+    // flying around the airfield: the stick tilts the drone, it speeds up to about 5 m/s and air drag slows it again
+    const fly=w.alt>.3&&active===4;const ax=fly?w.mx*4:0,az=fly?w.my*4:0;w.dvx+=(ax-.9*w.dvx)*dt;w.dvz+=(az-.9*w.dvz)*dt;if(w.alt<=0){w.dvx=0;w.dvz=0}
+    w.dx=clamp(w.dx+w.dvx*dt,-DRONE_FIELD,DRONE_FIELD);w.dz=clamp(w.dz+w.dvz*dt,-DRONE_FIELD,DRONE_FIELD);
+    if(w.stunt&&(w.stunt.t-=dt)<=0)w.stunt=null;
+    // gates: fly through the ring of the next one
+    const gt=GATES[w.gate%GATES.length];if(gt&&Math.hypot(w.dx-gt[0],w.dz-gt[1],w.alt-gt[2])<1.1){w.gate++;w.gates++;stunt(w,w.gate%GATES.length?`GATE ${w.gate%GATES.length}/${GATES.length}`:'LAP DONE!',w.gate%GATES.length?20:100)}
     const cur=bl.reduce((a,b)=>a+Math.max(0,b.st.i),0)+(fc?.1:0);const bat=S.parts.find(p=>p.type==='battery');
     w.ftime=bat&&cur>.2?bat.props.mah*.8/1000/cur*60*(bat.props.soc??1):null}
   S.parts.forEach(p=>{if(PD[p.type].host)p.st.bootT=p.st.on?(p.st.bootT||0)+dt:0})}
@@ -2894,7 +2953,7 @@ function world3D(aw){const box=$('#w3d');const want=!w3dOff&&!!aw&&(aw.type==='c
   if(!want){if(w3d){try{w3d.close()}catch(e){}w3d=null}if(!box.hidden)box.hidden=true;return false}
   if(box.hidden)box.hidden=false;$('#world').setAttribute('hidden','');
   if(!w3d&&!w3dBusy){w3dBusy=true;import('./arena3d.js').then(m=>{
-      w3d=m.open(box,{S,activeWorld,OBST,quality:store.get('circuitArena.w3dq')||undefined,
+      w3d=m.open(box,{S,activeWorld,OBST,ARENA,RAMPS,BOOST,CONES,RAMP_H,GATES,quality:store.get('circuitArena.w3dq')||undefined,
         onQuality:q=>{try{store.set('circuitArena.w3dq',q)}catch(e){}},
         onExit:()=>{w3dOff=true;try{store.set('circuitArena.world3d','off')}catch(e){}world3D(null)},
         battery:()=>{const b=S.parts.find(p=>p.type==='battery');return b?Math.round((b.props.soc??1)*100):0}})})
@@ -2909,7 +2968,7 @@ function renderWctl(aw){const t=aw&&(aw.type==='drone'?'drone':aw.type==='car'&&
   if(host){if(wctlEl.parentElement!==host)host.appendChild(wctlEl)}else if(wctlEl.previousElementSibling!==$('#w3d'))$('#w3d').after(wctlEl);
   wctlEl.hidden=false;
   if(wctlSig!==t){wctlSig=t;wctlEl.innerHTML=t==='drone'
-    ?`<button class="go" data-fly="takeoff">🛫 Take off</button><button data-fly="up" aria-label="Higher">▲</button><button data-fly="down" aria-label="Lower">▼</button><button data-fly="land">🛬 Land</button><span class="thr"><small>Throttle</small><input type="range" min="0" max="100" step="1" data-fly="thr" aria-label="Throttle"><b data-fly="out"></b></span>`
+    ?`<button class="go" data-fly="takeoff">🛫 Take off</button><button data-fly="up" aria-label="Higher">⤒ Up</button><button data-fly="down" aria-label="Lower">⤓ Down</button><button data-fly="land">🛬 Land</button><div class="pad" aria-label="Fly around"><span></span><button data-move="0,-1" aria-label="Fly forward">▲</button><span></span><button data-move="-1,0" aria-label="Fly left">◀</button><button data-move="0,1" aria-label="Fly back">▼</button><button data-move="1,0" aria-label="Fly right">▶</button></div><span class="thr"><small>Throttle</small><input type="range" min="0" max="100" step="1" data-fly="thr" aria-label="Throttle"><b data-fly="out"></b></span>`
     :`<div class="pad"><span></span><button data-drive="up" aria-label="Forward">▲</button><span></span><button data-drive="left" aria-label="Left">◀</button><button data-drive="down" aria-label="Back">▼</button><button data-drive="right" aria-label="Right">▶</button></div><small>Hold to drive · arrow keys work too</small>`}
   if(t==='drone'){const r=wctlEl.querySelector('[data-fly=thr]'),o=wctlEl.querySelector('[data-fly=out]');const v=Math.round(S.env.throttle);
     if(document.activeElement!==r&&+r.value!==v)r.value=v;const txt=v+'%'+(FLY.mode==='hover'?' · hold '+Math.max(0,FLY.tgt).toFixed(0)+' m':FLY.mode==='land'?' · landing':'');if(o.textContent!==txt)o.textContent=txt;
@@ -2921,25 +2980,33 @@ function flyCmd(c){const w=S.w;const fc=S.parts.find(p=>p.type==='fc');
   syncEnv()}
 let driveKey=null;
 function driveSet(k){driveKey=k;S.env.throttle=k==='up'?80:k==='down'?-80:0;S.env.steer=k==='left'?-60:k==='right'?60:0;syncEnv()}
-wctlEl.addEventListener('pointerdown',e=>{const f=e.target.closest('[data-fly]'),d=e.target.closest('[data-drive]');
+function moveSet(k){const [x,y]=k?k.split(',').map(Number):[0,0];S.w.mx=x;S.w.my=y}
+wctlEl.addEventListener('pointerdown',e=>{const mv=e.target.closest('[data-move]');if(mv){e.preventDefault();try{mv.setPointerCapture(e.pointerId)}catch(x){}moveSet(mv.dataset.move);return}
+  const f=e.target.closest('[data-fly]'),d=e.target.closest('[data-drive]');
   if(f&&f.tagName==='BUTTON'){e.preventDefault();flyCmd(f.dataset.fly)}
   if(d){e.preventDefault();try{d.setPointerCapture(e.pointerId)}catch(x){}driveSet(d.dataset.drive)}});
-['pointerup','pointercancel','lostpointercapture'].forEach(n=>wctlEl.addEventListener(n,e=>{if(driveKey&&e.target.closest('[data-drive]'))driveSet(null)}));
+['pointerup','pointercancel','lostpointercapture'].forEach(n=>wctlEl.addEventListener(n,e=>{if(driveKey&&e.target.closest('[data-drive]'))driveSet(null);if(e.target.closest('[data-move]'))moveSet(null)}));
 wctlEl.addEventListener('input',e=>{if(e.target.dataset.fly==='thr'){FLY.mode='manual';S.env.throttle=+e.target.value;syncEnv()}});
 wctlEl.addEventListener('keydown',e=>{const f=e.target.closest('button[data-fly]');if(f&&(e.key==='Enter'||e.key===' ')){e.preventDefault();flyCmd(f.dataset.fly)}});
 function renderWorld(aw){renderWctl(aw);const el=$('#world');if(world3D(aw))return;if(!aw){el.setAttribute('hidden','');return}el.removeAttribute('hidden');const w=S.w;let g='';
   const narrow=isPhone()&&el.getBoundingClientRect().width<700;const VW=narrow?520:960;
   const HX=narrow?(aw.type==='car'?clamp(w.x-260,0,440):aw.type==='drone'?400:aw.type==='watch'?355:['cloud','bio','neuron'].includes(aw.type)?0:380):0;
   const bat=S.parts.find(p=>p.type==='battery');const soc=bat?Math.round((bat.props.soc??1)*100):0;
-  if(aw.type==='car'){g=`<rect x="0" y="0" width="960" height="320" fill="var(--bench)"/><rect x="2" y="2" width="956" height="316" fill="none" stroke="var(--edge)" stroke-width="4"/>`;
-    for(let x=80;x<960;x+=80)g+=`<line x1="${x}" y1="0" x2="${x}" y2="320" stroke="var(--grid)"/>`;
+  if(aw.type==='car'){
+    // the arena is bigger than the view: the camera follows the car
+    const cx=clamp(w.x-VW/2,0,ARENA.w-VW),cy=clamp(w.y-160,0,ARENA.h-320);
+    g=`<rect x="0" y="0" width="960" height="320" fill="var(--bench)"/><g transform="translate(${-cx} ${-cy})"><rect x="2" y="2" width="${ARENA.w-4}" height="${ARENA.h-4}" fill="none" stroke="var(--edge)" stroke-width="4"/>`;
+    for(let x=100;x<ARENA.w;x+=100)g+=`<line x1="${x}" y1="0" x2="${x}" y2="${ARENA.h}" stroke="var(--grid)"/>`;for(let y=100;y<ARENA.h;y+=100)g+=`<line x1="0" y1="${y}" x2="${ARENA.w}" y2="${y}" stroke="var(--grid)"/>`;
+    BOOST.forEach(([x,y,ww,hh])=>g+=`<rect x="${x}" y="${y}" width="${ww}" height="${hh}" rx="6" fill="#20c8ff" opacity=".35"/><text x="${x+ww/2}" y="${y+hh/2+5}" text-anchor="middle" class="sc-txt" style="fill:#20c8ff">BOOST</text>`);
+    RAMPS.forEach(([x,y,L,Wd,d])=>{const al=Math.abs(Math.cos(d))>.5,ww=al?L:Wd,hh=al?Wd:L;g+=`<rect x="${x}" y="${y}" width="${ww}" height="${hh}" rx="4" fill="#E3B23C" opacity=".55" stroke="var(--edge)"/><text x="${x+ww/2}" y="${y+hh/2+5}" text-anchor="middle" class="sc-txt" style="fill:#1a1a1a;font-weight:700">RAMP ${d===0?'→':d===Math.PI?'←':'↑'}</text>`});
     OBST.forEach(([x,y,ww,hh])=>g+=`<rect x="${x}" y="${y}" width="${ww}" height="${hh}" rx="4" fill="var(--grid)" stroke="var(--edge)"/>`);
+    CONES.forEach(([x,y],i)=>g+=w.cones.includes(i)?`<ellipse cx="${x+6}" cy="${y+4}" rx="10" ry="5" fill="#E3884B" opacity=".6"/>`:`<circle cx="${x}" cy="${y}" r="9" fill="#E3884B" stroke="#fff" stroke-width="2"/>`);
     const us=S.parts.some(p=>p.type==='ultrasonic'&&p.st.pow);
     if(us){const d=S.env.distance;g+=`<line x1="${w.x+Math.cos(w.h)*26}" y1="${w.y+Math.sin(w.h)*26}" x2="${w.x+Math.cos(w.h)*(26+d)}" y2="${w.y+Math.sin(w.h)*(26+d)}" stroke="var(--sig)" stroke-dasharray="4 4"/>`}
-    g+=`<g transform="translate(${w.x} ${w.y}) rotate(${w.h*180/Math.PI})"><rect x="-26" y="-22" width="12" height="8" rx="2" fill="var(--edge)"/><rect x="14" y="-22" width="12" height="8" rx="2" fill="var(--edge)"/><rect x="-26" y="14" width="12" height="8" rx="2" fill="var(--edge)"/><rect x="14" y="14" width="12" height="8" rx="2" fill="var(--edge)"/>
-      <rect x="-28" y="-16" width="56" height="32" rx="6" fill="${w.crash>0?'var(--bad)':'var(--copper)'}" stroke="var(--edge)"/><rect x="18" y="-12" width="6" height="24" rx="2" fill="${us?'var(--mod)':'#FFE07A'}"/></g>`;
-    g+=`<rect x="${HX+8}" y="262" width="320" height="48" rx="6" fill="var(--panel)" opacity=".88"/><text x="${HX+16}" y="282" class="sc-txt">Speed ${(Math.abs(w.wl+w.wr)/2*1.4).toFixed(2)} m/s · driven ${w.odo.toFixed(1)} m · battery ${soc}%</text><text x="${HX+16}" y="302" class="sc-txt">No-crash streak ${w.clean.toFixed(1)} m${us?' · sensor '+Math.round(S.env.distance)+' cm':''}</text>`;
-    if(w.crash>0)g+=`<text x="${w.x}" y="${w.y-34}" text-anchor="middle" class="sc-big" style="fill:var(--bad)">CRASH!</text>`;
+    const sc=1+(w.z||0)/80;g+=`<g transform="translate(${w.x} ${w.y}) rotate(${w.h*180/Math.PI}) scale(${sc})"><rect x="-26" y="-22" width="12" height="8" rx="2" fill="var(--edge)"/><rect x="14" y="-22" width="12" height="8" rx="2" fill="var(--edge)"/><rect x="-26" y="14" width="12" height="8" rx="2" fill="var(--edge)"/><rect x="14" y="14" width="12" height="8" rx="2" fill="var(--edge)"/>
+      <rect x="-28" y="-16" width="56" height="32" rx="6" fill="${w.crash>0?'var(--bad)':w.boost>0?'#20c8ff':'var(--copper)'}" stroke="var(--edge)"/><rect x="18" y="-12" width="6" height="24" rx="2" fill="${us?'var(--mod)':'#FFE07A'}"/></g></g>`;
+    g+=`<rect x="8" y="262" width="360" height="48" rx="6" fill="var(--panel)" opacity=".88"/><text x="16" y="282" class="sc-txt">Speed ${(Math.abs(w.wl+w.wr)/2*1.8*(w.boost>0?2.2:1)).toFixed(2)} m/s · driven ${w.odo.toFixed(1)} m · battery ${soc}%</text><text x="16" y="302" class="sc-txt">Stunt score ${w.score||0} · best jump ${(w.bestAir||0).toFixed(1)} s · cones ${w.cones.length}/${CONES.length}${us?' · sensor '+Math.round(S.env.distance)+' cm':''}</text>`;
+    if(w.stunt||w.crash>0)g+=`<text x="${VW/2}" y="70" text-anchor="middle" style="font:800 30px var(--display,system-ui);fill:${w.crash>0?'var(--bad)':'#FFD29A'}">${w.crash>0?'CRASH!':w.stunt.text}</text>`;
     if(!aw.auto)g+=`<text x="${HX+VW-16}" y="22" text-anchor="end" class="sc-txt">${narrow?'Drive from the Controls tab':'Drive with arrow keys or W A S D'}</text>`;
     g+=w3dBtn(HX+VW)}
   if(aw.type==='drone'){const y=270-w.alt/30*240;const bl=S.parts.filter(p=>p.type==='bldc');const spinning=bl.some(b=>b.st.on);const DX=narrow?HX+170:480,UX=narrow?HX+300:700,RX=narrow?HX+30:40;
@@ -3065,8 +3132,9 @@ function renderBlueprint(){const inv=S.inv;const st=inv.goals.map((g,i)=>{if(S.g
 /* ---------- Driving keys ---------- */
 const KEYMAP={ArrowUp:['throttle',80],w:['throttle',80],ArrowDown:['throttle',-80],s:['throttle',-80],ArrowLeft:['steer',-60],a:['steer',-60],ArrowRight:['steer',60],d:['steer',60]};
 const driving=()=>{const aw=activeWorld();return aw&&(aw.type==='car'&&!aw.auto||aw.type==='drone')&&!/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)};
-document.addEventListener('keydown',e=>{const k=KEYMAP[e.key];if(!k||!driving())return;const aw=activeWorld();if(aw.type==='drone'){FLY.mode='manual';if(k[0]==='throttle')S.env.throttle=clamp(S.env.throttle+(k[1]>0?2:-2),0,100)}else S.env[k[0]]=k[1];syncEnv();e.preventDefault()});
-document.addEventListener('keyup',e=>{const k=KEYMAP[e.key];const aw=activeWorld();if(!k||!aw||aw.type!=='car')return;S.env[k[0]]=0;syncEnv()});
+document.addEventListener('keydown',e=>{const k=KEYMAP[e.key];if(!k||!driving())return;const aw=activeWorld();if(aw.type==='drone'&&FLY.mode==='hover'&&S.w.alt>.3){const mv={ArrowUp:'0,-1',w:'0,-1',ArrowDown:'0,1',s:'0,1',ArrowLeft:'-1,0',a:'-1,0',ArrowRight:'1,0',d:'1,0'}[e.key];moveSet(mv);e.preventDefault();return}
+  if(aw.type==='drone'){FLY.mode='manual';if(k[0]==='throttle')S.env.throttle=clamp(S.env.throttle+(k[1]>0?2:-2),0,100)}else S.env[k[0]]=k[1];syncEnv();e.preventDefault()});
+document.addEventListener('keyup',e=>{const k=KEYMAP[e.key];const aw=activeWorld();if(k&&aw&&aw.type==='drone'){S.w.mx=0;S.w.my=0;return}if(!k||!aw||aw.type!=='car')return;S.env[k[0]]=0;syncEnv()});
 
 /* ---------- Build view ---------- */
 const INVART={
