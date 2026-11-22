@@ -751,7 +751,7 @@ table.conn td{padding:6px;border-bottom:1px solid var(--line);vertical-align:top
     <div class="setrow"><span>Graphics</span><div class="chips" id="setGfx"><button class="chip" data-gfx="auto">Auto</button><button class="chip" data-gfx="high">High</button><button class="chip" data-gfx="lite">Smooth</button></div></div>
     <div class="setrow"><span>Workbench tips</span><button class="btn sm" id="setTips">Show again</button></div>
     <div class="setrow"><span>Progress (stars and best scores)</span><button class="btn sm danger" id="setReset">Reset</button></div>
-    <p class="ver">Circuit Arena 1.8.2 · works offline</p>
+    <p class="ver">Circuit Arena 1.9 · works offline</p>
     <p class="ver"><a href="../" style="color:var(--copper);font-weight:600;text-decoration:none">More free games at calmtype.life →</a> · <a href="projects/" style="color:var(--copper)">Project guides with code</a> · <a href="privacy/" style="color:var(--muted)">Privacy</a></p>
   </section>
 </section>
@@ -2860,24 +2860,48 @@ function loadInvention(inv){S.proj=null;S.inv=inv;S.goalsDone={};S.bpDone=null;
   S.invLevel={id:'inv-'+inv.id,name:inv.title,scene:'meter',par:0,parts:Object.keys(PD),env:inv.env,envMin:inv.envMin||{},board:inv.parts.some(([t])=>PD[t].board),goal:inv.sum,hint:inv.hint,tests:[],inv:true};
   S.env={...ENV0,distance:200};S.cloud={send:{},ctl:{}};
   S.projIds=buildFrom(inv,false,false);S.rules=inv.rules.map(()=>blankRule());afterLoad()}
-function resetWorld(){FLY.mode='manual';S.w={x:ARENA.start[0],y:ARENA.start[1],h:0,z:0,vzc:0,vair:0,inAir:false,boost:0,score:0,bestAir:0,cones:[],spinAcc:0,spinT:0,stunt:null,dx:0,dz:0,dvx:0,dvz:0,gate:0,gates:0,coins:[],cp:0,lapT0:null,lap:0,bestLap:0,parkT:0,parked:false,pins:[],pinsT:0,mx:0,my:0,odo:0,clean:0,crash:0,alt:0,vz:0,hover:0,maxAlt:0,app:null,wl:0,wr:0,tmax:0,weight:0,t:0,T:0,screen:0}}
+function resetWorld(){FLY.mode='manual';S.w={x:ARENA.start[0],y:ARENA.start[1],h:ARENA.startH||0,surf:'road',bumpCd:0,wet:false,z:0,vzc:0,vair:0,inAir:false,boost:0,score:0,bestAir:0,cones:[],spinAcc:0,spinT:0,stunt:null,dx:0,dz:0,dvx:0,dvz:0,gate:0,gates:0,coins:[],cp:0,lapT0:null,lap:0,bestLap:0,parkT:0,parked:false,pins:[],pinsT:0,mx:0,my:0,odo:0,clean:0,crash:0,alt:0,vz:0,hover:0,maxAlt:0,app:null,wl:0,wr:0,tmax:0,weight:0,t:0,T:0,screen:0}}
 
 /* ---------- World physics ---------- */
-// Car arena, in centimetres: 24 m × 14 m with crate blocks, ramps, boost pads and a cone slalom.
-const ARENA={w:2400,h:1400,start:[200,700]};
-const OBST=[[520,160,60,260],[520,980,60,260],[920,560,260,60],[1500,180,60,320],[1500,900,60,320],[1880,640,220,60],[1120,180,200,60],[1120,1160,200,60],[2150,1050,60,200]];
+// Car arena, in centimetres: a 60 m × 36 m robo-race ground. A 3.4 m wide race track loops round it (Catmull-Rom curve through CTRL);
+// the infield is an asphalt plaza with crate walls, a ramp, bowling pins and a parking bay. Off the track and plaza is grass, which slows the car.
+const TRACK_W=340,CTRL=[[1000,650],[3000,560],[4900,640],[5450,1150],[5350,1900],[4650,2200],[4350,2950],[3200,3080],[2350,2620],[1500,3060],[700,2820],[520,1600]];
+const TRACK=(()=>{const C=CTRL,n=C.length,raw=[];
+  for(let i=0;i<n;i++){const p0=C[(i-1+n)%n],p1=C[i],p2=C[(i+1)%n],p3=C[(i+2)%n];
+    for(let t=0;t<1;t+=.004){const t2=t*t,t3=t2*t;raw.push([0,1].map(k=>.5*((2*p1[k])+(-p0[k]+p2[k])*t+(2*p0[k]-5*p1[k]+4*p2[k]-p3[k])*t2+(-p0[k]+3*p1[k]-3*p2[k]+p3[k])*t3)))}}
+  const pts=[raw[0]];let acc=0;for(let i=1;i<raw.length;i++){const a=raw[i-1],b=raw[i];acc+=Math.hypot(b[0]-a[0],b[1]-a[1]);if(acc>=20){pts.push(b);acc=0}}return pts})();
+const TRACK_LEN=TRACK.length*20;
+// a point on the track: f = 0…1 round the lap, off = sideways from the centre line (cm, + is to the right of the driving direction)
+function trackAt(f,off=0){const n=TRACK.length,i=((Math.round(f*n)%n)+n)%n,a=TRACK[(i-1+n)%n],b=TRACK[(i+1)%n],d=Math.atan2(b[1]-a[1],b[0]-a[0]);
+  return [TRACK[i][0]-Math.sin(d)*off,TRACK[i][1]+Math.cos(d)*off,d]}
+const fOf=cm=>cm/TRACK_LEN;
+const PLAZA=[1500,1150,2800,1000];
+const ARENA=(()=>{const [x,y,d]=trackAt(-.028);return {w:6000,h:3600,start:[x,y],startH:d}})();
+const OBST=[[1700,1300,60,300],[2300,1750,320,60],[2950,1250,60,300],[3500,1650,60,330],[3900,1300,260,60]];
 // ramps: [x, y, length, width, direction]; the car climbs along the direction and takes off from the far end
-const RAMPS=[[660,620,200,160,0],[1680,1000,200,160,Math.PI],[1240,820,180,150,-Math.PI/2]];
-const BOOST=[[330,660,130,80],[1300,320,130,80],[2050,340,130,80]];
-const CONES=[...[0,1,2,3,4,5].map(i=>[760+i*130,i%2?1060:1180]),...[0,1,2,3].map(i=>[1720+i*120,i%2?440:540])];
+const rampOn=(f,L=220,Wd=220)=>{const [cx,cy,d]=trackAt(f),al=Math.abs(Math.cos(d))>.5;return [cx-(al?L:Wd)/2,cy-(al?Wd:L)/2,L,Wd,d]};
+const RAMPS=[rampOn(.075),rampOn(.56),[2400,1300,200,160,0]];
+const boostOn=f=>{const [x,y,d]=trackAt(f);return [x-75,y-75,150,150,d]};
+const BOOST=[boostOn(.03),boostOn(.3),boostOn(.5),boostOn(.84)];
+// speed breakers [x, y, direction] across the track, a sand trap and a water splash [x, y, radius], and a tunnel [x, y, direction, length]
+const BUMPS=[.16,.166,.172,.7,.706].map(f=>trackAt(f));
+const SAND=[[...trackAt(.41).slice(0,2),170]],WATER=[[...trackAt(.925).slice(0,2),170]];
+const TUNNEL=[[...trackAt(.455),520]];
+const CONES=[0,1,2,3,4,5].map(i=>trackAt(.2+i*.009,i%2?80:-80).slice(0,2));
 const RAMP_H=32;
-// Arena games: coins [x, y, height] (a raised one is only reached by jumping), race checkpoints in order, a parking bay and bowling pins.
-const COINS=[[350,300,0],[800,300,0],[1000,420,0],[1700,300,0],[2300,560,0],[1420,700,0],[1700,760,0],[2000,900,0],[2300,1300,0],[1900,1310,0],[1000,1320,0],[700,920,0],[380,1000,0],[990,700,55],[1520,1350,0]];
-const CHECKS=[[1380,440],[2300,860],[1420,1300],[360,1080]];
-const PARK=[150,1180,96,70];
-const PINS=[[2220,210],[2245,196],[2245,224],[2270,182],[2270,210],[2270,238]];
-// Drone airfield: ±40 m square; gates are rings [x, z, height, facing] in metres to fly through in order.
-const DRONE_FIELD=40,GATES=[[0,-8,3,0],[9,-14,5,Math.PI/2],[16,-4,4,0],[9,6,6,Math.PI/2],[-6,8,3.5,0]];
+// Arena games: coins [x, y, height] (a raised one is only reached by jumping), race checkpoints [x, y, direction] in order, a parking bay and bowling pins.
+const COINS=[...Array.from({length:20},(_,i)=>.02+i*.048).filter(f=>Math.abs(f-.075)>.02&&Math.abs(f-.56)>.02).map((f,i)=>[...trackAt(f,i%2?70:-70).slice(0,2),0]),
+  [...trackAt(.075+fOf(260)).slice(0,2),55],[...trackAt(.56+fOf(260)).slice(0,2),55],[2000,1250,0],[2700,1500,0],[3300,1300,0],[3800,1900,0],[4100,1500,0]];
+const CHECKS=[0,.25,.5,.75].map(f=>trackAt(f)),CHECK_R=TRACK_W/2+60;
+const PARK=[4000,1960,96,70];
+const PINS=[[3080,1950],[3105,1936],[3105,1964],[3130,1922],[3130,1950],[3130,1978]];
+const CAR_V=260;   // cm/s at full motor speed
+function onTrack(x,y){let m=1e9;for(let i=0;i<TRACK.length;i+=2){const d=(TRACK[i][0]-x)**2+(TRACK[i][1]-y)**2;if(d<m)m=d}return Math.sqrt(m)<TRACK_W/2+25}
+const inRect=(x,y,[rx,ry,rw,rh])=>x>rx&&x<rx+rw&&y>ry&&y<ry+rh;
+function surface(x,y){if(WATER.some(([a,b,r])=>Math.hypot(x-a,y-b)<r))return 'water';if(SAND.some(([a,b,r])=>Math.hypot(x-a,y-b)<r))return 'sand';
+  return onTrack(x,y)||inRect(x,y,PLAZA)?'road':'grass'}
+// Drone airfield: ±100 m square; gates are rings [x, z, height, facing] in metres to fly through in order.
+const DRONE_FIELD=100,GATES=[[0,-12,3,0],[18,-30,5,Math.PI/2],[45,-22,7,0],[60,5,4,Math.PI/2],[40,35,8,0],[5,45,5,Math.PI/2],[-30,30,6,0],[-45,-5,4,Math.PI/2],[-25,-35,9,0]];
 function hitWall(x,y,r){if(x<r||y<r||x>ARENA.w-r||y>ARENA.h-r)return true;return OBST.some(([ox,oy,ow,oh])=>x>ox-r&&x<ox+ow+r&&y>oy-r&&y<oy+oh+r)}
 // The car's real footprint (50 × 36 cm with wheels) as a turning box: touching a corner is fine, overlapping is not.
 const CAR_HL=25,CAR_HW=18;
@@ -2899,7 +2923,7 @@ function arenaGames(w,dt){
     if(w.coins.length===COINS.length){w.coins=[];stunt(w,'ALL COINS! +100',100)}}});
   // race: drive through the checkpoints 1 → 4 in order; checkpoint 1 starts and ends a lap
   if(w.lapT0!=null)w.lap=w.t-w.lapT0;
-  const [kx,ky]=CHECKS[w.cp];if(Math.hypot(w.x-kx,w.y-ky)<80){
+  const [kx,ky]=CHECKS[w.cp];if(Math.hypot(w.x-kx,w.y-ky)<CHECK_R){
     if(w.cp===0){if(w.lapT0!=null){const L=w.t-w.lapT0,best=!w.bestLap||L<w.bestLap;if(best)w.bestLap=L;stunt(w,`LAP ${L.toFixed(1)} s${best?' BEST!':''}`,best?150:80)}else stunt(w,'RACE START',0);w.lapT0=w.t;w.lap=0}
     else stunt(w,`CHECKPOINT ${w.cp+1}/${CHECKS.length}`,15);
     w.cp=(w.cp+1)%CHECKS.length}
@@ -2928,25 +2952,29 @@ function worldStep(aw,dt){if(!aw)return;const w=S.w;w.t+=dt;
     // motors and wheels have inertia: their speed changes over about a tenth of a second instead of jumping, so code that flips between "turn" and "go" gives a smooth curve, not a shake
     w.wl+=(tl-w.wl)*kk;w.wr+=(tr-w.wr)*kk;if(!tl&&Math.abs(w.wl)<.02)w.wl=0;if(!tr&&Math.abs(w.wr)<.02)w.wr=0;
     if(w.boost>0)w.boost-=dt;if(w.stunt&&(w.stunt.t-=dt)<=0)w.stunt=null;
-    const v=(w.wl+w.wr)/2*180*(w.boost>0?2.2:1),om=(w.wl-w.wr)*2.4;
+    w.surf=surface(w.x,w.y);const grip={road:1,grass:.55,sand:.4,water:.6}[w.surf];if(w.bumpCd>0)w.bumpCd-=dt;
+    if(w.surf==='water'&&!w.wet&&!w.inAir){w.wet=true;stunt(w,'SPLASH! +5',5)}else if(w.surf!=='water')w.wet=false;
+    const v=(w.wl+w.wr)/2*CAR_V*(w.boost>0?2.2:1)*grip,om=(w.wl-w.wr)*2.4;w.spd=Math.abs(w.inAir?w.vair:v);
     if(w.inAir){
       // in the air: no grip, it keeps its speed and falls until it meets the ground (or a ramp)
       w.air=(w.air||0)+dt;const nx=w.x+Math.cos(w.h)*w.vair*dt,ny=w.y+Math.sin(w.h)*w.vair*dt;w.vzc-=900*dt;w.z+=w.vzc*dt;
       if(carHits(nx,ny,w.h,w.z)){w.crash=1.2;w.clean=0;w.vair=0;stunt(w,'CRASH LANDING',0)}else{w.x=nx;w.y=ny;const dd=Math.abs(w.vair*dt)/100;w.odo+=dd;w.clean+=dd}
       const r=rampAt(w.x,w.y),ground=r?r.p*RAMP_H:0;
-      if(w.z<=ground&&w.vzc<=0){w.z=ground;w.vzc=0;w.inAir=false;const a=w.air;w.air=0;if(a>.15){w.bestAir=Math.max(w.bestAir,a);stunt(w,`JUMP ${a.toFixed(1)} s`,Math.round(a*100))}}}
+      if(w.z<=ground&&w.vzc<=0){w.z=ground;w.vzc=0;w.inAir=false;const a=w.air;w.air=0;if(a>.15&&!w.hop){w.bestAir=Math.max(w.bestAir,a);stunt(w,`JUMP ${a.toFixed(1)} s`,Math.round(a*100))}w.hop=false}}
     else{w.h+=om*dt;
       // a full turn on the spot in under 3 s is a 360 spin
-      if(Math.abs(om)>1.5&&Math.abs(v)<80){w.spinAcc+=Math.abs(om*dt);w.spinT+=dt;if(w.spinAcc>=Math.PI*2){stunt(w,'360 SPIN',50);w.spinAcc=0;w.spinT=0}}else{w.spinAcc=0;w.spinT=0}if(w.spinT>3){w.spinAcc=0;w.spinT=0}
+      if(Math.abs(om)>1.5&&Math.abs(v)<120){w.spinAcc+=Math.abs(om*dt);w.spinT+=dt;if(w.spinAcc>=Math.PI*2){stunt(w,'360 SPIN',50);w.spinAcc=0;w.spinT=0}}else{w.spinAcc=0;w.spinT=0}if(w.spinT>3){w.spinAcc=0;w.spinT=0}
       const nx=w.x+Math.cos(w.h)*v*dt,ny=w.y+Math.sin(w.h)*v*dt;
       if(carHits(nx,ny,w.h,0)){
         // a gentle touch just stops the car or lets it slide along; only a real hit is a crash
-        if(Math.abs(v)>110){w.crash=1.2;w.clean=0}
+        if(Math.abs(v)>160){w.crash=1.2;w.clean=0}
         else if(!carHits(nx,w.y,w.h,0))w.x=nx;else if(!carHits(w.x,ny,w.h,0))w.y=ny}
       else{const before=rampAt(w.x,w.y);w.x=nx;w.y=ny;const dd=Math.abs(v*dt)/100;w.odo+=dd;w.clean+=dd;const on=rampAt(w.x,w.y);
         w.z=on?on.p*RAMP_H:0;
         // leaving a ramp over its lip at speed launches the car
-        if(before&&!on&&before.p>.8&&Math.cos(w.h-before.r[4])>.6&&v>40){w.vzc=120+v*.5;w.vair=v;w.z=RAMP_H;w.inAir=true}}
+        if(before&&!on&&before.p>.8&&Math.cos(w.h-before.r[4])>.6&&v>40){w.vzc=Math.min(380,120+v*.5);w.vair=v;w.z=RAMP_H;w.inAir=true;w.hop=false}
+        // speed breakers give a little hop at speed
+        else if(!on&&w.bumpCd<=0&&Math.abs(v)>70&&BUMPS.some(([bx,by,bd])=>{const dx=w.x-bx,dy=w.y-by;return Math.abs(dx*Math.cos(bd)+dy*Math.sin(bd))<14&&Math.abs(-dx*Math.sin(bd)+dy*Math.cos(bd))<TRACK_W/2})){w.vzc=50+Math.abs(v)*.18;w.vair=v;w.z=1;w.inAir=true;w.hop=true;w.bumpCd=.35}}
       BOOST.forEach(([bx,by,bw,bh],i)=>{if(w.x>bx&&w.x<bx+bw&&w.y>by&&w.y<by+bh&&w.boost<=0){w.boost=2;stunt(w,'BOOST!',10)}})}
     CONES.forEach(([cx,cy],i)=>{if(!w.cones.includes(i)&&Math.hypot(w.x-cx,w.y-cy)<CAR_HW+8&&w.z<30){w.cones.push(i);stunt(w,'CONE!',5)}});
     arenaGames(w,dt);
@@ -2959,7 +2987,7 @@ function worldStep(aw,dt){if(!aw)return;const w=S.w;w.t+=dt;
     w.alt=clamp(w.alt+w.vz*dt,0,30);if(w.alt<=0){if(w.vz<-5)w.crash=1.5;w.vz=Math.max(0,w.vz)}
     w.maxAlt=Math.max(w.maxAlt,w.alt);w.hover=(w.alt>1&&Math.abs(w.vz)<.4)?w.hover+dt:0;if(w.crash>0)w.crash-=dt;
     // flying around the airfield: the stick tilts the drone, it speeds up to about 5 m/s and air drag slows it again
-    const fly=w.alt>.3&&active===4;const ax=fly?w.mx*4:0,az=fly?w.my*4:0;w.dvx+=(ax-.9*w.dvx)*dt;w.dvz+=(az-.9*w.dvz)*dt;if(w.alt<=0){w.dvx=0;w.dvz=0}
+    const fly=w.alt>.3&&active===4;const ax=fly?w.mx*8:0,az=fly?w.my*8:0;w.dvx+=(ax-.9*w.dvx)*dt;w.dvz+=(az-.9*w.dvz)*dt;if(w.alt<=0){w.dvx=0;w.dvz=0}
     w.dx=clamp(w.dx+w.dvx*dt,-DRONE_FIELD,DRONE_FIELD);w.dz=clamp(w.dz+w.dvz*dt,-DRONE_FIELD,DRONE_FIELD);
     if(w.stunt&&(w.stunt.t-=dt)<=0)w.stunt=null;
     // gates: fly through the ring of the next one
@@ -2980,7 +3008,7 @@ function world3D(aw){const box=$('#w3d');const want=!w3dOff&&!!aw&&(aw.type==='c
   if(!want){if(w3d){try{w3d.close()}catch(e){}w3d=null}if(!box.hidden)box.hidden=true;return false}
   if(box.hidden)box.hidden=false;$('#world').setAttribute('hidden','');
   if(!w3d&&!w3dBusy){w3dBusy=true;import('./arena3d.js').then(m=>{
-      w3d=m.open(box,{S,activeWorld,OBST,ARENA,RAMPS,BOOST,CONES,RAMP_H,GATES,COINS,CHECKS,PARK,PINS,quality:store.get('circuitArena.w3dq')||undefined,
+      w3d=m.open(box,{S,activeWorld,OBST,ARENA,RAMPS,BOOST,CONES,RAMP_H,GATES,COINS,CHECKS,PARK,PINS,TRACK,TRACK_W,PLAZA,BUMPS,SAND,WATER,TUNNEL,DRONE_FIELD,trackAt,quality:store.get('circuitArena.w3dq')||undefined,
         onQuality:q=>{try{store.set('circuitArena.w3dq',q)}catch(e){}},
         onExit:()=>{w3dOff=true;try{store.set('circuitArena.world3d','off')}catch(e){}world3D(null)},
         battery:()=>{const b=S.parts.find(p=>p.type==='battery');return b?Math.round((b.props.soc??1)*100):0}})})
@@ -2996,7 +3024,7 @@ function renderWctl(aw){const t=aw&&(aw.type==='drone'?'drone':aw.type==='car'&&
   wctlEl.hidden=false;
   if(wctlSig!==t){wctlSig=t;wctlEl.innerHTML=t==='drone'
     ?`<button class="go" data-fly="takeoff">🛫 Take off</button><button data-fly="up" aria-label="Higher">⤒ Up</button><button data-fly="down" aria-label="Lower">⤓ Down</button><button data-fly="land">🛬 Land</button><div class="pad" aria-label="Fly around"><span></span><button data-move="0,-1" aria-label="Fly forward">▲</button><span></span><button data-move="-1,0" aria-label="Fly left">◀</button><button data-move="0,1" aria-label="Fly back">▼</button><button data-move="1,0" aria-label="Fly right">▶</button></div><span class="thr"><small>Throttle</small><input type="range" min="0" max="100" step="1" data-fly="thr" aria-label="Throttle"><b data-fly="out"></b></span>`
-    :`<div class="pad"><span></span><button data-drive="up" aria-label="Forward">▲</button><span></span><button data-drive="left" aria-label="Left">◀</button><button data-drive="down" aria-label="Back">▼</button><button data-drive="right" aria-label="Right">▶</button></div><small>Hold to drive · arrow keys work too</small>`}
+    :`<div class="pad"><button data-drive="ul" aria-label="Forward left">◤</button><button data-drive="up" aria-label="Forward">▲</button><button data-drive="ur" aria-label="Forward right">◥</button><button data-drive="left" aria-label="Spin left">◀</button><button data-drive="down" aria-label="Back">▼</button><button data-drive="right" aria-label="Spin right">▶</button></div><small>Hold to drive · ◤ ◥ turn while driving · arrow keys work too</small>`}
   if(t==='drone'){const r=wctlEl.querySelector('[data-fly=thr]'),o=wctlEl.querySelector('[data-fly=out]');const v=Math.round(S.env.throttle);
     if(document.activeElement!==r&&+r.value!==v)r.value=v;const txt=v+'%'+(FLY.mode==='hover'?' · hold '+Math.max(0,FLY.tgt).toFixed(0)+' m':FLY.mode==='land'?' · landing':'');if(o.textContent!==txt)o.textContent=txt;
     const tk=wctlEl.querySelector('[data-fly=takeoff]');const pr=String(FLY.mode==='hover');if(tk.getAttribute('aria-pressed')!==pr){tk.setAttribute('aria-pressed',pr);tk.textContent=FLY.mode==='hover'?'✋ Hovering':'🛫 Take off'}}}
@@ -3005,14 +3033,17 @@ function flyCmd(c){const w=S.w;const fc=S.parts.find(p=>p.type==='fc');
   else if(c==='up'||c==='down'){if(FLY.mode!=='hover'){FLY.mode='hover';FLY.tgt=Math.round(w.alt||0)}FLY.tgt=clamp(FLY.tgt+(c==='up'?2:-2),0,28)}
   else if(c==='land'){FLY.mode='land';FLY.tgt=w.alt||0}
   syncEnv()}
-let driveKey=null;
-function driveSet(k){driveKey=k;S.env.throttle=k==='up'?80:k==='down'?-80:0;S.env.steer=k==='left'?-60:k==='right'?60:0;syncEnv()}
+let driveKey=null;const driveHeld=new Map();   // pointer id → button, so two thumbs (forward + turn) work together
+const DRIVE={up:[80,0],down:[-80,0],left:[0,-60],right:[0,60],ul:[80,-45],ur:[80,45]};
+function driveSet(k,id){if(id!=null){if(k)driveHeld.set(id,k);else driveHeld.delete(id)}else{driveHeld.clear();if(k)driveHeld.set('k',k)}
+  let t=0,st=0;for(const v of driveHeld.values()){t+=DRIVE[v][0];st+=DRIVE[v][1]}driveKey=driveHeld.size?[...driveHeld.values()].pop():null;
+  S.env.throttle=clamp(t,-80,80);S.env.steer=clamp(st,-60,60);syncEnv()}
 function moveSet(k){const [x,y]=k?k.split(',').map(Number):[0,0];S.w.mx=x;S.w.my=y}
 wctlEl.addEventListener('pointerdown',e=>{const mv=e.target.closest('[data-move]');if(mv){e.preventDefault();try{mv.setPointerCapture(e.pointerId)}catch(x){}moveSet(mv.dataset.move);return}
   const f=e.target.closest('[data-fly]'),d=e.target.closest('[data-drive]');
   if(f&&f.tagName==='BUTTON'){e.preventDefault();flyCmd(f.dataset.fly)}
-  if(d){e.preventDefault();try{d.setPointerCapture(e.pointerId)}catch(x){}driveSet(d.dataset.drive)}});
-['pointerup','pointercancel','lostpointercapture'].forEach(n=>wctlEl.addEventListener(n,e=>{if(driveKey&&e.target.closest('[data-drive]'))driveSet(null);if(e.target.closest('[data-move]'))moveSet(null)}));
+  if(d){e.preventDefault();try{d.setPointerCapture(e.pointerId)}catch(x){}driveSet(d.dataset.drive,e.pointerId)}});
+['pointerup','pointercancel','lostpointercapture'].forEach(n=>wctlEl.addEventListener(n,e=>{if(driveHeld.has(e.pointerId))driveSet(null,e.pointerId);if(e.target.closest('[data-move]'))moveSet(null)}));
 wctlEl.addEventListener('input',e=>{if(e.target.dataset.fly==='thr'){FLY.mode='manual';S.env.throttle=+e.target.value;syncEnv()}});
 wctlEl.addEventListener('keydown',e=>{const f=e.target.closest('button[data-fly]');if(f&&(e.key==='Enter'||e.key===' ')){e.preventDefault();flyCmd(f.dataset.fly)}});
 function renderWorld(aw){renderWctl(aw);const el=$('#world');if(world3D(aw))return;if(!aw){el.setAttribute('hidden','');return}el.removeAttribute('hidden');const w=S.w;let g='';
@@ -3022,13 +3053,20 @@ function renderWorld(aw){renderWctl(aw);const el=$('#world');if(world3D(aw))retu
   if(aw.type==='car'){
     // the arena is bigger than the view: the camera follows the car
     const cx=clamp(w.x-VW/2,0,ARENA.w-VW),cy=clamp(w.y-160,0,ARENA.h-320);
-    g=`<rect x="0" y="0" width="960" height="320" fill="var(--bench)"/><g transform="translate(${-cx} ${-cy})"><rect x="2" y="2" width="${ARENA.w-4}" height="${ARENA.h-4}" fill="none" stroke="var(--edge)" stroke-width="4"/>`;
-    for(let x=100;x<ARENA.w;x+=100)g+=`<line x1="${x}" y1="0" x2="${x}" y2="${ARENA.h}" stroke="var(--grid)"/>`;for(let y=100;y<ARENA.h;y+=100)g+=`<line x1="0" y1="${y}" x2="${ARENA.w}" y2="${y}" stroke="var(--grid)"/>`;
-    BOOST.forEach(([x,y,ww,hh])=>g+=`<rect x="${x}" y="${y}" width="${ww}" height="${hh}" rx="6" fill="#20c8ff" opacity=".35"/><text x="${x+ww/2}" y="${y+hh/2+5}" text-anchor="middle" class="sc-txt" style="fill:#20c8ff">BOOST</text>`);
-    RAMPS.forEach(([x,y,L,Wd,d])=>{const al=Math.abs(Math.cos(d))>.5,ww=al?L:Wd,hh=al?Wd:L;g+=`<rect x="${x}" y="${y}" width="${ww}" height="${hh}" rx="4" fill="#E3B23C" opacity=".55" stroke="var(--edge)"/><text x="${x+ww/2}" y="${y+hh/2+5}" text-anchor="middle" class="sc-txt" style="fill:#1a1a1a;font-weight:700">RAMP ${d===0?'→':d===Math.PI?'←':'↑'}</text>`});
+    g=`<rect x="0" y="0" width="960" height="320" fill="var(--bench)"/><g transform="translate(${-cx} ${-cy})"><rect x="2" y="2" width="${ARENA.w-4}" height="${ARENA.h-4}" fill="#2f5d34" fill-opacity=".35" stroke="var(--edge)" stroke-width="4"/>`;
+    {const [px,py,pw,ph]=PLAZA;g+=`<rect x="${px}" y="${py}" width="${pw}" height="${ph}" rx="20" fill="#3a3d42"/>`;
+     const d='M'+TRACK.filter((_,i)=>i%3===0).map(p=>p.map(Math.round).join(' ')).join('L')+'Z';
+     g+=`<path d="${d}" fill="none" stroke="#f4f4f0" stroke-width="${TRACK_W+16}" stroke-linejoin="round"/><path d="${d}" fill="none" stroke="#3a3d42" stroke-width="${TRACK_W}" stroke-linejoin="round"/><path d="${d}" fill="none" stroke="#f4f4f0" stroke-width="4" stroke-dasharray="40 40" opacity=".6"/>`}
+    SAND.forEach(([x,y,r])=>g+=`<circle cx="${x}" cy="${y}" r="${r}" fill="#d9b779" opacity=".85"/><text x="${x}" y="${y+5}" text-anchor="middle" class="sc-txt" style="fill:#5a4320">SAND</text>`);
+    WATER.forEach(([x,y,r])=>g+=`<circle cx="${x}" cy="${y}" r="${r}" fill="#3a8fd6" opacity=".75"/><text x="${x}" y="${y+5}" text-anchor="middle" class="sc-txt" style="fill:#fff">WATER</text>`);
+    BUMPS.forEach(([x,y,d])=>g+=`<rect x="-10" y="${-TRACK_W/2}" width="20" height="${TRACK_W}" fill="#f2b21b" transform="translate(${x} ${y}) rotate(${d*180/Math.PI})"/>`);
+    TUNNEL.forEach(([x,y,d,L])=>g+=`<rect x="${-L/2}" y="${-TRACK_W/2-14}" width="${L}" height="${TRACK_W+28}" fill="#111" opacity=".45" transform="translate(${x} ${y}) rotate(${d*180/Math.PI})"/><text x="${x}" y="${y-TRACK_W/2-24}" text-anchor="middle" class="sc-txt">TUNNEL</text>`);
+    {const [sx,sy,sd]=trackAt(0);g+=`<rect x="-8" y="${-TRACK_W/2}" width="16" height="${TRACK_W}" fill="#fff" transform="translate(${sx} ${sy}) rotate(${sd*180/Math.PI})"/>`}
+    BOOST.forEach(([x,y,ww,hh,d])=>g+=`<rect x="${x}" y="${y}" width="${ww}" height="${hh}" rx="6" fill="#20c8ff" opacity=".45"/><text x="${x+ww/2}" y="${y+hh/2+5}" text-anchor="middle" class="sc-txt" style="fill:#fff">BOOST</text>`);
+    RAMPS.forEach(([x,y,L,Wd,d])=>{const al=Math.abs(Math.cos(d))>.5,cx2=x+(al?L:Wd)/2,cy2=y+(al?Wd:L)/2;g+=`<g transform="translate(${cx2} ${cy2}) rotate(${d*180/Math.PI})"><rect x="${-L/2}" y="${-Wd/2}" width="${L}" height="${Wd}" rx="4" fill="#E3B23C" opacity=".8" stroke="var(--edge)"/><text x="0" y="5" text-anchor="middle" class="sc-txt" style="fill:#1a1a1a;font-weight:700">RAMP →</text></g>`});
     OBST.forEach(([x,y,ww,hh])=>g+=`<rect x="${x}" y="${y}" width="${ww}" height="${hh}" rx="4" fill="var(--grid)" stroke="var(--edge)"/>`);
     {const [px,py,pw,ph]=PARK;g+=`<rect x="${px}" y="${py}" width="${pw}" height="${ph}" fill="${w.parked?'#3fb950':'none'}" fill-opacity=".3" stroke="#f4f4f0" stroke-width="3" stroke-dasharray="${w.parked?'':'8 5'}"/><text x="${px+pw/2}" y="${py-8}" text-anchor="middle" class="sc-txt">P</text>`}
-    CHECKS.forEach(([x,y],i)=>g+=`<circle cx="${x}" cy="${y}" r="80" fill="none" stroke="${i===w.cp?'#ff7a1a':'var(--edge)'}" stroke-width="${i===w.cp?4:2}" stroke-dasharray="10 6"/><text x="${x}" y="${y+6}" text-anchor="middle" style="font:800 20px var(--display,system-ui);fill:${i===w.cp?'#ff7a1a':'var(--muted)'}">${i+1}</text>`);
+    CHECKS.forEach(([x,y],i)=>g+=`<circle cx="${x}" cy="${y}" r="${CHECK_R}" fill="none" stroke="${i===w.cp?'#ff7a1a':'var(--edge)'}" stroke-width="${i===w.cp?4:2}" stroke-dasharray="10 6"/><text x="${x}" y="${y+6}" text-anchor="middle" style="font:800 40px var(--display,system-ui);fill:${i===w.cp?'#ff7a1a':'var(--muted)'}">${i?'CP '+(i+1):'START'}</text>`);
     COINS.forEach(([x,y,h],i)=>{if(!(w.coins||[]).includes(i))g+=`<circle cx="${x}" cy="${y}" r="${h?11:9}" fill="#ffd23f" stroke="${h?'#20c8ff':'#b8860b'}" stroke-width="3"/>`});
     PINS.forEach(([x,y],i)=>g+=(w.pins||[]).includes(i)?`<ellipse cx="${x+5}" cy="${y}" rx="9" ry="4" fill="#f4f4f0" opacity=".5"/>`:`<circle cx="${x}" cy="${y}" r="6" fill="#f4f4f0" stroke="#d33" stroke-width="2"/>`);
     CONES.forEach(([x,y],i)=>g+=w.cones.includes(i)?`<ellipse cx="${x+6}" cy="${y+4}" rx="10" ry="5" fill="#E3884B" opacity=".6"/>`:`<circle cx="${x}" cy="${y}" r="9" fill="#E3884B" stroke="#fff" stroke-width="2"/>`);
@@ -3036,7 +3074,7 @@ function renderWorld(aw){renderWctl(aw);const el=$('#world');if(world3D(aw))retu
     if(us){const d=S.env.distance;g+=`<line x1="${w.x+Math.cos(w.h)*26}" y1="${w.y+Math.sin(w.h)*26}" x2="${w.x+Math.cos(w.h)*(26+d)}" y2="${w.y+Math.sin(w.h)*(26+d)}" stroke="var(--sig)" stroke-dasharray="4 4"/>`}
     const sc=1+(w.z||0)/80;g+=`<g transform="translate(${w.x} ${w.y}) rotate(${w.h*180/Math.PI}) scale(${sc})"><rect x="-26" y="-22" width="12" height="8" rx="2" fill="var(--edge)"/><rect x="14" y="-22" width="12" height="8" rx="2" fill="var(--edge)"/><rect x="-26" y="14" width="12" height="8" rx="2" fill="var(--edge)"/><rect x="14" y="14" width="12" height="8" rx="2" fill="var(--edge)"/>
       <rect x="-28" y="-16" width="56" height="32" rx="6" fill="${w.crash>0?'var(--bad)':w.boost>0?'#20c8ff':'var(--copper)'}" stroke="var(--edge)"/><rect x="18" y="-12" width="6" height="24" rx="2" fill="${us?'var(--mod)':'#FFE07A'}"/></g></g>`;
-    g+=`<rect x="8" y="262" width="430" height="48" rx="6" fill="var(--panel)" opacity=".88"/><text x="16" y="282" class="sc-txt">Speed ${(Math.abs(w.wl+w.wr)/2*1.8*(w.boost>0?2.2:1)).toFixed(2)} m/s · driven ${w.odo.toFixed(1)} m · battery ${soc}%</text><text x="16" y="302" class="sc-txt">Stunt score ${w.score||0} · best jump ${(w.bestAir||0).toFixed(1)} s · coins ${(w.coins||[]).length}/${COINS.length}${w.lapT0!=null?' · lap '+(w.lap||0).toFixed(1)+' s':''}${w.bestLap?' · best lap '+w.bestLap.toFixed(1)+' s':''}${us?' · sensor '+Math.round(S.env.distance)+' cm':''}</text>`;
+    g+=`<rect x="8" y="262" width="430" height="48" rx="6" fill="var(--panel)" opacity=".88"/><text x="16" y="282" class="sc-txt">Speed ${((w.spd||0)/100).toFixed(1)} m/s${w.surf&&w.surf!=='road'?' ('+w.surf+')':''} · driven ${w.odo.toFixed(1)} m · battery ${soc}%</text><text x="16" y="302" class="sc-txt">Stunt score ${w.score||0} · best jump ${(w.bestAir||0).toFixed(1)} s · coins ${(w.coins||[]).length}/${COINS.length}${w.lapT0!=null?' · lap '+(w.lap||0).toFixed(1)+' s':''}${w.bestLap?' · best lap '+w.bestLap.toFixed(1)+' s':''}${us?' · sensor '+Math.round(S.env.distance)+' cm':''}</text>`;
     if(w.stunt||w.crash>0)g+=`<text x="${VW/2}" y="70" text-anchor="middle" style="font:800 30px var(--display,system-ui);fill:${w.crash>0?'var(--bad)':'#FFD29A'}">${w.crash>0?'CRASH!':w.stunt.text}</text>`;
     if(!aw.auto)g+=`<text x="${HX+VW-16}" y="22" text-anchor="end" class="sc-txt">${narrow?'Drive from the Controls tab':'Drive with arrow keys or W A S D'}</text>`;
     g+=w3dBtn(HX+VW)}
