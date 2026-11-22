@@ -99,7 +99,9 @@ function buildCar(S) {
   const cols = [0xd0362a, 0x1f2124, 0xe8b923, 0x2f8be0, 0x3fb950];
   for (let i = 0; i < 5; i++) { const a = new THREE.Vector3(-.03 + i * .012, .148, -.03), b = new THREE.Vector3(.02 + (i - 2) * .01, .1, .02 * (i - 2)), m = a.clone().lerp(b, .5).add(new THREE.Vector3(.04, .03, 0));
     car.add(mesh(new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(a, m, b), 12, .0022, 6), M('jw' + i, () => std(cols[i], .45)))); }
-  car.userData = { wheels, eyes };
+  // everything but the wheels sits on a sprung body, so it can squat, dive and lean while the tyres stay on the ground
+  const body = new THREE.Group(); car.children.filter(c => !wheels.some(x => x.w === c)).forEach(c => body.add(c)); car.add(body);
+  car.userData = { wheels, eyes, body, sus: { p: 0, pv: 0, r: 0, rv: 0, y: 0, yv: 0, air: false, pitch: 0 } };
   return car;
 }
 
@@ -448,17 +450,29 @@ export function open(container, api) {
       checks3.forEach((g, i) => { const next = i === (w.cp || 0); g.userData.m.emissive.setHex(next ? 0xff7a1a : 0x9fe8ff); g.userData.m.emissiveIntensity = next ? .9 + Math.sin(now / 180) * .3 : .2; g.userData.ring.material.color.setHex(next ? 0xff7a1a : 0xffffff); });
       if (bay3) bay3.material.opacity = w.parked ? .35 : (w.parkT || 0) > 0 ? .15 : 0;
       pins3.forEach((p, i) => { const down = (w.pins || []).includes(i); p.rotation.z += ((down ? 1.5 : 0) - p.rotation.z) * Math.min(1, dt * 10); p.rotation.y = down ? i : 0; });
-      const pitch = air ? Math.max(-.5, Math.min(.5, Math.atan2(w.vzc || 0, Math.max(30, w.vair || 0)) * .7)) : onRamp ? Math.atan2((api.RAMP_H || 32), 200) : 0;
-      const shake = w.crash > 0 ? Math.sin(now / 30) * .02 : 0; car.rotation.z = shake + pitch;
-      cones3.forEach((c, i) => { const down = (w.cones || []).includes(i); c.rotation.z += ((down ? 1.45 : 0) - c.rotation.z) * Math.min(1, dt * 8); c.position.y = down ? .07 : 0; });
-      if (boostMat) boostMat.map.offset.x -= dt * ((w.boost || 0) > 0 ? 3 : 1);
-      ripples.forEach(rp => { const ph = ((now / 1600 + rp.userData.k / 3) % 1); rp.scale.setScalar(.15 + ph * rp.userData.r * .9); rp.material.opacity = .45 * (1 - ph); });
-      if (w.surf === 'water' && (w.spd || 0) > 10) for (let k2 = 0; k2 < 3; k2++) { const a = Math.random() * 6.28; dust.emit(tmp.set(x + Math.cos(a) * .2, .05, z + Math.sin(a) * .2), new THREE.Vector3(Math.cos(a) * .8, 1.1, Math.sin(a) * .8)); }
-      const sl = (w.wl || 0) * 1.4 / .065, sr = (w.wr || 0) * 1.4 / .065;
-      car.userData.wheels.forEach(({ w: wh, side }) => { wh.rotation.z -= (side > 0 ? sr : sl) * dt; });
-      const v = Math.abs((w.wl || 0) + (w.wr || 0)) / 2;
+      const U = car.userData, su = U.sus, sdt = Math.min(dt, .033);
+      // the whole car tips onto a ramp and noses over in the air smoothly instead of snapping to the new angle
+      const pitchT = air ? Math.max(-.5, Math.min(.5, Math.atan2(w.vzc || 0, Math.max(30, w.vair || 0)) * .7)) : onRamp ? Math.atan2((api.RAMP_H || 32), 200) : 0;
+      su.pitch += (pitchT - su.pitch) * Math.min(1, sdt * (air ? 6 : 14));
+      const shake = w.crash > 0 ? Math.sin(now / 30) * .02 : 0; car.rotation.z = shake + su.pitch;
+      // suspension: springs pull the body back level, weight transfer pushes it: squat when speeding up, dive when braking, lean out of a turn
+      const gnd = !air, spd = w.spd || 0;
+      const pT = gnd ? Math.max(-.07, Math.min(.07, (w.af || 0) * .00008)) : 0, rT = gnd ? Math.max(-.08, Math.min(.08, -(w.alat || 0) * .0002)) : 0;
+      if (su.air && gnd) { su.yv -= Math.min(.25, .05 + (w.land || 0) * .0006); su.pv -= .3; w.land = 0; }   // a landing compresses the springs
+      su.air = air;
+      const rough = gnd ? ({ grass: 1, sand: 1.6, water: .7 }[w.surf] || .15) * Math.min(1, spd / 120) : 0, rn = () => (Math.random() - .5) * rough;
+      su.pv += (90 * (pT - su.p) - 11 * su.pv) * sdt + rn() * .12; su.p += su.pv * sdt;
+      su.rv += (110 * (rT - su.r) - 12 * su.rv) * sdt + rn() * .12; su.r += su.rv * sdt;
+      su.yv += (160 * -su.y - 13 * su.yv) * sdt + rn() * .025; su.y += su.yv * sdt;
+      U.body.position.y = Math.max(-.015, Math.min(.012, su.y)) + Math.sin(now / 23) * .0006 * ((Math.abs(w.wl || 0) + Math.abs(w.wr || 0)) > .05);   // motor hum
+      U.body.rotation.z = su.p; U.body.rotation.x = su.r;
+      // tyres turn at the speed their motor drives them (cm/s → rad/s on a 6.5 cm tyre), so on sand they spin faster than the car moves
+      const sl = (w.wsl || 0) / 100 / .065, sr = (w.wsr || 0) / 100 / .065;
+      U.wheels.forEach(({ w: wh, side }) => { wh.rotation.z -= (side > 0 ? sr : sl) * dt; });
+      const slip = Math.abs(w.vs || 0) / 100 + Math.max(0, (Math.abs(w.wsl || 0) + Math.abs(w.wsr || 0)) / 2 - spd) / 100;   // sliding sideways or wheelspin
+      const v = Math.min(1.5, spd / 180 + (w.surf === 'road' ? 0 : spd / 300) + slip * 1.5);
       follow.set(Math.cos(h), 0, Math.sin(h));
-      if (v > .1 && Math.random() < v * 1.2) for (const s of [-1, 1]) dust.emit(tmp.set(x - follow.x * .2 + s * follow.z * .16, .02, z - follow.z * .2 - s * follow.x * .16), new THREE.Vector3(-follow.x * .3, .25, -follow.z * .3));
+      if (gnd && v > .1 && Math.random() < v * 1.2) for (const s of [-1, 1]) dust.emit(tmp.set(x - follow.x * .2 + s * follow.z * .16, .02, z - follow.z * .2 - s * follow.x * .16), new THREE.Vector3(-follow.x * .3, .25, -follow.z * .3));
       if (beam) { const on = car.userData.eyes && S.parts.some(p => p.type === 'ultrasonic' && p.st && p.st.pow); beam.visible = !!on;
         if (on) { const d = Math.max(.02, (S.env.distance || 0) / 100); beam.scale.set(d, 1, 1); beam.position.set(x + follow.x * .27, .11, z + follow.z * .27); beam.rotation.y = -h; } }
       target.set(x, .12 + (ip.z || 0) / 100, z);

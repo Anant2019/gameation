@@ -751,7 +751,7 @@ table.conn td{padding:6px;border-bottom:1px solid var(--line);vertical-align:top
     <div class="setrow"><span>Graphics</span><div class="chips" id="setGfx"><button class="chip" data-gfx="auto">Auto</button><button class="chip" data-gfx="high">High</button><button class="chip" data-gfx="lite">Smooth</button></div></div>
     <div class="setrow"><span>Workbench tips</span><button class="btn sm" id="setTips">Show again</button></div>
     <div class="setrow"><span>Progress (stars and best scores)</span><button class="btn sm danger" id="setReset">Reset</button></div>
-    <p class="ver">Circuit Arena 1.9 · works offline</p>
+    <p class="ver">Circuit Arena 1.9.1 · works offline</p>
     <p class="ver"><a href="../" style="color:var(--copper);font-weight:600;text-decoration:none">More free games at calmtype.life →</a> · <a href="projects/" style="color:var(--copper)">Project guides with code</a> · <a href="privacy/" style="color:var(--muted)">Privacy</a></p>
   </section>
 </section>
@@ -2860,7 +2860,7 @@ function loadInvention(inv){S.proj=null;S.inv=inv;S.goalsDone={};S.bpDone=null;
   S.invLevel={id:'inv-'+inv.id,name:inv.title,scene:'meter',par:0,parts:Object.keys(PD),env:inv.env,envMin:inv.envMin||{},board:inv.parts.some(([t])=>PD[t].board),goal:inv.sum,hint:inv.hint,tests:[],inv:true};
   S.env={...ENV0,distance:200};S.cloud={send:{},ctl:{}};
   S.projIds=buildFrom(inv,false,false);S.rules=inv.rules.map(()=>blankRule());afterLoad()}
-function resetWorld(){FLY.mode='manual';S.w={x:ARENA.start[0],y:ARENA.start[1],h:ARENA.startH||0,surf:'road',bumpCd:0,wet:false,z:0,vzc:0,vair:0,inAir:false,boost:0,score:0,bestAir:0,cones:[],spinAcc:0,spinT:0,stunt:null,dx:0,dz:0,dvx:0,dvz:0,gate:0,gates:0,coins:[],cp:0,lapT0:null,lap:0,bestLap:0,parkT:0,parked:false,pins:[],pinsT:0,mx:0,my:0,odo:0,clean:0,crash:0,alt:0,vz:0,hover:0,maxAlt:0,app:null,wl:0,wr:0,tmax:0,weight:0,t:0,T:0,screen:0}}
+function resetWorld(){FLY.mode='manual';S.w={x:ARENA.start[0],y:ARENA.start[1],h:ARENA.startH||0,surf:'road',bumpCd:0,wet:false,z:0,vzc:0,vair:0,inAir:false,boost:0,score:0,bestAir:0,cones:[],spinAcc:0,spinT:0,stunt:null,dx:0,dz:0,dvx:0,dvz:0,gate:0,gates:0,coins:[],cp:0,lapT0:null,lap:0,bestLap:0,parkT:0,parked:false,pins:[],pinsT:0,mx:0,my:0,odo:0,clean:0,crash:0,alt:0,vz:0,hover:0,maxAlt:0,app:null,wl:0,wr:0,vf:0,vs:0,om:0,af:0,alat:0,land:0,wsl:0,wsr:0,tmax:0,weight:0,t:0,T:0,screen:0}}
 
 /* ---------- World physics ---------- */
 // Car arena, in centimetres: a 60 m × 36 m robo-race ground. A 3.4 m wide race track loops round it (Catmull-Rom curve through CTRL);
@@ -2930,7 +2930,7 @@ function arenaGames(w,dt){
   // parking: the whole car inside the bay and stopped for one second
   const [px,py,pw,ph]=PARK,c=Math.cos(w.h),s=Math.sin(w.h);
   const inBay=[[1,1],[1,-1],[-1,1],[-1,-1]].every(([a,b])=>{const X=w.x+c*a*CAR_HL-s*b*CAR_HW,Y=w.y+s*a*CAR_HL+c*b*CAR_HW;return X>px&&X<px+pw&&Y>py&&Y<py+ph});
-  if(inBay&&Math.abs(w.wl)+Math.abs(w.wr)<.05){w.parkT+=dt;if(w.parkT>1&&!w.parked){w.parked=true;stunt(w,'PERFECT PARKING! +100',100)}}else{w.parkT=0;if(!inBay)w.parked=false}
+  if(inBay&&Math.abs(w.wl)+Math.abs(w.wr)<.05&&(w.spd||0)<8){w.parkT+=dt;if(w.parkT>1&&!w.parked){w.parked=true;stunt(w,'PERFECT PARKING! +100',100)}}else{w.parkT=0;if(!inBay)w.parked=false}
   // bowling: knock the pins down; all six is a strike, then they stand up again
   PINS.forEach(([bx,by],i)=>{if(!w.pins.includes(i)&&Math.abs(w.wl)+Math.abs(w.wr)>.1&&Math.hypot(w.x-bx,w.y-by)<CAR_HW+12&&(w.z||0)<30){w.pins.push(i);if(w.pins.length===PINS.length){stunt(w,'STRIKE! +100',100);w.pinsT=4}else stunt(w,'PIN +10',10)}});
   if(w.pinsT>0&&(w.pinsT-=dt)<=0)w.pins=[];
@@ -2954,22 +2954,31 @@ function worldStep(aw,dt){if(!aw)return;const w=S.w;w.t+=dt;
     if(w.boost>0)w.boost-=dt;if(w.stunt&&(w.stunt.t-=dt)<=0)w.stunt=null;
     w.surf=surface(w.x,w.y);const grip={road:1,grass:.55,sand:.4,water:.6}[w.surf];if(w.bumpCd>0)w.bumpCd-=dt;
     if(w.surf==='water'&&!w.wet&&!w.inAir){w.wet=true;stunt(w,'SPLASH! +5',5)}else if(w.surf!=='water')w.wet=false;
-    const v=(w.wl+w.wr)/2*CAR_V*(w.boost>0?2.2:1)*grip,om=(w.wl-w.wr)*2.4;w.spd=Math.abs(w.inAir?w.vair:v);
+    // the body has mass: the wheels push it up to speed over a fraction of a second, it rolls on a little when the motors stop,
+    // and in a fast turn it slides sideways until the tyres catch it (more on grass and sand than on asphalt)
+    const bm=w.boost>0?2.2:1,vT=(w.wl+w.wr)/2*CAR_V*bm*grip,omT=(w.wl-w.wr)*2.4,vf0=w.vf||0;
+    w.wsl=w.wl*CAR_V*bm;w.wsr=w.wr*CAR_V*bm;
+    if(!w.inAir){const slow=Math.abs(vT)<Math.abs(vf0)||vT*vf0<0,tau=slow?(vT?.22:.38):.32/Math.sqrt(grip);w.vf=vf0+(vT-vf0)*(1-Math.exp(-dt/tau));
+      w.om=(w.om||0)+(omT-(w.om||0))*(1-Math.exp(-dt/.16));if(!vT&&Math.abs(w.vf)<2)w.vf=0;
+      w.af=(w.af||0)+((w.vf-vf0)/dt-(w.af||0))*.5;w.alat=w.vf*w.om}
+    const v=w.vf||0,om=w.om||0;w.spd=Math.abs(w.inAir?w.vair:Math.hypot(v,w.vs||0));
     if(w.inAir){
       // in the air: no grip, it keeps its speed and falls until it meets the ground (or a ramp)
       w.air=(w.air||0)+dt;const nx=w.x+Math.cos(w.h)*w.vair*dt,ny=w.y+Math.sin(w.h)*w.vair*dt;w.vzc-=900*dt;w.z+=w.vzc*dt;
-      if(carHits(nx,ny,w.h,w.z)){w.crash=1.2;w.clean=0;w.vair=0;stunt(w,'CRASH LANDING',0)}else{w.x=nx;w.y=ny;const dd=Math.abs(w.vair*dt)/100;w.odo+=dd;w.clean+=dd}
+      if(carHits(nx,ny,w.h,w.z)){w.crash=1.2;w.clean=0;w.vair=0;w.vf=0;w.vs=0;stunt(w,'CRASH LANDING',0)}else{w.x=nx;w.y=ny;const dd=Math.abs(w.vair*dt)/100;w.odo+=dd;w.clean+=dd}
       const r=rampAt(w.x,w.y),ground=r?r.p*RAMP_H:0;
-      if(w.z<=ground&&w.vzc<=0){w.z=ground;w.vzc=0;w.inAir=false;const a=w.air;w.air=0;if(a>.15&&!w.hop){w.bestAir=Math.max(w.bestAir,a);stunt(w,`JUMP ${a.toFixed(1)} s`,Math.round(a*100))}w.hop=false}}
-    else{w.h+=om*dt;
+      if(w.z<=ground&&w.vzc<=0){w.land=Math.max(w.land||0,-w.vzc);w.z=ground;w.vzc=0;w.inAir=false;w.vf=w.vair;w.vs=0;const a=w.air;w.air=0;if(a>.15&&!w.hop){w.bestAir=Math.max(w.bestAir,a);stunt(w,`JUMP ${a.toFixed(1)} s`,Math.round(a*100))}w.hop=false}}
+    else{const dh=om*dt;w.h+=dh;
+      // turning swings the heading, but the car's momentum keeps going the old way for a moment: that is the sideways slide
+      const vs0=w.vs||0;w.vf=v*Math.cos(dh)+vs0*Math.sin(dh);w.vs=(-v*Math.sin(dh)+vs0*Math.cos(dh))*Math.exp(-dt*{road:11,grass:5,sand:3.5,water:4}[w.surf]);
       // a full turn on the spot in under 3 s is a 360 spin
       if(Math.abs(om)>1.5&&Math.abs(v)<120){w.spinAcc+=Math.abs(om*dt);w.spinT+=dt;if(w.spinAcc>=Math.PI*2){stunt(w,'360 SPIN',50);w.spinAcc=0;w.spinT=0}}else{w.spinAcc=0;w.spinT=0}if(w.spinT>3){w.spinAcc=0;w.spinT=0}
-      const nx=w.x+Math.cos(w.h)*v*dt,ny=w.y+Math.sin(w.h)*v*dt;
+      const vs=w.vs,nx=w.x+(Math.cos(w.h)*v-Math.sin(w.h)*vs)*dt,ny=w.y+(Math.sin(w.h)*v+Math.cos(w.h)*vs)*dt;
       if(carHits(nx,ny,w.h,0)){
         // a gentle touch just stops the car or lets it slide along; only a real hit is a crash
-        if(Math.abs(v)>160){w.crash=1.2;w.clean=0}
-        else if(!carHits(nx,w.y,w.h,0))w.x=nx;else if(!carHits(w.x,ny,w.h,0))w.y=ny}
-      else{const before=rampAt(w.x,w.y);w.x=nx;w.y=ny;const dd=Math.abs(v*dt)/100;w.odo+=dd;w.clean+=dd;const on=rampAt(w.x,w.y);
+        if(Math.abs(v)>160){w.crash=1.2;w.clean=0;w.vf=0;w.vs=0}
+        else{w.vs=0;if(!carHits(nx,w.y,w.h,0))w.x=nx;else if(!carHits(w.x,ny,w.h,0))w.y=ny;else w.vf*=.5}}
+      else{const before=rampAt(w.x,w.y);w.x=nx;w.y=ny;const dd=Math.hypot(v,vs)*dt/100;w.odo+=dd;w.clean+=dd;const on=rampAt(w.x,w.y);
         w.z=on?on.p*RAMP_H:0;
         // leaving a ramp over its lip at speed launches the car
         if(before&&!on&&before.p>.8&&Math.cos(w.h-before.r[4])>.6&&v>40){w.vzc=Math.min(380,120+v*.5);w.vair=v;w.z=RAMP_H;w.inAir=true;w.hop=false}
