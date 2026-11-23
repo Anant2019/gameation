@@ -20,6 +20,8 @@ img{max-width:100%}
 .install{position:fixed;z-index:9;right:max(12px,env(safe-area-inset-right,0px));bottom:calc(84px + env(safe-area-inset-bottom,0px));padding:10px 14px;border-radius:999px;border:none;background:#E3884B;color:#1A0F07;font:600 14px system-ui,sans-serif;box-shadow:0 4px 14px rgba(0,0,0,.35);cursor:pointer}
 @media (orientation:landscape) and (max-height:560px){.install{bottom:calc(12px + env(safe-area-inset-bottom,0px))}}
 .install.away{display:none}
+.tabs .tab-install{display:none}
+@media (max-width:1100px){.install{display:none}.tabs .tab-install{display:flex;color:#E3884B}.tabs .tab-install span{background:#E3884B;color:#1A0F07;border-radius:999px;padding:1px 8px;font-weight:700}}
 </style>
 </head>
 <body>
@@ -4036,7 +4038,8 @@ window.claude?.hot?.ready?window.claude.hot.ready(start):start(window.claude?.ho
     <button class="ipop-x" data-ip="later" aria-label="Not now">×</button>
     <div class="ipop-head"><img src="icons/icon-192.png" alt="" width="56" height="56"><div><p class="ipop-k">Free · no app store</p><h3 id="ipopT">Keep Circuit Arena on your <span data-dev>phone</span></h3></div></div>
     <ul class="ipop-list"><li>Opens in one tap from your <span data-dev2>home screen</span>, full screen like an app</li><li>Works offline, even in airplane mode</li><li>Your bench and progress are saved</li></ul>
-    <div class="ipop-ios" hidden><p>On iPhone or iPad: tap <b>Share</b> <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 12v8h14v-8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> in Safari, then <b>Add to Home Screen</b>.</p></div>
+    <div class="ipop-ios ipop-apple" hidden><p>On iPhone or iPad: tap <b>Share</b> <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 12v8h14v-8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> in Safari, then <b>Add to Home Screen</b>.</p></div>
+    <div class="ipop-ios ipop-and" hidden><p>In Chrome: tap the <b>⋮</b> menu at the top right, then <b>Install app</b> (or <b>Add to Home screen</b>).</p></div>
     <div class="ipop-row"><button class="ipop-btn" data-ip="install">Install app</button><button class="ipop-later" data-ip="later">Not now</button></div>
   </div>
 </div>
@@ -4070,19 +4073,39 @@ const ls = { get: k => { try { return localStorage.getItem(k); } catch (e) { ret
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; installBtn.hidden = false; });
 async function doInstall() {
   if (!deferredPrompt) return false;
-  deferredPrompt.prompt();
+  try { await deferredPrompt.prompt(); } catch (e) { return false; }   // refused without a real tap: show the card instead
   const c = await deferredPrompt.userChoice.catch(() => null);
   deferredPrompt = null; installBtn.hidden = true;
-  if (c && c.outcome === 'accepted') ls.set('circuitArena.installed', '1');
+  if (c && c.outcome === 'accepted') { ls.set('circuitArena.installed', '1'); dropInstallTab(); }
   return true;
 }
 installBtn.addEventListener('click', doInstall);
-window.addEventListener('appinstalled', () => { installBtn.hidden = true; pop.hidden = true; ls.set('circuitArena.installed', '1'); });
+window.addEventListener('appinstalled', () => { installBtn.hidden = true; pop.hidden = true; ls.set('circuitArena.installed', '1'); dropInstallTab(); });
 // the install pill only shows on the Home screen, so it never covers the bench, the arena controls or a card
 const homeView = document.getElementById('v-home');
 const syncInstall = () => installBtn.classList.toggle('away', !homeView || homeView.hidden);
 if (homeView) new MutationObserver(syncInstall).observe(homeView, { attributes: true, attributeFilter: ['hidden'] }); syncInstall();
 if (standalone && screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(() => {});
+
+// The install card. When the browser offers its own install prompt, the button uses it; otherwise (iPhone, or Chrome before it is ready)
+// the card shows where the browser's own "Add to Home screen" lives.
+const mobile = matchMedia('(pointer:coarse)').matches || /Android|iPhone|iPad|Mobi/i.test(navigator.userAgent) || innerWidth < 760;
+function openPop() {
+  pop.querySelector('[data-dev]').textContent = mobile ? 'phone' : 'laptop';
+  pop.querySelector('[data-dev2]').textContent = mobile ? 'home screen' : 'desktop or dock';
+  const manual = !deferredPrompt; pop.querySelector('.ipop-apple').hidden = !(manual && iOS); pop.querySelector('.ipop-and').hidden = !(manual && !iOS);
+  pop.querySelector('[data-ip=install]').hidden = manual; pop.querySelector('.ipop-later').textContent = manual ? 'Got it' : 'Not now';
+  pop.hidden = false; setTimeout(() => (manual ? pop.querySelector('.ipop-later') : pop.querySelector('.ipop-btn')).focus(), 50);
+}
+// On phones and tablets an Install button sits in the bottom tab bar the whole time, until the game is installed
+const tabs = document.getElementById('tabs');
+if (tabs && !standalone && ls.get('circuitArena.installed') !== '1') {
+  const t = document.createElement('button'); t.className = 'tab tab-install'; t.id = 'tabInstall'; t.setAttribute('aria-label', 'Install app');
+  t.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg><span>Install</span>';
+  t.addEventListener('click', async () => { if (!(await doInstall())) openPop(); });
+  tabs.appendChild(t);
+}
+const dropInstallTab = () => document.getElementById('tabInstall')?.remove();
 
 // Install invitation: after about 12 minutes of real use (time with the tab visible, added up across visits),
 // a card invites the player to keep the game on their phone or laptop. "Not now" waits 3 days; it asks at most 3 times.
@@ -4093,14 +4116,7 @@ if (standalone && screen.orientation && screen.orientation.lock) screen.orientat
   let used = +(ls.get('circuitArena.useSecs') || 0), busyUntil = 0;
   ['pointerdown', 'keydown'].forEach(ev => addEventListener(ev, () => { busyUntil = Date.now() + 4000; }, true));
   const canAsk = () => (deferredPrompt || iOS) && +(ls.get('circuitArena.installAsks') || 0) < MAX_ASKS && Date.now() > +(ls.get('circuitArena.installSnooze') || 0);
-  const mobile = matchMedia('(pointer:coarse)').matches || /Android|iPhone|iPad|Mobi/i.test(navigator.userAgent) || innerWidth < 760;
-  function show() {
-    pop.querySelector('[data-dev]').textContent = mobile ? 'phone' : 'laptop';
-    pop.querySelector('[data-dev2]').textContent = mobile ? 'home screen' : 'desktop or dock';
-    const ios = iOS && !deferredPrompt; pop.querySelector('.ipop-ios').hidden = !ios; pop.querySelector('[data-ip=install]').hidden = ios;
-    pop.hidden = false; ls.set('circuitArena.installAsks', String(+(ls.get('circuitArena.installAsks') || 0) + 1));
-    setTimeout(() => (ios ? pop.querySelector('.ipop-later') : pop.querySelector('.ipop-btn')).focus(), 50);
-  }
+  function show() { openPop(); ls.set('circuitArena.installAsks', String(+(ls.get('circuitArena.installAsks') || 0) + 1)); }
   function later() { pop.hidden = true; ls.set('circuitArena.installSnooze', String(Date.now() + SNOOZE)); }
   pop.addEventListener('click', async e => { const b = e.target.closest('[data-ip]'); if (e.target === pop) { later(); return; } if (!b) return;
     if (b.dataset.ip === 'later') later(); else { pop.hidden = true; if (!(await doInstall())) later(); } });
