@@ -2351,18 +2351,18 @@ arch.visible=false; scene.add(arch);
 
 // ================= time of day =================
 const TOD={
-  day:{icon:'☀',top:0x2f6fd0,bottom:0xcfe6f7,fog:0xc4dcee,sun:0xfff4e0,sunI:2.1,hs:0xcfe8ff,hg:0x5a4a35,hI:.35,dir:[.45,.85,.35],win:.05,lamp:.15,glow:0,head:.6,exp:.92,hl:0,stars:false,sky:0x9fb6cc,env:.8},
-  sunset:{icon:'◐',top:0x24195a,bottom:0xff7d45,fog:0xd9805f,sun:0xffa55a,sunI:2.5,hs:0xffb98a,hg:0x3b2442,hI:.3,dir:[-.75,.17,.45],win:.9,lamp:1.6,glow:.55,head:1.3,exp:1.0,hl:1.4,stars:false,sky:0x6a3c58,env:.9},
-  night:{icon:'☾',top:0x03041a,bottom:0x1a2152,fog:0x131838,sun:0x9db4ff,sunI:.45,hs:0x3a4a90,hg:0x0d0d15,hI:.28,dir:[.35,.7,-.45],win:1.7,lamp:3.2,glow:1,head:2.4,exp:1.25,hl:3.2,stars:true,sky:0x1b1e3d,env:1}
+  day:{icon:'☀',top:0x2f6fd0,bottom:0xcfe6f7,fog:0xc4dcee,sun:0xfff4e0,sunI:2.1,hs:0xcfe8ff,hg:0x6a5a45,hI:.45,dir:[.45,.85,.35],win:.05,lamp:.15,glow:0,head:.6,exp:.92,hl:0,stars:false,sky:0x9fb6cc,env:.8},
+  sunset:{icon:'◐',top:0x24195a,bottom:0xff7d45,fog:0xd9805f,sun:0xffa55a,sunI:2.5,hs:0xffc9a0,hg:0x5a4050,hI:.5,dir:[-.75,.3,.45],win:.9,lamp:1.6,glow:.55,head:1.3,exp:1.15,hl:1.4,stars:false,sky:0x6a3c58,env:.9},
+  night:{icon:'☾',top:0x03041a,bottom:0x1a2152,fog:0x131838,sun:0x9db4ff,sunI:.45,hs:0x5a6ab0,hg:0x1a1a28,hI:.45,dir:[.35,.7,-.45],win:1.7,lamp:3.2,glow:1,head:2.4,exp:1.45,hl:3.2,stars:true,sky:0x1b1e3d,env:1}
 };
 const sunDir=new THREE.Vector3();
 let headLight=null;
 function applyTOD(name){
-  const t=TOD[name]||TOD.sunset; G.tod=name; store.set('tod',name);
+  const t=TOD[name]||TOD.sunset; G.tod=name; store.set('tod2',name);
   skyMat.uniforms.top.value.copy(C(t.top)); skyMat.uniforms.bottom.value.copy(C(t.bottom)); skyMat.uniforms.sunCol.value.copy(C(t.sun));
   sunDir.set(...t.dir).normalize(); skyMat.uniforms.sunDir.value.copy(sunDir);
   scene.fog.color.copy(C(t.fog));
-  sun.color.copy(C(t.sun)); sun.intensity=t.sunI; hemi.color.copy(C(t.hs)); hemi.groundColor.copy(C(t.hg)); hemi.intensity=t.hI;
+  sun.color.copy(C(t.sun)); sun.intensity=t.sunI; hemi.color.copy(C(t.hs)); hemi.groundColor.copy(C(t.hg)); hemi.intensity=t.hI+(LOW?.6:0);
   for(const m of facadeMats) m.emissiveIntensity=t.win; for(const m of hoardMats) m.emissiveIntensity=t.win*.55+.15;
   lampMat.emissiveIntensity=t.lamp; glowPts.material.opacity=t.glow; glowPts.visible=t.glow>0; bzPts.visible=t.glow>0; bzPts.material.opacity=Math.max(.6,t.glow);
   MAT.head.emissiveIntensity=t.head; MAT.tail.emissiveIntensity=t.head*.8;
@@ -3785,7 +3785,7 @@ addEventListener('resize',()=>{ camShift=-1; renderer.setSize(innerWidth,innerHe
 
 // ================= boot =================
 setSound(SND.on);
-applyTOD(store.get('tod','sunset'));
+applyTOD(store.get('tod2','day'));
 spawnTraffic(LOW?16:30);
 spawnPeds(LOW?10:16); spawnWalkers();
 { const bk=new Parts();
