@@ -753,7 +753,7 @@ table.conn td{padding:6px;border-bottom:1px solid var(--line);vertical-align:top
     <div class="setrow"><span>Graphics</span><div class="chips" id="setGfx"><button class="chip" data-gfx="auto">Auto</button><button class="chip" data-gfx="high">High</button><button class="chip" data-gfx="lite">Smooth</button></div></div>
     <div class="setrow"><span>Workbench tips</span><button class="btn sm" id="setTips">Show again</button></div>
     <div class="setrow"><span>Progress (stars and best scores)</span><button class="btn sm danger" id="setReset">Reset</button></div>
-    <p class="ver">Circuit Arena 1.9.1 · works offline</p>
+    <p class="ver">Circuit Arena 1.9.2 · works offline</p>
     <p class="ver"><a href="../" style="color:var(--copper);font-weight:600;text-decoration:none">More free games at calmtype.life →</a> · <a href="projects/" style="color:var(--copper)">Project guides with code</a> · <a href="privacy/" style="color:var(--muted)">Privacy</a></p>
   </section>
 </section>
@@ -3994,8 +3994,14 @@ window.CA={back(){const wf=$('#w3d.full');if(wf){wf.classList.remove('full');ret
   if(pending||sel){pending=null;sel=null;return true}
   if(view!=='home'){setView('home');return true}return false}};
 
-let last=0;
-function frame(ts){requestAnimationFrame(frame);if(ts-last<33)return;last=ts;if(view!=='play')return;gfxTick(ts);
+// The game runs in fixed 1/30 s steps. Time is banked each display frame and spent in whole steps, so a phone that draws at 20 or 45 fps
+// still runs the game at true speed (two steps in one frame when it falls behind) instead of slowing down and catching up in jerks.
+let last=0,bank=0;
+function frame(ts){requestAnimationFrame(frame);bank+=Math.min(100,last?ts-last:0);last=ts;if(bank<33.3)return;
+  if(view!=='play'){bank=0;return}
+  let n=0;while(bank>=33.3&&n<3){bank-=33.3;n++;gameStep(ts,n===1)}if(n===3)bank=0;
+  const aw=activeWorld();renderBench();renderWorld(aw);if(!aw)renderScene();renderStatus();renderHud();syncSideTabs();updateICModal()}
+function gameStep(ts,first){if(first)gfxTick(ts);
   const aw=activeWorld();const wt=aw?aw.type:null;if(wt!==S.wType){S.wType=wt;resetWorld();if(L().sandbox)renderEnv()}
   S.time=(S.time||0)+1/30;renderGuide();coachTick(ts);worldPre(aw);runICs(1/30);simulate();
   runChips(1/30);const spk=runNeurons(1/30);if(spk&&aw&&aw.type==='neuron')for(let k=0;k<Math.min(spk,4);k++)tone(2400,.012,'square',.02,k*.009);
@@ -4007,7 +4013,7 @@ function frame(ts){requestAnimationFrame(frame);if(ts-last<33)return;last=ts;if(
     if(p.type==='bldc')p.st.rot=(p.st.rot+(p.st.duty||0)*85)%360});
   const want=sel&&sel.kind==='part'?sel.id:null;if(want!==insFor)renderInspector();else updateInspector();
   const bc=S.parts.filter(p=>p.burnt).length;if(bc>burntCount)SFX.pop();burntCount=bc;
-  $('#scenePanel').hidden=!!aw||!!S.inv;renderBench();renderWorld(aw);if(!aw)renderScene();renderStatus();renderHud();syncSideTabs();updateICModal()}
+  $('#scenePanel').hidden=!!aw||!!S.inv}
 
 // The bench, the open level/project and the screen are saved every couple of seconds, so a refresh (or Android closing the app) resumes where you were.
 const SESSION='circuitArena.session';

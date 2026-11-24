@@ -20,6 +20,21 @@ function fitModel(src, size, mode = 'max') {
   m.position.sub(new THREE.Vector3(c.x, b2.min.y, c.z)); const g = new THREE.Group(); g.add(m); return g;
 }
 
+// Heavy scanned props (lamps, shrubs) are drawn in full only near the camera; further away a few-triangle stand-in takes over, and they cast no shadow.
+function lodModel(src, size, mode, far, dist = 14) {
+  const near = fitModel(src, size, mode); near.traverse(o => { if (o.isMesh) o.castShadow = false; });
+  const lod = new THREE.LOD(); lod.addLevel(near, 0); lod.addLevel(far, dist); return lod;
+}
+function farLamp() {
+  const g = new THREE.Group(), m = M('farLamp', () => std(0x2b2d30, .5, .6));
+  g.add(mesh(new THREE.CylinderGeometry(.05, .08, 4, 6), m, 0, 2, 0)); g.add(mesh(new THREE.BoxGeometry(.32, .28, .32), m, 0, 4.05, 0));
+  g.add(mesh(new THREE.BoxGeometry(.22, .14, .22), M('farLampGlow', () => std(0xfff1d0, .4, 0, { emissive: 0xffe6b0, emissiveIntensity: .6 })), 0, 3.88, 0)); return g;
+}
+function farShrub(size) {
+  const g = new THREE.Group(), m = M('farShrub', () => std(0x4a6a2c, .95));
+  for (const [x, y, z, r] of [[0, .42, 0, .5], [.28, .32, .12, .36], [-.25, .3, -.1, .38]]) { const b = mesh(new THREE.IcosahedronGeometry(r * size, 1), m, x * size, y * size, z * size); b.scale.y = .8; g.add(b); }
+  return g;
+}
 const FONT = '"Oxanium","IBM Plex Sans",system-ui,sans-serif';
 function canvasTex(w, h, draw) { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; }
 const std = (color, rough = .5, metal = 0, x = {}) => new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: metal, ...x });
@@ -188,8 +203,15 @@ export function open(container, api) {
   const { S } = api;
   const mobile = matchMedia('(pointer:coarse)').matches;
   let quality = api.quality || (mobile ? 'medium' : 'high');
+  // resolution follows the device: when frames take too long the canvas draws fewer pixels (down to 55%), and climbs back when there is room
+  let dynK = 1, ftAvg = 16, ftCheck = 0;
+  const basePR = () => Math.min(devicePixelRatio || 1, quality === 'high' ? 2 : quality === 'medium' ? 1.5 : 1);
+  function adaptRes(dtMs, now) { if (!(dtMs > 0 && dtMs < 250)) return;   // a long gap is a paused tab, not a slow device
+    ftAvg += (dtMs - ftAvg) * .05; if (now < ftCheck) return; ftCheck = now + 1500;
+    const k = ftAvg > 30 ? Math.max(.55, dynK * .85) : ftAvg < 19 ? Math.min(1, dynK * 1.1) : dynK;
+    if (Math.abs(k - dynK) > .01) { dynK = k; renderer.setPixelRatio(basePR() * dynK); resize(); } }
   const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, quality === 'high' ? 2 : quality === 'medium' ? 1.75 : 1));
+  renderer.setPixelRatio(basePR() * dynK);
   renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = .95;
   renderer.shadowMap.enabled = quality !== 'low'; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.domElement.style.cssText = 'display:block;width:100%;height:100%;touch-action:none;cursor:grab';
@@ -221,7 +243,7 @@ export function open(container, api) {
     if (c === '2d') { api.onExit && api.onExit(); return; }
     if (c === 'full') { const on = !container.classList.contains('full'); container.classList.toggle('full', on); b.setAttribute('aria-pressed', on); return; }
     if (c === 'q') { quality = quality === 'high' ? 'medium' : quality === 'medium' ? 'low' : 'high'; b.textContent = quality === 'high' ? 'HD' : quality === 'medium' ? 'SD' : 'Low';
-      renderer.setPixelRatio(Math.min(devicePixelRatio || 1, quality === 'high' ? 2 : quality === 'medium' ? 1.75 : 1)); renderer.shadowMap.enabled = quality !== 'low'; setupPost(); resize(); api.onQuality && api.onQuality(quality); return; }
+      dynK = 1; renderer.setPixelRatio(basePR() * dynK); renderer.shadowMap.enabled = quality !== 'low'; setupPost(); resize(); api.onQuality && api.onQuality(quality); return; }
     camMode = c; dragOrbit = false; hud.querySelectorAll('[data-c=chase],[data-c=orbit],[data-c=top]').forEach(x => x.setAttribute('aria-pressed', x.dataset.c === c)); });
 
   // ---------- world contents ----------
@@ -296,15 +318,24 @@ export function open(container, api) {
         for (let k = -Lm / 2 + .5; k < Lm / 2; k += 1) g.add(mesh(new THREE.BoxGeometry(.5, .03, .12), new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xfff2d0, emissiveIntensity: 2 }), k, 1.39, 0));
         const sign = new THREE.Mesh(new THREE.PlaneGeometry(1.6, .3), new THREE.MeshBasicMaterial({ map: canvasTex(256, 48, (c, w2, h2) => { c.fillStyle = '#16181a'; c.fillRect(0, 0, w2, h2); c.fillStyle = '#f2b21b'; c.font = `800 34px ${FONT}`; c.textAlign = 'center'; c.fillText('TUNNEL', w2 / 2, 37); }) }));
         for (const sx of [-1, 1]) { const sg = sign.clone(); sg.position.set(sx * (Lm / 2 + .01), 1.49, 0); sg.rotation.y = sx > 0 ? Math.PI / 2 : -Math.PI / 2; g.add(sg); } });
-      // walls: concrete barriers all round (instanced: one draw call per barrier mesh)
-      if (barrier) { const L = .8; const b0 = fitModel(barrier, L, 'x'); b0.updateMatrixWorld(true);
-        const spots = [];
-        for (let x = -ARENA_W / 2 + L / 2; x < ARENA_W / 2; x += L) { spots.push([x, -ARENA_D / 2 - .18, 0], [x, ARENA_D / 2 + .18, Math.PI]); }
-        for (let z = -ARENA_D / 2 + L / 2; z < ARENA_D / 2; z += L) { spots.push([-ARENA_W / 2 - .18, z, Math.PI / 2], [ARENA_W / 2 + .18, z, -Math.PI / 2]); }
-        const place = new THREE.Matrix4(), q = new THREE.Quaternion(), one = new THREE.Vector3(1, 1, 1), up = new THREE.Vector3(0, 1, 0);
-        b0.traverse(o => { if (!o.isMesh) return; const im = new THREE.InstancedMesh(o.geometry, o.material, spots.length); im.castShadow = im.receiveShadow = true;
-          spots.forEach(([x, z, ry], k) => { place.compose(new THREE.Vector3(x, 0, z), q.setFromAxisAngle(up, ry), one); im.setMatrixAt(k, place.clone().multiply(o.matrixWorld)); });
-          world.add(im); }); }
+      // walls: a jersey barrier all round. Built from its cross-section (a few hundred triangles per side) instead of the scanned model,
+      // which was 76 000 triangles per block and, at 190 blocks drawn twice for shadows, made phones stutter.
+      { const prof = [[-.3, 0], [-.3, .07], [-.11, .24], [-.08, .8], [.08, .8], [.11, .24], [.3, .07], [.3, 0]], seg = .8;
+        const plen = [0]; for (let i = 1; i < prof.length; i++) plen.push(plen[i - 1] + Math.hypot(prof[i][0] - prof[i - 1][0], prof[i][1] - prof[i - 1][1]));
+        const tex = canvasTex(256, 128, (g, w, h) => { g.fillStyle = '#d4d1c9'; g.fillRect(0, 0, w, h);
+          for (let i = 0; i < 1400; i++) { const v = 180 + Math.random() * 60 | 0; g.fillStyle = `rgba(${v},${v},${v - 6},.35)`; g.fillRect(Math.random() * w, Math.random() * h, 2, 2); }
+          g.fillStyle = '#1d1f22'; g.beginPath(); g.moveTo(w * .42, h * .3); g.lineTo(w * .62, h * .3); g.lineTo(w * .78, h * .82); g.lineTo(w * .58, h * .82); g.fill();
+          g.fillStyle = 'rgba(0,0,0,.45)'; g.fillRect(0, 0, 3, h); g.fillRect(w - 3, 0, 3, h); });
+        tex.wrapS = THREE.RepeatWrapping;
+        const mat = std(0xffffff, .85, 0, { map: tex });
+        const wall = (len) => { const pos = [], uv = [];
+          for (let i = 0; i < prof.length - 1; i++) { const [y0, h0] = prof[i], [y1, h1] = prof[i + 1], v0 = plen[i] / plen.at(-1), v1 = plen[i + 1] / plen.at(-1), u = len / seg;
+            pos.push(-len / 2, h0, y0, len / 2, h0, y0, len / 2, h1, y1, -len / 2, h0, y0, len / 2, h1, y1, -len / 2, h1, y1);
+            uv.push(0, v0, u, v0, u, v1, 0, v0, u, v1, 0, v1); }
+          const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.computeVertexNormals();
+          const m = new THREE.Mesh(g, mat); m.castShadow = m.receiveShadow = true; return m; };
+        for (const [len, x, z, ry] of [[ARENA_W + .6, 0, -ARENA_D / 2 - .3, 0], [ARENA_W + .6, 0, ARENA_D / 2 + .3, 0], [ARENA_D + .6, -ARENA_W / 2 - .3, 0, Math.PI / 2], [ARENA_D + .6, ARENA_W / 2 + .3, 0, Math.PI / 2]]) {
+          const m = wall(len); m.position.set(x, 0, z); m.rotation.y = ry; world.add(m); } }
       // obstacles: fill each block of the 2D arena with real objects
       const OB = api.OBST || [];
       const kinds = [crate, tyre, box, pcrate];
@@ -317,8 +348,8 @@ export function open(container, api) {
       // decoration outside the walls
       const hw = ARENA_W / 2, hd = ARENA_D / 2;
       const lampSpots = []; for (let x = -hw; x <= hw; x += 12) lampSpots.push([x, -hd - 1.2], [x, hd + 1.2]); for (let z = -hd + 9; z < hd; z += 9) lampSpots.push([-hw - 1.2, z], [hw + 1.2, z]);
-      if (lamp) for (const [x, z] of lampSpots) { const l = fitModel(lamp, 4.2, 'h'); l.position.set(x, 0, z); world.add(l); }
-      if (shrub) for (let i = 0; i < 36; i++) { const a = i / 36 * Math.PI * 2, sh = fitModel(shrub, 1.2 + (i % 3) * .5); sh.position.set(Math.cos(a) * (hw + 4 + (i % 2) * 3), 0, Math.sin(a) * (hd + 4 + (i % 3) * 2)); sh.rotation.y = i; world.add(sh); }
+      if (lamp) for (const [x, z] of lampSpots) { const l = lodModel(lamp, 4.2, 'h', farLamp()); l.position.set(x, 0, z); world.add(l); }
+      if (shrub) for (let i = 0; i < 36; i++) { const a = i / 36 * Math.PI * 2, sz = 1.2 + (i % 3) * .5, sh = lodModel(shrub, sz, 'max', farShrub(sz)); sh.position.set(Math.cos(a) * (hw + 4 + (i % 2) * 3), 0, Math.sin(a) * (hd + 4 + (i % 3) * 2)); sh.rotation.y = i; world.add(sh); }
       if (tyre) for (const [x, z] of [[hw + 2, hd - 1], [-hw - 2.2, -hd + 2]]) { const t3 = fitModel(tyre, .7); t3.position.set(x, 0, z); world.add(t3); }
       // ramps: a yellow-and-black striped plank on dark side frames, rising towards the lip
       const chev = canvasTex(256, 256, (g, w, h) => { g.fillStyle = '#f2b21b'; g.fillRect(0, 0, w, h); g.fillStyle = '#16181a'; for (let i = -2; i < 6; i++) { g.beginPath(); g.moveTo(i * 64, 0); g.lineTo(i * 64 + 32, 0); g.lineTo(i * 64 + 96, h); g.lineTo(i * 64 + 64, h); g.fill(); } });
@@ -377,7 +408,7 @@ export function open(container, api) {
       if (box) { const b = fitModel(box, .45); b.position.set(-2.1, 0, 1.6); world.add(b); }
       if (lamp) { const l = fitModel(lamp, 4.2, 'h'); l.position.set(-3.4, 0, -2.6); world.add(l); }
       if (shrub) for (const [x, z, s] of [[-4.5, 3, 1.4], [5.5, 2.5, 1.6], [4.2, -4.4, 1.2], [-6, -2, 1.8], [7, -1, 1.2]]) { const sh = fitModel(shrub, s); sh.position.set(x, 0, z); world.add(sh); }
-      if (shrub) for (let i = 0; i < 48; i++) { const a = i / 48 * Math.PI * 2 + .3, r = 25 + (i % 6) * 17, sh = fitModel(shrub, 1.4 + (i % 3) * .5); sh.position.set(Math.cos(a) * r, 0, Math.sin(a) * r); sh.rotation.y = i; world.add(sh); }
+      if (shrub) for (let i = 0; i < 48; i++) { const a = i / 48 * Math.PI * 2 + .3, r = 25 + (i % 6) * 17, sz = 1.4 + (i % 3) * .5, sh = lodModel(shrub, sz, 'max', farShrub(sz), 20); sh.position.set(Math.cos(a) * r, 0, Math.sin(a) * r); sh.rotation.y = i; world.add(sh); }
       // race gates: glowing rings on posts; the next one to fly through glows orange
       gates3 = (api.GATES || []).map(([gx, gz, gy, gr], i) => { const g = new THREE.Group(); g.position.set(gx, 0, gz); g.rotation.y = gr; world.add(g);
         const m = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x9fe8ff, emissiveIntensity: .5, roughness: .35, metalness: .2 });
@@ -421,14 +452,17 @@ export function open(container, api) {
   const ro = new ResizeObserver(resize); ro.observe(container); resize();
 
   // The game moves the car and the drone 30 times a second but the screen draws 60 or more: draw between the last two game steps so motion is smooth, not a judder.
-  let simT = null, simAt = 0, simPrev = null, simCur = null;
+  let simT = null, simAt = 0, simPrev = null, simCur = null, simOut = null, simSpan = 33.4;
   function smooth(w, keys, now) {
     if (w.t !== simT) { const snap = {}; for (const k of keys) snap[k] = w[k] || 0;
       const jump = simCur && keys.some(k => Math.abs(snap[k] - (simCur[k] ?? snap[k])) > (k === 'h' ? 1 : k === 'alt' ? 2 : 80));   // a reset or a teleport: don't slide across
-      simPrev = !simCur || jump || simT == null || w.t < simT ? snap : simCur; simCur = snap; simT = w.t; simAt = now; }
-    const a = Math.min(1, (now - simAt) / 33.4), out = {};
-    for (const k of keys) out[k] = (simPrev[k] ?? simCur[k]) + ((simCur[k] ?? 0) - (simPrev[k] ?? simCur[k])) * a;
-    return out;
+      // glide from where the car is drawn right now to the new step, over as long as the game time that step covered:
+      // when a slow phone runs two steps in one frame there is no jump, and no pause while waiting for the next one
+      const fresh = !simCur || jump || simT == null || w.t < simT;
+      simPrev = fresh ? snap : (simOut || simCur); simSpan = fresh ? 1 : Math.max(16, Math.min(120, (w.t - simT) * 1000)); simCur = snap; simT = w.t; simAt = now; }
+    const a = Math.min(1, (now - simAt) / simSpan), out = {};
+    for (const k of keys) { const p0 = simPrev[k] ?? simCur[k], p1 = simCur[k] ?? 0; out[k] = k === 'h' ? p0 + Math.atan2(Math.sin(p1 - p0), Math.cos(p1 - p0)) * a : p0 + (p1 - p0) * a; }
+    simOut = out; return out;
   }
 
   // ---------- per frame ----------
@@ -436,7 +470,7 @@ export function open(container, api) {
   const tmp = new THREE.Vector3();
   function frame(now) {
     if (!alive) return; raf = requestAnimationFrame(frame); if (document.hidden || !container.offsetWidth) return;   // off screen: draw nothing
-    const dt = Math.max(0, Math.min(.05, (now - last) / 1000)); last = now;   // the first frame's timestamp can be slightly earlier than performance.now()
+    const rawMs = now - last, dt = Math.max(0, Math.min(.05, rawMs / 1000)); last = now;   // the first frame's timestamp can be slightly earlier than performance.now()
     const aw = api.activeWorld(); const t = aw && (aw.type === 'car' || aw.type === 'drone') ? aw.type : null;
     if (t && t !== type) { type = t; buildScene(t); }
     const w = S.w || {};
@@ -519,7 +553,7 @@ export function open(container, api) {
     camPos.y = Math.max(.08, camPos.y); camera.position.copy(camPos); camera.lookAt(camLook);
     if (ready) { const sc = sun.shadow.camera, q = (sc.right - sc.left) / sun.shadow.mapSize.x * 4, sx = Math.round(target.x / q) * q, sz = Math.round(target.z / q) * q;   // whole-texel steps: no crawling shadow edges
       sun.position.set(sx - 18, 26, sz + 12); sun.target.position.set(sx, 0, sz); }
-    if (composer) composer.render(dt); else renderer.render(scene, camera);
+    if (composer) composer.render(dt); else renderer.render(scene, camera); adaptRes(rawMs, now);
   }
   raf = requestAnimationFrame(frame);
   window.__arena3d = { camera, scene, renderer, get look() { return camLook; }, get w() { return S.w; } };   // hook for tests
