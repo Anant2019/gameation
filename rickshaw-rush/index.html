@@ -398,7 +398,7 @@ body.tilt #joy .jl.up::after{content:' · TILT'}
       <button class="btn2" id="btnRestart">Restart</button>
       <button class="btn2" id="btnMenu">Menu</button>
     </div>
-    <div class="btnrow tonly"><button class="gfx" id="btnTod2">☀ Din / Raat</button><button class="gfx" id="btnSnd2">♪ Awaaz</button></div>
+    <div class="btnrow tonly"><button class="gfx" id="btnTod2">☀ Din / Raat</button><button class="gfx" id="btnSnd2">♪ Awaaz</button><button class="gfx" data-rate hidden>⭐ Rate karo</button></div>
     <div class="adrow" id="adPause"></div>
     <button class="share" data-share>📲 Dosto ko bhejo · WhatsApp</button>
   </div>
@@ -414,6 +414,7 @@ body.tilt #joy .jl.up::after{content:' · TILT'}
       <button class="btn2" id="btnFree">Free City</button>
       <button class="btn2" id="btnMenu2">Menu</button>
     </div>
+    <button class="gfx" data-rate hidden style="justify-self:center">⭐ Game pasand aaya? Rate karo</button>
     <button class="adbtn" id="adDouble" hidden>🎬 Ad dekho · inaam 2x</button>
     <button class="share" data-share>📲 Dosto ko challenge karo · WhatsApp</button>
   </div>
@@ -3273,6 +3274,7 @@ function showResults(){
   const subs=['Poore shehar mein tumhara naam hai.','Bas thoda sa reh gaya. Ek aur try?','Chalega, par Pappu hass raha hai.','Gaay bhi tumse tez thi. Phir se karo!'];
   $('resTitle').textContent=titles[pos-1]||'Finish';
   const best=store.get('best_'+G.vtype,null); let nb=false; if(!best||player.finishTime<best){ store.set('best_'+G.vtype,player.finishTime); nb=true; }
+  if(window.rrHappy) window.rrHappy(pos===1?'win':'race');
   let prize=[250,100,40,0][pos-1]||0; addCash(prize); G.lastPrize=prize; $('adDouble').hidden=!(prize>0&&ADS.ready);
   $('resSub').textContent=subs[pos-1]+' Time '+fmtT(player.finishTime)+(nb?' · naya best!':'')+(prize?' · Inaam ₹'+prize:'');
   $('resList').innerHTML=st.map((v,i)=>`<div class="${v===player?'me':''}"><span>${ord(i+1)}</span><span>${v.name}</span><span>${v.finished?fmtT(v.finishTime):'race mein'}</span></div>`).join('');
@@ -3331,7 +3333,7 @@ function updateMission(dt){
   } else if(mission.state==='ride'){
     mission.timer-=dt; mission.fare+=Math.hypot(p.x-mission.lastX,p.z-mission.lastZ)*.07; mission.lastX=p.x; mission.lastZ=p.z;
     const d=Math.hypot(mission.drop.x-p.x,mission.drop.z-p.z);
-    if(d<8 && Math.abs(p.fwd)<8){ const tip=Math.min(20,Math.max(0,Math.round(mission.timer*1.2))); const dg=DOG.blessed?10:0; DOG.blessed=false; const pay=Math.round(mission.fare)+tip+dg; addCash(pay); chime(); toast('₹'+pay+' mile! ('+(tip?'tip ₹'+tip:'no tip')+(dg?' · Dogesh bhai ki mohar +₹10':'')+')',2.4); mission.state='none'; mission.wait=1.5; beacon.visible=false; }
+    if(d<8 && Math.abs(p.fwd)<8){ const tip=Math.min(20,Math.max(0,Math.round(mission.timer*1.2))); const dg=DOG.blessed?10:0; DOG.blessed=false; const pay=Math.round(mission.fare)+tip+dg; addCash(pay); chime(); toast('₹'+pay+' mile! ('+(tip?'tip ₹'+tip:'no tip')+(dg?' · Dogesh bhai ki mohar +₹10':'')+')',2.4); mission.state='none'; mission.wait=1.5; beacon.visible=false; if(window.rrHappy) window.rrHappy('ride'); }
     else if(mission.timer<=0){ toast('Late ho gaye. Sawari utar gayi!',2.4); crashSound(4); mission.state='none'; mission.wait=2; beacon.visible=false; }
   }
 }
