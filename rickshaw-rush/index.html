@@ -237,10 +237,6 @@ body.touch #adOffer{bottom:calc(60px + env(safe-area-inset-bottom,0px));padding:
 @keyframes adPulse{50%{transform:translateX(-50%) scale(1.06)}}
 #adCover{position:fixed;inset:0;z-index:30;display:grid;place-items:center;text-align:center;background:rgba(10,8,20,.92);color:var(--cream);font:800 22px var(--body)}
 #adCover small{display:block;margin-top:8px;font-size:14px;color:var(--mute)}
-#rotateGate{display:none;position:fixed;inset:0;z-index:15;place-items:center;text-align:center;background:var(--ink);color:var(--cream);font-family:var(--display);font-size:22px;padding:24px}
-#rotateGate b{display:block;font-size:56px;margin-bottom:12px;color:var(--saffron)}
-#rotateGate small{display:block;margin-top:10px;font:600 13px var(--body);color:var(--mute)}
-@media (orientation:portrait){ body.touch.ingame #rotateGate{display:grid} }
 body:not(.touch) .tonly,body:not(.touch) #topBtns .tonly,#topBtns button[hidden],.gfx[hidden]{display:none}
 #btnTilt.on{background:var(--saffron);color:var(--ink);border-color:var(--saffron)}
 body.tilt #joy .jl.up::after{content:' · TILT'}
@@ -283,6 +279,19 @@ body.tilt #joy .jl.up::after{content:' · TILT'}
   .box .btn2{padding:7px 14px;font-size:15px}
 }
 @media (max-width:420px){ .cards{grid-template-columns:1fr} .card{grid-template-columns:1fr 1fr;align-items:center} }
+/* portrait phone: controls along the bottom, gauges in a row above them, buttons in a column under the minimap */
+@media (orientation:portrait){
+  body.touch #joyZone{width:52vw;height:42vh}
+  body.touch #hudTL{max-width:calc(100vw - 140px)}
+  body.touch #topBtns{flex-direction:column}
+  body.touch #fuelChip{left:calc(10px + env(safe-area-inset-left,0px));transform:none;bottom:calc(178px + env(safe-area-inset-bottom,0px))}
+  body.touch #speedo{left:auto;right:calc(10px + env(safe-area-inset-right,0px));transform:none;bottom:calc(178px + env(safe-area-inset-bottom,0px))}
+  body.touch #limit{left:auto;right:calc(112px + env(safe-area-inset-right,0px));bottom:calc(196px + env(safe-area-inset-bottom,0px))}
+  body.touch #adOffer{bottom:calc(262px + env(safe-area-inset-bottom,0px))}
+  body.touch #place{top:auto;bottom:calc(300px + env(safe-area-inset-bottom,0px));max-width:calc(100vw - 40px)}
+  body.touch #wanted{top:auto;bottom:calc(330px + env(safe-area-inset-bottom,0px))}
+  body.touch #toast{top:calc(30% + env(safe-area-inset-top,0px));max-width:calc(100vw - 40px)}
+}
 @media (prefers-reduced-motion:reduce){ #toast,#bigText,#combo,#vignette,#copFlash{transition:none} #wanted.flash{animation:none;border-color:#ff2e4d} }
 </style>
 </head>
@@ -406,7 +415,6 @@ body.tilt #joy .jl.up::after{content:' · TILT'}
 </div>
 
 <div id="adCover" hidden><div>🎬 Ad chal raha hai…<small>Khatam hote hi game wapas shuru</small></div></div>
-<div id="rotateGate" aria-live="polite"><div><b>📱 ↻</b>Phone ko landscape (tedha) karo<small>Game ruka hua hai</small></div></div>
 <div id="loading">Shehar ban raha hai…</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -447,6 +455,10 @@ renderer.shadowMap.autoUpdate = false; // redrawn every few frames, see frame()
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 $('game').appendChild(renderer.domElement);
+// phones can drop the GPU context when memory runs low (the screen goes black): pause, and reload if it doesn't come back
+{ let ctxT=0; const cv=renderer.domElement;
+  cv.addEventListener('webglcontextlost',e=>{ e.preventDefault(); try{ setPause(true); }catch(_){} const l=$('loading')||document.body.appendChild(Object.assign(document.createElement('div'),{id:'loading'})); l.textContent='Graphics wapas aa rahe hain…'; ctxT=setTimeout(()=>location.reload(),4000); });
+  cv.addEventListener('webglcontextrestored',()=>{ clearTimeout(ctxT); const l=$('loading'); if(l) l.remove(); }); }
 const maxAniso = renderer.capabilities.getMaxAnisotropy();
 
 const scene = new THREE.Scene();
@@ -2416,7 +2428,7 @@ function moo(){ if(!SND.ctx) return; const ctx=SND.ctx,t=ctx.currentTime; const 
 function setSound(on){ SND.on=on; store.set('snd',on); if(SND.master) SND.master.gain.value=on?.5:0; $('btnSnd').style.opacity=on?1:.45; }
 
 // ================= game state =================
-const G={state:'menu',mode:'free',vtype:store.get('vtype','auto'),time:0,raceT:0,countdown:0,camMode:0,tod:'sunset',cash:store.get('cash',0),shake:0};
+const G={state:'menu',mode:'free',vtype:'auto',time:0,raceT:0,countdown:0,camMode:0,tod:'sunset',cash:store.get('cash',0),shake:0};
 let player=null; let racers=[]; let ais=[];
 const LAPS=2;
 const ROUTE_IDX=[[3,1],[6,1],[6,4],[4,4],[4,6],[6,6],[6,8],[3,8]];
@@ -3164,7 +3176,7 @@ const cardsEl=$('cards');
 for(const [k,s] of Object.entries(SPECS)){
   const b=document.createElement('button'); b.className='card'; b.dataset.v=k; b.setAttribute('aria-pressed',k===G.vtype);
   b.innerHTML=`<span class="nm">${s.name}</span><span class="ds">${s.desc}</span><span class="bars"><span class="bar">SPD<i style="--v:${s.stats[0]*100}%"></i></span><span class="bar">MOD<i style="--v:${s.stats[1]*100}%"></i></span><span class="bar">ACC<i style="--v:${s.stats[2]*100}%"></i></span></span>`;
-  b.onclick=()=>{ G.vtype=k; store.set('vtype',k); for(const c of cardsEl.children) c.setAttribute('aria-pressed',c.dataset.v===k); setPreview(k); };
+  b.onclick=()=>{ G.vtype=k; for(const c of cardsEl.children) c.setAttribute('aria-pressed',c.dataset.v===k); setPreview(k); };
   cardsEl.appendChild(b);
 }
 for(const b of document.querySelectorAll('.mode')) b.onclick=()=>{ G.mode=b.dataset.mode; for(const c of document.querySelectorAll('.mode')) c.setAttribute('aria-pressed',c===b); };
@@ -3603,7 +3615,7 @@ function updateCamera(dt){
   if(G.camMode===2) lookAt.set(p.x+fx*20,G.camY+h-.6,p.z+fz*20); else lookAt.set(p.x+fx*4,G.camY+1.3,p.z+fz*4);
   camera.lookAt(lookAt);
   const nit=p.inp&&p.inp.nitro?1:0;
-  const fov=62+sr2*12+nit*9; camera.fov+=(fov-camera.fov)*Math.min(1,dt*4); camera.updateProjectionMatrix();
+  const fov=62+sr2*12+nit*9+(camera.aspect<1?(1-camera.aspect)*44:0); camera.fov+=(fov-camera.fov)*Math.min(1,dt*4); camera.updateProjectionMatrix();
 }
 
 // ================= HUD =================
@@ -3756,7 +3768,7 @@ function frame(dt){
   if(G.state==='menu'){
     const a=G.time*.22; const pv=preview; if(pv){ pv.root.rotation.y=.6; pv.root.position.set(PV.x,0,PV.z); }
     const od=innerHeight<500?6.8:8.5; camera.position.set(PV.x+Math.sin(a)*od,2.6+Math.sin(G.time*.3)*.5,PV.z+Math.cos(a)*od); camera.lookAt(PV.x,.9,PV.z);
-    if(camera.fov!==55){ camera.fov=55; camera.updateProjectionMatrix(); }
+    const mf=camera.aspect<1?75:55; if(camera.fov!==mf){ camera.fov=mf; camera.updateProjectionMatrix(); }
     // the menu panel covers the middle of a phone screen, so shift the picture to put the auto in the free space beside it
     const pr=menuPanel.getBoundingClientRect().right, W=innerWidth, H=innerHeight, dx=pr>0&&pr<W-60?Math.round((pr+W)/2-W/2):0;
     if(dx!==camShift){ camShift=dx; if(dx) camera.setViewOffset(W,H,-dx,0,W,H); else camera.clearViewOffset(); }
@@ -3769,8 +3781,7 @@ function frame(dt){
   sky.position.copy(camera.position); stars.position.copy(camera.position);
 }
 
-addEventListener('resize',()=>{ camShift=-1; renderer.setSize(innerWidth,innerHeight); camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); refreshMenu();
-  if(isTouch && innerHeight>innerWidth && G.state==='play') setPause(true); });
+addEventListener('resize',()=>{ camShift=-1; renderer.setSize(innerWidth,innerHeight); camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); refreshMenu(); });
 
 // ================= boot =================
 setSound(SND.on);
@@ -3785,7 +3796,7 @@ spawnPeds(LOW?10:16); spawnWalkers();
 spawnGadis();
 setPreview(G.vtype);
 refreshMenu();
-$('loading').remove();
+{ const l=$('loading'); if(l) l.remove(); }
 let last=performance.now();
 function loop(now){ requestAnimationFrame(loop); const raw=(now-last)/1000; last=now; adaptQuality(raw);
   // on a slow device take two steps per frame, so the game doesn't run in slow motion
