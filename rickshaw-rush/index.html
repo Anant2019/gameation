@@ -124,7 +124,7 @@ body:not(.touch) #toast{top:max(18%,152px);white-space:normal;width:max-content;
 @keyframes wflash{0%{border-color:#ff2e4d}100%{border-color:#3c6bff}}
 #copFlash{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity .4s;background:radial-gradient(ellipse at center,transparent 58%,var(--cf,rgba(255,30,50,.3)) 100%)}
 #fuelChip{position:absolute;left:calc(16px + env(safe-area-inset-left,0px));bottom:calc(18px + env(safe-area-inset-bottom,0px));width:150px;padding:7px 11px 8px;font-size:12px}
-body.touch #fuelChip{left:50%;transform:translateX(calc(-100% - 4px));bottom:calc(8px + env(safe-area-inset-bottom,0px));width:128px;padding:4px 8px 5px;font-size:10.5px}
+body.touch #fuelChip{left:50%;transform:translateX(calc(-100% - 4px));bottom:calc(6px + env(safe-area-inset-bottom,0px));width:112px;padding:3px 7px 4px;font-size:9.5px;line-height:1.2}
 body.touch #fuelBar{height:9px;margin-top:3px}
 body.touch #fuelChip .fnav{margin-top:2px}
 #fuelChip .fhead{display:flex;justify-content:space-between;align-items:baseline;font-weight:800;letter-spacing:.04em}
@@ -160,14 +160,18 @@ body.touch #limit{right:auto;left:calc(50% + 116px);bottom:calc(14px + env(safe-
 #joyKnob{position:absolute;left:50%;top:50%;width:58px;height:58px;margin:-29px 0 0 -29px;border-radius:50%;background:rgba(255,159,28,.75);border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4)}
 #joy .jl{position:absolute;left:50%;transform:translateX(-50%);font:800 9px var(--body);letter-spacing:.12em;color:rgba(255,255,255,.6)}
 #joy .jl.up{top:6px}#joy .jl.dn{bottom:6px}
-body.touch #speedo{right:auto;left:50%;transform:translateX(4px);bottom:calc(8px + env(safe-area-inset-bottom,0px));text-align:center;min-width:88px;padding:4px 10px 6px}
+body.touch #speedo{right:auto;left:50%;transform:translateX(4px);bottom:calc(8px + env(safe-area-inset-bottom,0px));text-align:center;min-width:70px;padding:3px 9px 5px}
 body.touch #mmWrap{width:96px;height:96px}
 body.touch #topBtns{top:calc(112px + env(safe-area-inset-top,0px));flex-direction:row;gap:5px}
 body.touch #topBtns button{width:34px;height:34px;font-size:13px}
 body.touch #hudTL{padding:5px 9px;min-width:0;max-width:30vw;font-size:11.5px}
 body.touch #hudTL .big{font-size:18px}
 body.touch #hudTL .lbl{font-size:9.5px}
-body.touch #toast{font-size:clamp(12px,2.4vw,18px);top:calc(32% + 6px + env(safe-area-inset-top,0px));white-space:normal;max-width:min(330px,max(256px,calc(100vw - 440px)));width:max-content;line-height:1.2;text-align:center}
+/* phone: messages are a small pill at the top, out of the way of the road */
+body.touch #toast{top:calc(42px + env(safe-area-inset-top,0px));font:800 12.5px/1.25 var(--body);letter-spacing:.01em;text-shadow:none;white-space:normal;width:max-content;max-width:min(320px,calc(100vw - 300px));padding:4px 12px;border-radius:999px;background:rgba(20,11,34,.72);border:1px solid rgba(255,255,255,.14)}
+body.touch #wanted:not([hidden]) ~ #toast{top:calc(78px + env(safe-area-inset-top,0px))}
+body.touch #bigText{font-size:clamp(34px,9vw,64px);text-shadow:3px 3px 0 var(--magenta),6px 6px 0 rgba(0,0,0,.3)}
+body.touch #combo{font-size:15px}
 body.touch #place{font-size:10.5px;padding:3px 9px;max-width:calc(100vw - 64vw - 40px);overflow:hidden;text-overflow:ellipsis}
 body.touch #btnTod,body.touch #btnSnd{display:none}
 body.touch #combo{bottom:calc(36% + env(safe-area-inset-bottom,0px))}
@@ -290,7 +294,8 @@ body.tilt #joy .jl.up::after{content:' · TILT'}
   body.touch #adOffer{bottom:calc(262px + env(safe-area-inset-bottom,0px))}
   body.touch #place{top:auto;bottom:calc(300px + env(safe-area-inset-bottom,0px));max-width:calc(100vw - 40px)}
   body.touch #wanted{top:auto;bottom:calc(330px + env(safe-area-inset-bottom,0px))}
-  body.touch #toast{top:calc(30% + env(safe-area-inset-top,0px));max-width:calc(100vw - 40px)}
+  body.touch #toast{top:calc(120px + env(safe-area-inset-top,0px));max-width:calc(100vw - 90px);margin-left:-20px}
+  body.touch #wanted:not([hidden]) ~ #toast{top:calc(120px + env(safe-area-inset-top,0px))}
 }
 @media (prefers-reduced-motion:reduce){ #toast,#bigText,#combo,#vignette,#copFlash{transition:none} #wanted.flash{animation:none;border-color:#ff2e4d} }
 </style>
@@ -3683,6 +3688,11 @@ function playUpdate(dt){
   if(G.mode==='free' && G.state==='play') updateRules(dt,inp); else p.speedMul=1;
   p.hitCool=Math.max(0,(p.hitCool||0)-dt);
   p.inp=inp;
+  // stuck against a wall with the gas held (common on a phone): hint first, then put the auto back on the road
+  if(G.state==='play' && !p.fly){ const push=inp.gas>.4 && Math.abs(p.fwd)<1.2; p.stuckT=(p.stuckT||0)+(push?dt:0); if(Math.abs(p.fwd)>4) p.stuckT=0;
+    if(p.stuckT>1.5 && !p.stuckHint){ p.stuckHint=1; toast('Phas gaye? Joystick neeche karke peeche lo',2.2); }
+    if(p.stuckT>3.5){ p.stuckT=0; p.stuckHint=0; resetPlayer(); toast('Gaadi wapas sadak pe',1.5); }
+    if(Math.abs(p.fwd)>4) p.stuckHint=0; }
   if(inp.nitro){ p.nitro=Math.max(0,p.nitro-dt*.32); } else p.nitro=Math.min(1,p.nitro+dt*.035);
   for(const a of ais){ if(a.fly) continue; a.inp=G.state==='countdown'?{gas:0,brake:0,steer:0,hand:false,nitro:false}:G.mode==='race'?aiInput(a,dt):rivalInput(a,dt); }
   for(const c of cops) if(!c.fly) c.inp=copInput(c,dt);
